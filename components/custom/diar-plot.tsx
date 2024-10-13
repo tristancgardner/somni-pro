@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -73,7 +73,7 @@ export default function AudioWaveform() {
                 new AudioContext().decodeAudioData(arrayBuffer)
             )
             .then((audioBuffer) => {
-                const waveform = generateWaveformData(audioBuffer, 600);
+                const waveform = generateWaveformData(audioBuffer, 10000); // Increased from 2000
                 setWaveformData(waveform);
             })
             .catch((error) =>
@@ -180,19 +180,18 @@ export default function AudioWaveform() {
         ),
         datasets: [
             {
-                data: waveformData,
+                data: waveformData.flatMap((v, i) => [
+                    { x: i * (duration / waveformData.length), y: -v },
+                    { x: i * (duration / waveformData.length), y: v }
+                ]),
                 borderColor: (context: ScriptableContext<"line">) => {
-                    const index = context.dataIndex;
-                    const time = index * (duration / waveformData.length);
-                    const segment = rttmData.find(
-                        (seg) =>
-                            time >= seg.start && time < seg.start + seg.duration
-                    );
-                    return segment ? speakerColors[segment.speaker] : "gray";
+                    const index = Math.floor(context.dataIndex / 2);
+                    return colorMap[index] || "rgba(200, 200, 200, 0.5)";
                 },
                 borderWidth: 1,
                 pointRadius: 0,
                 fill: false,
+                tension: 0,
             },
         ],
     };
@@ -217,6 +216,17 @@ export default function AudioWaveform() {
                 ticks: {
                     display: false,
                 },
+                grid: {
+                    display: false,
+                },
+                border: {
+                    display: false,
+                },
+            },
+        },
+        elements: {
+            line: {
+                borderWidth: 1,
             },
         },
         plugins: {
@@ -246,20 +256,20 @@ export default function AudioWaveform() {
     const generateWaveformData = (
         audioBuffer: AudioBuffer,
         samples: number
-    ) => {
+    ): number[] => {
         const channelData = audioBuffer.getChannelData(0);
         const blockSize = Math.floor(channelData.length / samples);
-        const filteredData = [];
+        const filteredData: number[] = [];
         for (let i = 0; i < samples; i++) {
             const blockStart = blockSize * i;
-            let blockSum = 0;
+            let sum = 0;
             for (let j = 0; j < blockSize; j++) {
-                blockSum += channelData[blockStart + j];
+                sum += Math.abs(channelData[blockStart + j]);
             }
-            filteredData.push(blockSum / blockSize);
+            filteredData.push(sum / blockSize);
         }
-        const maxAmplitude = Math.max(...filteredData.map(Math.abs));
-        return filteredData.map((n) => n / maxAmplitude);
+        const maxAmplitude = Math.max(...filteredData);
+        return filteredData.map(v => v / maxAmplitude);
     };
 
     const ZoomSlider = ({
@@ -284,6 +294,24 @@ export default function AudioWaveform() {
             />
         );
     };
+
+    // Add this memoized function to efficiently get colors for each data point
+    const colorMap = useMemo(() => {
+        if (waveformData.length === 0 || rttmData.length === 0) return [];
+        
+        const colors = new Array(waveformData.length).fill("rgba(200, 200, 200, 0.5)");
+        const timeStep = duration / waveformData.length;
+
+        rttmData.forEach((segment) => {
+            const startIndex = Math.floor(segment.start / timeStep);
+            const endIndex = Math.min(Math.floor((segment.start + segment.duration) / timeStep), waveformData.length);
+            for (let i = startIndex; i < endIndex; i++) {
+                colors[i] = speakerColors[segment.speaker];
+            }
+        });
+
+        return colors;
+    }, [waveformData, rttmData, duration, speakerColors]);
 
     return (
         <Card className='w-full max-w-4xl'>
