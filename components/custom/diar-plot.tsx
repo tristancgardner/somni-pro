@@ -22,6 +22,7 @@ import annotationPlugin from "chartjs-plugin-annotation";
 import { ScriptableContext } from "chart.js";
 import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
 import { Range } from "../../components/ui/range";
+import { Input } from "@/components/ui";
 
 Chart.register(annotationPlugin);
 
@@ -277,7 +278,7 @@ export default function AudioWaveform() {
         return filteredData.map(v => v / maxAmplitude);
     };
 
-    const ZoomSlider = ({
+    const ZoomControls = ({
         min,
         max,
         value,
@@ -288,15 +289,64 @@ export default function AudioWaveform() {
         value: [number, number];
         onChange: (value: [number, number]) => void;
     }) => {
+        const [inPoint, setInPoint] = useState(formatTime(value[0]));
+        const [outPoint, setOutPoint] = useState(formatTime(value[1]));
+
+        const parseTime = (timeString: string): number => {
+            const [minutes, seconds] = timeString.split(':').map(Number);
+            return minutes * 60 + seconds;
+        };
+
+        const handleInPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            setInPoint(e.target.value);
+            const newInPoint = parseTime(e.target.value);
+            if (!isNaN(newInPoint) && newInPoint >= min && newInPoint < value[1]) {
+                onChange([newInPoint, value[1]]);
+            }
+        };
+
+        const handleOutPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            setOutPoint(e.target.value);
+            const newOutPoint = parseTime(e.target.value);
+            if (!isNaN(newOutPoint) && newOutPoint > value[0] && newOutPoint <= max) {
+                onChange([value[0], newOutPoint]);
+            }
+        };
+
+        const resetZoom = () => {
+            onChange([min, max]);
+            setInPoint(formatTime(min));
+            setOutPoint(formatTime(max));
+        };
+
         return (
-            <Range
-                min={min}
-                max={max}
-                step={0.1}
-                value={value}
-                onValueChange={onChange}
-                className='mt-4'
-            />
+            <div className="mt-4 space-y-2">
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                        <span className="w-8">In:</span>
+                        <Input
+                            type="text"
+                            value={inPoint}
+                            onChange={handleInPointChange}
+                            placeholder="MM:SS"
+                            className="w-20"
+                        />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <span className="w-8">Out:</span>
+                        <Input
+                            type="text"
+                            value={outPoint}
+                            onChange={handleOutPointChange}
+                            placeholder="MM:SS"
+                            className="w-20"
+                        />
+                    </div>
+                </div>
+                <Button onClick={resetZoom} variant="outline" size="sm">
+                    Reset Zoom
+                </Button>
+            </div>
         );
     };
 
@@ -379,7 +429,7 @@ export default function AudioWaveform() {
                         </div>
                     ))}
                 </div>
-                <ZoomSlider
+                <ZoomControls
                     min={0}
                     max={duration}
                     value={zoomRange}
