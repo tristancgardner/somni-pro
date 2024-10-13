@@ -85,7 +85,10 @@ export default function AudioWaveform() {
             .then((data) => {
                 const parsedRttm = parseRTTM(data.content);
                 setRttmData(parsedRttm);
-                setSpeakerColors(getSpeakerColors(parsedRttm));
+                const colors = getSpeakerColors(parsedRttm);
+                setSpeakerColors(colors);
+                console.log("RTTM Data:", parsedRttm);
+                console.log("Speaker Colors:", colors);
             });
 
         return () => {
@@ -184,14 +187,13 @@ export default function AudioWaveform() {
                     { x: i * (duration / waveformData.length), y: -v },
                     { x: i * (duration / waveformData.length), y: v }
                 ]),
-                borderColor: (context: ScriptableContext<"line">) => {
-                    const index = Math.floor(context.dataIndex / 2);
-                    return colorMap[index] || "rgba(200, 200, 200, 0.5)";
-                },
                 borderWidth: 1,
                 pointRadius: 0,
                 fill: false,
                 tension: 0,
+                segment: {
+                    borderColor: (ctx: any) => colorMap[Math.floor(ctx.p0DataIndex / 2)] || "rgba(200, 200, 200, 0.5)",
+                },
             },
         ],
     };
@@ -227,6 +229,9 @@ export default function AudioWaveform() {
         elements: {
             line: {
                 borderWidth: 1,
+            },
+            point: {
+                radius: 0,
             },
         },
         plugins: {
@@ -305,13 +310,23 @@ export default function AudioWaveform() {
         rttmData.forEach((segment) => {
             const startIndex = Math.floor(segment.start / timeStep);
             const endIndex = Math.min(Math.floor((segment.start + segment.duration) / timeStep), waveformData.length);
+            console.log(`Segment: ${segment.speaker}, Start: ${startIndex}, End: ${endIndex}, Color: ${speakerColors[segment.speaker]}`);
             for (let i = startIndex; i < endIndex; i++) {
                 colors[i] = speakerColors[segment.speaker];
             }
         });
 
+        console.log("Color Map (first 100 elements):", colors.slice(0, 100));
         return colors;
     }, [waveformData, rttmData, duration, speakerColors]);
+
+    useEffect(() => {
+        console.log("Color map updated:", colorMap);
+    }, [colorMap]);
+
+    useEffect(() => {
+        console.log("Chart data updated:", chartData);
+    }, [chartData]);
 
     return (
         <Card className='w-full max-w-4xl'>
