@@ -21,6 +21,7 @@ import { Chart } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import { ScriptableContext } from "chart.js";
 import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
+import { Range } from "../../components/ui/range";
 
 Chart.register(annotationPlugin);
 
@@ -45,6 +46,7 @@ export default function AudioWaveform() {
         {}
     );
     const [waveformData, setWaveformData] = useState<number[]>([]);
+    const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
@@ -202,8 +204,8 @@ export default function AudioWaveform() {
             x: {
                 type: "linear" as const,
                 position: "bottom" as const,
-                min: 0,
-                max: duration,
+                min: zoomRange[0],
+                max: zoomRange[1],
                 ticks: {
                     callback: (value: number | string) =>
                         formatTime(Number(value)),
@@ -252,12 +254,35 @@ export default function AudioWaveform() {
             const blockStart = blockSize * i;
             let blockSum = 0;
             for (let j = 0; j < blockSize; j++) {
-                blockSum += Math.abs(channelData[blockStart + j]);
+                blockSum += channelData[blockStart + j];
             }
             filteredData.push(blockSum / blockSize);
         }
-        const multiplier = Math.pow(Math.max(...filteredData), -1);
-        return filteredData.map((n) => n * multiplier);
+        const maxAmplitude = Math.max(...filteredData.map(Math.abs));
+        return filteredData.map((n) => n / maxAmplitude);
+    };
+
+    const ZoomSlider = ({
+        min,
+        max,
+        value,
+        onChange,
+    }: {
+        min: number;
+        max: number;
+        value: [number, number];
+        onChange: (value: [number, number]) => void;
+    }) => {
+        return (
+            <Range
+                min={min}
+                max={max}
+                step={0.1}
+                value={value}
+                onValueChange={onChange}
+                className='mt-4'
+            />
+        );
     };
 
     return (
@@ -268,7 +293,6 @@ export default function AudioWaveform() {
             <CardContent>
                 <div className='relative h-64'>
                     <Line data={chartData} options={chartOptions} />
-                    {/*Removed old speaker label overlays*/}
                 </div>
                 <div className='mt-4 flex items-center space-x-4'>
                     <Button
@@ -312,6 +336,12 @@ export default function AudioWaveform() {
                         </div>
                     ))}
                 </div>
+                <ZoomSlider
+                    min={0}
+                    max={duration}
+                    value={zoomRange}
+                    onChange={(value) => setZoomRange(value)}
+                />
             </CardContent>
         </Card>
     );
