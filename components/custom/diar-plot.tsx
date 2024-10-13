@@ -387,36 +387,48 @@ export default function AudioWaveform() {
                 <div className='relative h-64'>
                     <Line data={chartData} options={chartOptions} />
                 </div>
-                <div className='mt-4 flex items-center space-x-4'>
-                    <Button
-                        onClick={togglePlayPause}
-                        aria-label={isPlaying ? "Pause" : "Play"}
-                    >
-                        {isPlaying ? "Pause" : "Play"}
-                    </Button>
-                    <span className='text-sm'>
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
-                    <Slider
-                        value={[currentTime]}
-                        min={0}
-                        max={duration}
-                        step={0.1}
-                        onValueChange={handleSliderChange}
-                        className='flex-grow'
-                    />
-                    <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={toggleMute}
-                        aria-label={volume === 0 ? "Unmute" : "Mute"}
-                    >
-                        {volume === 0 ? (
-                            <VolumeX className='h-4 w-4' />
-                        ) : (
-                            <Volume2 className='h-4 w-4' />
-                        )}
-                    </Button>
+                <div className='mt-4 space-y-2'>
+                    <div className='flex items-center space-x-4'>
+                        <Button
+                            onClick={togglePlayPause}
+                            aria-label={isPlaying ? "Pause" : "Play"}
+                        >
+                            {isPlaying ? "Pause" : "Play"}
+                        </Button>
+                        <Button
+                            variant='ghost'
+                            size='icon'
+                            onClick={toggleMute}
+                            aria-label={volume === 0 ? "Unmute" : "Mute"}
+                        >
+                            {volume === 0 ? (
+                                <VolumeX className='h-4 w-4' />
+                            ) : (
+                                <Volume2 className='h-4 w-4' />
+                            )}
+                        </Button>
+                    </div>
+                    <div className='space-y-1'>
+                        <label htmlFor="full-file-slider" className="text-sm font-medium">
+                            Full File Playback (Always shows entire file)
+                        </label>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm">{formatTime(0)}</span>
+                            <Slider
+                                id="full-file-slider"
+                                value={[currentTime]}
+                                min={0}
+                                max={duration}
+                                step={0.1}
+                                onValueChange={handleSliderChange}
+                                className='flex-grow'
+                            />
+                            <span className="text-sm">{formatTime(duration)}</span>
+                        </div>
+                        <div className="text-center">
+                            <span className="text-sm font-medium">{formatTime(currentTime)}</span>
+                        </div>
+                    </div>
                 </div>
                 <div className='mt-4 flex flex-wrap justify-center gap-4'>
                     {Object.entries(speakerColors).map(([speaker, color]) => (
