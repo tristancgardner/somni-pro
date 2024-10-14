@@ -11,6 +11,9 @@ import {
     Title,
     Tooltip,
     Legend,
+    ChartEvent,
+    ActiveElement,
+    ChartType,
 } from "chart.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -194,10 +197,7 @@ export default function AudioWaveform() {
 
     const handleSliderChange = (newValue: number[]) => {
         const newTime = newValue[0];
-        setCurrentTime(newTime);
-        if (audioRef.current) {
-            audioRef.current.currentTime = newTime;
-        }
+        updatePlayhead(newTime);
     };
 
     const toggleMute = () => {
@@ -296,6 +296,16 @@ export default function AudioWaveform() {
         },
         animation: {
             duration: 0,
+        },
+        onClick: (event: ChartEvent, elements: ActiveElement[], chart: ChartJS<ChartType>) => {
+            if (!chart.canvas) return;
+            const rect = chart.canvas.getBoundingClientRect();
+            const x = (event.native as MouseEvent)?.clientX ?? 0;
+            const canvasX = x - rect.left;
+            const xValue = chart.scales.x.getValueForPixel(canvasX);
+            if (xValue !== undefined) {
+                updatePlayhead(xValue);
+            }
         },
     };
 
@@ -625,6 +635,14 @@ export default function AudioWaveform() {
             }
         }
     }, [verticalScale]);
+
+    const updatePlayhead = (newTime: number) => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+            updateZoomRange(newTime);
+        }
+    };
 
     return (
         <Card className='w-full max-w-4xl'>
