@@ -70,6 +70,8 @@ export default function AudioWaveform() {
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [isRTTMUploaded, setIsRTTMUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
+    const [showGroundTruthLegend, setShowGroundTruthLegend] = useState(false);
+    const [showPredictionLegend, setShowPredictionLegend] = useState(false);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -588,8 +590,8 @@ export default function AudioWaveform() {
                 const parsedRttm = parseRTTM(content);
                 setGroundTruthRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors(colors);
-                setRttmData(parsedRttm); // Set the rttmData to be used for coloring
+                setSpeakerColors((prevColors) => ({ ...prevColors, ...colors }));
+                setShowGroundTruthLegend(true);
                 setIsRTTMUploaded(true);
             };
             reader.readAsText(file);
@@ -608,8 +610,9 @@ export default function AudioWaveform() {
                 const parsedRttm = parseRTTM(content);
                 setPredictionRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors(colors);
+                setSpeakerColors((prevColors) => ({ ...prevColors, ...colors }));
                 setRttmData(parsedRttm); // Set the rttmData to be used for coloring
+                setShowPredictionLegend(true);
                 setIsRTTMUploaded(true);
             };
             reader.readAsText(file);
@@ -661,6 +664,27 @@ export default function AudioWaveform() {
             setCurrentTime(newTime);
             updateZoomRange(newTime);
         }
+    };
+
+    const RTTMLegend = ({ data, title, colors }: { data: RTTMSegment[], title: string, colors: Record<string, string> }) => {
+        const speakers = Array.from(new Set(data.map(segment => segment.speaker)));
+        
+        return (
+            <div className="mt-4">
+                <h3 className="text-sm font-semibold mb-2">{title}</h3>
+                <div className="flex flex-wrap justify-center gap-4">
+                    {speakers.map((speaker) => (
+                        <div key={speaker} className="flex items-center">
+                            <div
+                                className="w-4 h-4 mr-2 rounded-full"
+                                style={{ backgroundColor: colors[speaker] }}
+                            ></div>
+                            <span>{speaker}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -776,24 +800,22 @@ export default function AudioWaveform() {
                             </div>
                         </div>
                         {isAudioUploaded && isRTTMUploaded && (
-                            <div className='mt-4 flex flex-wrap justify-center gap-4'>
-                                {Object.entries(speakerColors).map(
-                                    ([speaker, color]) => (
-                                        <div
-                                            key={speaker}
-                                            className='flex items-center'
-                                        >
-                                            <div
-                                                className='w-4 h-4 mr-2 rounded-full'
-                                                style={{
-                                                    backgroundColor: color,
-                                                }}
-                                            ></div>
-                                            <span>{speaker}</span>
-                                        </div>
-                                    )
+                            <>
+                                {showGroundTruthLegend && (
+                                    <RTTMLegend
+                                        data={groundTruthRTTMData}
+                                        title="Ground Truth RTTM Labels"
+                                        colors={speakerColors}
+                                    />
                                 )}
-                            </div>
+                                {showPredictionLegend && (
+                                    <RTTMLegend
+                                        data={predictionRTTMData}
+                                        title="Prediction RTTM Labels"
+                                        colors={speakerColors}
+                                    />
+                                )}
+                            </>
                         )}
                         <ZoomControls
                             min={0}
