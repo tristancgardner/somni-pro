@@ -14,13 +14,16 @@ import {
     ChartEvent,
     ActiveElement,
     ChartType,
+    Plugin,
+    Chart,
+    registerables,
+    ChartConfiguration
 } from "chart.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Volume2, VolumeX } from "lucide-react";
 import { ChartOptions } from "chart.js";
-import { Chart } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import { ScriptableContext } from "chart.js";
 import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
@@ -28,7 +31,32 @@ import { Range } from "../../components/ui/range";
 import { Input } from "@/components/ui";
 import { PlusIcon, MinusIcon } from "lucide-react";
 
-Chart.register(annotationPlugin);
+ChartJS.register(...registerables);
+
+// Define the plugin
+const GroundTruthPlugin: Plugin = {
+    id: 'groundTruthPlugin',
+    beforeDraw(chart, args, options) {
+        const { ctx, chartArea, scales } = chart;
+        const { showGroundTruth, groundTruthData, speakerColors } = options;
+
+        if (!showGroundTruth) return;
+
+        const barHeight = 20;
+        const yPosition = chartArea.top - barHeight - 5;
+
+        groundTruthData.forEach((segment: RTTMSegment) => {
+            const startX = scales.x.getPixelForValue(segment.start);
+            const endX = scales.x.getPixelForValue(segment.start + segment.duration);
+            
+            ctx.fillStyle = speakerColors[segment.speaker];
+            ctx.fillRect(startX, yPosition, endX - startX, barHeight);
+        });
+    }
+};
+
+// Register the plugin
+ChartJS.register(GroundTruthPlugin);
 
 ChartJS.register(
     CategoryScale,
@@ -72,6 +100,7 @@ export default function AudioWaveform() {
     const [verticalScale, setVerticalScale] = useState(1);
     const [showGroundTruthLegend, setShowGroundTruthLegend] = useState(false);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
+    const [showGroundTruth, setShowGroundTruth] = useState(true);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -252,7 +281,7 @@ export default function AudioWaveform() {
         ],
     };
 
-    const chartOptions: ChartOptions<"line"> = {
+    const chartOptions: ChartConfiguration<'line'>['options'] = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
@@ -306,6 +335,11 @@ export default function AudioWaveform() {
                     },
                 },
             },
+            groundTruthPlugin: {
+                showGroundTruth,
+                groundTruthData: groundTruthRTTMData,
+                speakerColors,
+            },
         },
         animation: {
             duration: 0,
@@ -322,6 +356,11 @@ export default function AudioWaveform() {
             const xValue = chart.scales.x.getValueForPixel(canvasX);
             if (xValue !== undefined) {
                 updatePlayhead(xValue);
+            }
+        },
+        layout: {
+            padding: {
+                top: 30 // Increase top padding to make room for ground truth bars
             }
         },
     };
@@ -520,10 +559,18 @@ export default function AudioWaveform() {
                     chart.options.scales.y.min = -1 / verticalScale;
                     chart.options.scales.y.max = 1 / verticalScale;
                 }
+                // Update the ground truth plugin options
+                if (chart.options.plugins && 'groundTruthPlugin' in chart.options.plugins) {
+                    (chart.options.plugins.groundTruthPlugin as any) = {
+                        showGroundTruth,
+                        groundTruthData: groundTruthRTTMData,
+                        speakerColors,
+                    };
+                }
                 chart.update();
             }
         }
-    }, [zoomRange, verticalScale]);
+    }, [zoomRange, verticalScale, groundTruthRTTMData, speakerColors, showGroundTruth]);
 
     useEffect(() => {
         const handleTimeUpdate = () => {
@@ -578,9 +625,7 @@ export default function AudioWaveform() {
         }
     };
 
-    const handleGroundTruthRTTMUpload = (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleGroundTruthRTTMUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             setGroundTruthRTTM(file);
@@ -593,6 +638,11 @@ export default function AudioWaveform() {
                 setSpeakerColors((prevColors) => ({ ...prevColors, ...colors }));
                 setShowGroundTruthLegend(true);
                 setIsRTTMUploaded(true);
+                
+                // Update the chart to show ground truth bars
+                if (chartRef.current) {
+                    chartRef.current.update();
+                }
             };
             reader.readAsText(file);
         }
@@ -685,6 +735,13 @@ export default function AudioWaveform() {
                 </div>
             </div>
         );
+    };
+
+    const toggleGroundTruth = () => {
+        setShowGroundTruth(!showGroundTruth);
+        if (chartRef.current) {
+            chartRef.current.update();
+        }
     };
 
     return (
@@ -802,11 +859,20 @@ export default function AudioWaveform() {
                         {isAudioUploaded && isRTTMUploaded && (
                             <>
                                 {showGroundTruthLegend && (
-                                    <RTTMLegend
-                                        data={groundTruthRTTMData}
-                                        title="Ground Truth RTTM Labels"
-                                        colors={speakerColors}
-                                    />
+                                    <div className="mt-4 flex justify-between items-center">
+                                        <RTTMLegend
+                                            data={groundTruthRTTMData}
+                                            title="Ground Truth RTTM Labels"
+                                            colors={speakerColors}
+                                        />
+                                        <Button
+                                            onClick={toggleGroundTruth}
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            {showGroundTruth ? "Hide" : "Show"} Ground Truth
+                                        </Button>
+                                    </div>
                                 )}
                                 {showPredictionLegend && (
                                     <RTTMLegend
