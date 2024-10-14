@@ -170,12 +170,19 @@ export default function AudioWaveform() {
                 audioRef.current.pause();
                 console.log("Audio paused");
             } else {
-                audioRef.current.play()
+                audioRef.current
+                    .play()
                     .then(() => console.log("Audio playing successfully"))
                     .catch((e) => {
                         console.error("Error playing audio:", e);
-                        console.error("Audio error code:", audioRef.current?.error?.code);
-                        console.error("Audio error message:", audioRef.current?.error?.message);
+                        console.error(
+                            "Audio error code:",
+                            audioRef.current?.error?.code
+                        );
+                        console.error(
+                            "Audio error message:",
+                            audioRef.current?.error?.message
+                        );
                     });
                 console.log("Attempting to play audio");
             }
@@ -184,7 +191,11 @@ export default function AudioWaveform() {
             // Update chart options to maintain vertical scale
             if (chartRef.current) {
                 const chart = chartRef.current;
-                if (chart.options && chart.options.scales && chart.options.scales.y) {
+                if (
+                    chart.options &&
+                    chart.options.scales &&
+                    chart.options.scales.y
+                ) {
                     chart.options.scales.y.min = -1 / verticalScale;
                     chart.options.scales.y.max = 1 / verticalScale;
                     chart.update();
@@ -297,7 +308,11 @@ export default function AudioWaveform() {
         animation: {
             duration: 0,
         },
-        onClick: (event: ChartEvent, elements: ActiveElement[], chart: ChartJS<ChartType>) => {
+        onClick: (
+            event: ChartEvent,
+            elements: ActiveElement[],
+            chart: ChartJS<ChartType>
+        ) => {
             if (!chart.canvas) return;
             const rect = chart.canvas.getBoundingClientRect();
             const x = (event.native as MouseEvent)?.clientX ?? 0;
@@ -609,18 +624,18 @@ export default function AudioWaveform() {
         onChange: (value: number) => void;
     }) => {
         return (
-            <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium">Waveform Size:</span>
+            <div className='flex items-center space-x-2'>
+                <span className='text-sm font-medium'>Waveform Size:</span>
                 <input
-                    type="range"
-                    min="0.2"
-                    max="5"
-                    step="0.1"
+                    type='range'
+                    min='0.2'
+                    max='5'
+                    step='0.1'
                     value={value}
                     onChange={(e) => onChange(parseFloat(e.target.value))}
-                    className="w-32"
+                    className='w-32'
                 />
-                <span className="text-sm">{value.toFixed(1)}x</span>
+                <span className='text-sm'>{value.toFixed(1)}x</span>
             </div>
         );
     };
@@ -628,7 +643,11 @@ export default function AudioWaveform() {
     useEffect(() => {
         if (chartRef.current) {
             const chart = chartRef.current;
-            if (chart.options && chart.options.scales && chart.options.scales.y) {
+            if (
+                chart.options &&
+                chart.options.scales &&
+                chart.options.scales.y
+            ) {
                 chart.options.scales.y.min = -1 / verticalScale;
                 chart.options.scales.y.max = 1 / verticalScale;
                 chart.update();
