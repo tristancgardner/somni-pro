@@ -50,6 +50,11 @@ export default function AudioWaveform() {
     const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const chartRef = useRef<ChartJS<"line", { x: number; y: number; }[], number> | null>(null);
+    const [audioFile, setAudioFile] = useState<File | null>(null);
+    const [groundTruthRTTM, setGroundTruthRTTM] = useState<File | null>(null);
+    const [predictionRTTM, setPredictionRTTM] = useState<File | null>(null);
+    const [groundTruthRTTMData, setGroundTruthRTTMData] = useState<RTTMSegment[]>([]);
+    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>([]);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -422,12 +427,96 @@ export default function AudioWaveform() {
         };
     }, [zoomRange, duration]);
 
+    const handleAudioFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setAudioFile(file);
+            const audio = new Audio(URL.createObjectURL(file));
+            audioRef.current = audio;
+
+            audio.addEventListener("loadedmetadata", () => {
+                console.log("Audio loaded, duration:", audio.duration);
+                setDuration(audio.duration);
+                setZoomRange([0, audio.duration]);
+            });
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const arrayBuffer = e.target?.result as ArrayBuffer;
+                const audioContext = new AudioContext();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const waveform = generateWaveformData(audioBuffer, 10000);
+                setWaveformData(waveform);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    };
+
+    const handleGroundTruthRTTMUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setGroundTruthRTTM(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target?.result as string;
+                const parsedRttm = parseRTTM(content);
+                setGroundTruthRTTMData(parsedRttm);
+                const colors = getSpeakerColors(parsedRttm);
+                setSpeakerColors(colors);
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    const handlePredictionRTTMUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setPredictionRTTM(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target?.result as string;
+                const parsedRttm = parseRTTM(content);
+                setPredictionRTTMData(parsedRttm);
+            };
+            reader.readAsText(file);
+        }
+    };
+
     return (
         <Card className='w-full max-w-4xl'>
             <CardHeader>
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
+                <div className="flex flex-wrap gap-4 mb-4">
+                    <div className="flex-1 min-w-[200px]">
+                        <div className="text-sm font-medium mb-1">Upload Audio File (WAV)</div>
+                        <Input
+                            id="audio-upload"
+                            type="file"
+                            accept=".wav"
+                            onChange={handleAudioFileUpload}
+                        />
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <div className="text-sm font-medium mb-1">Upload Ground Truth RTTM (Optional)</div>
+                        <Input
+                            id="ground-truth-upload"
+                            type="file"
+                            accept=".rttm"
+                            onChange={handleGroundTruthRTTMUpload}
+                        />
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <div className="text-sm font-medium mb-1">Upload Prediction RTTM</div>
+                        <Input
+                            id="prediction-upload"
+                            type="file"
+                            accept=".rttm"
+                            onChange={handlePredictionRTTMUpload}
+                        />
+                    </div>
+                </div>
                 <div className='relative h-64'>
                     <Line data={chartData} options={chartOptions} ref={chartRef} />
                 </div>
