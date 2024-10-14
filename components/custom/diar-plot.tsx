@@ -17,7 +17,7 @@ import {
     Plugin,
     Chart,
     registerables,
-    ChartConfiguration
+    ChartConfiguration,
 } from "chart.js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +35,7 @@ ChartJS.register(...registerables);
 
 // Define the plugin
 const GroundTruthPlugin: Plugin = {
-    id: 'groundTruthPlugin',
+    id: "groundTruthPlugin",
     beforeDraw(chart, args, options) {
         const { ctx, chartArea, scales } = chart;
         const { showGroundTruth, groundTruthData, speakerColors } = options;
@@ -47,12 +47,14 @@ const GroundTruthPlugin: Plugin = {
 
         groundTruthData.forEach((segment: RTTMSegment) => {
             const startX = scales.x.getPixelForValue(segment.start);
-            const endX = scales.x.getPixelForValue(segment.start + segment.duration);
-            
+            const endX = scales.x.getPixelForValue(
+                segment.start + segment.duration
+            );
+
             ctx.fillStyle = speakerColors[segment.speaker];
             ctx.fillRect(startX, yPosition, endX - startX, barHeight);
         });
-    }
+    },
 };
 
 // Register the plugin
@@ -281,7 +283,7 @@ export default function AudioWaveform() {
         ],
     };
 
-    const chartOptions: ChartConfiguration<'line'>['options'] = {
+    const chartOptions: ChartConfiguration<"line">["options"] = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
@@ -360,8 +362,8 @@ export default function AudioWaveform() {
         },
         layout: {
             padding: {
-                top: 30 // Increase top padding to make room for ground truth bars
-            }
+                top: 30, // Increase top padding to make room for ground truth bars
+            },
         },
     };
 
@@ -560,7 +562,10 @@ export default function AudioWaveform() {
                     chart.options.scales.y.max = 1 / verticalScale;
                 }
                 // Update the ground truth plugin options
-                if (chart.options.plugins && 'groundTruthPlugin' in chart.options.plugins) {
+                if (
+                    chart.options.plugins &&
+                    "groundTruthPlugin" in chart.options.plugins
+                ) {
                     (chart.options.plugins.groundTruthPlugin as any) = {
                         showGroundTruth,
                         groundTruthData: groundTruthRTTMData,
@@ -570,7 +575,13 @@ export default function AudioWaveform() {
                 chart.update();
             }
         }
-    }, [zoomRange, verticalScale, groundTruthRTTMData, speakerColors, showGroundTruth]);
+    }, [
+        zoomRange,
+        verticalScale,
+        groundTruthRTTMData,
+        speakerColors,
+        showGroundTruth,
+    ]);
 
     useEffect(() => {
         const handleTimeUpdate = () => {
@@ -625,7 +636,9 @@ export default function AudioWaveform() {
         }
     };
 
-    const handleGroundTruthRTTMUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleGroundTruthRTTMUpload = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
         if (file) {
             setGroundTruthRTTM(file);
@@ -635,10 +648,13 @@ export default function AudioWaveform() {
                 const parsedRttm = parseRTTM(content);
                 setGroundTruthRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors((prevColors) => ({ ...prevColors, ...colors }));
+                setSpeakerColors((prevColors) => ({
+                    ...prevColors,
+                    ...colors,
+                }));
                 setShowGroundTruthLegend(true);
                 setIsRTTMUploaded(true);
-                
+
                 // Update the chart to show ground truth bars
                 if (chartRef.current) {
                     chartRef.current.update();
@@ -660,7 +676,10 @@ export default function AudioWaveform() {
                 const parsedRttm = parseRTTM(content);
                 setPredictionRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors((prevColors) => ({ ...prevColors, ...colors }));
+                setSpeakerColors((prevColors) => ({
+                    ...prevColors,
+                    ...colors,
+                }));
                 setRttmData(parsedRttm); // Set the rttmData to be used for coloring
                 setShowPredictionLegend(true);
                 setIsRTTMUploaded(true);
@@ -716,17 +735,27 @@ export default function AudioWaveform() {
         }
     };
 
-    const RTTMLegend = ({ data, title, colors }: { data: RTTMSegment[], title: string, colors: Record<string, string> }) => {
-        const speakers = Array.from(new Set(data.map(segment => segment.speaker)));
-        
+    const RTTMLegend = ({
+        data,
+        title,
+        colors,
+    }: {
+        data: RTTMSegment[];
+        title: string;
+        colors: Record<string, string>;
+    }) => {
+        const speakers = Array.from(
+            new Set(data.map((segment) => segment.speaker))
+        );
+
         return (
-            <div className="mt-4">
-                <h3 className="text-sm font-semibold mb-2">{title}</h3>
-                <div className="flex flex-wrap justify-center gap-4">
+            <div className='mt-4'>
+                <h3 className='text-sm font-semibold mb-2'>{title}</h3>
+                <div className='flex flex-wrap justify-center gap-4'>
                     {speakers.map((speaker) => (
-                        <div key={speaker} className="flex items-center">
+                        <div key={speaker} className='flex items-center'>
                             <div
-                                className="w-4 h-4 mr-2 rounded-full"
+                                className='w-4 h-4 mr-2 rounded-full'
                                 style={{ backgroundColor: colors[speaker] }}
                             ></div>
                             <span>{speaker}</span>
@@ -859,25 +888,26 @@ export default function AudioWaveform() {
                         {isAudioUploaded && isRTTMUploaded && (
                             <>
                                 {showGroundTruthLegend && (
-                                    <div className="mt-4 flex justify-between items-center">
+                                    <div className='mt-4 flex justify-between items-center'>
                                         <RTTMLegend
                                             data={groundTruthRTTMData}
-                                            title="Ground Truth RTTM Labels"
+                                            title='Ground Truth RTTM Labels'
                                             colors={speakerColors}
                                         />
                                         <Button
                                             onClick={toggleGroundTruth}
-                                            variant="outline"
-                                            size="sm"
+                                            variant='outline'
+                                            size='sm'
                                         >
-                                            {showGroundTruth ? "Hide" : "Show"} Ground Truth
+                                            {showGroundTruth ? "Hide" : "Show"}{" "}
+                                            Ground Truth
                                         </Button>
                                     </div>
                                 )}
                                 {showPredictionLegend && (
                                     <RTTMLegend
                                         data={predictionRTTMData}
-                                        title="Prediction RTTM Labels"
+                                        title='Prediction RTTM Labels'
                                         colors={speakerColors}
                                     />
                                 )}
