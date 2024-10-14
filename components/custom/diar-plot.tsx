@@ -98,7 +98,20 @@ export default function AudioWaveform() {
             );
 
         fetch("/api/rttm")
-            .then((response) => response.json())
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text(); // Get the raw text first
+            })
+            .then((text) => {
+                try {
+                    return JSON.parse(text); // Try to parse it as JSON
+                } catch (e) {
+                    console.error("Failed to parse JSON:", text);
+                    throw new Error("Invalid JSON response");
+                }
+            })
             .then((data) => {
                 const parsedRttm = parseRTTM(data.content);
                 setRttmData(parsedRttm);
@@ -106,6 +119,10 @@ export default function AudioWaveform() {
                 setSpeakerColors(colors);
                 console.log("RTTM Data:", parsedRttm);
                 console.log("Speaker Colors:", colors);
+            })
+            .catch((error) => {
+                console.error("Error fetching or parsing RTTM data:", error);
+                // Handle the error appropriately in your UI
             });
 
         return () => {
@@ -210,7 +227,8 @@ export default function AudioWaveform() {
                 segment: {
                     borderColor: (ctx: any) =>
                         isRTTMUploaded
-                            ? colorMap[Math.floor(ctx.p0DataIndex / 2)] || "rgba(200, 200, 200, 0.5)"
+                            ? colorMap[Math.floor(ctx.p0DataIndex / 2)] ||
+                              "rgba(200, 200, 200, 0.5)"
                             : "rgba(200, 200, 200, 0.5)",
                 },
             },
@@ -301,11 +319,13 @@ export default function AudioWaveform() {
         max,
         value,
         onChange,
+        currentTime,
     }: {
         min: number;
         max: number;
         value: [number, number];
         onChange: (value: [number, number]) => void;
+        currentTime: number;
     }) => {
         const [inPoint, setInPoint] = useState(formatTime(value[0]));
         const [outPoint, setOutPoint] = useState(formatTime(value[1]));
@@ -316,22 +336,34 @@ export default function AudioWaveform() {
         }, [value]);
 
         const parseTime = (timeString: string): number => {
-            const [minutes, seconds] = timeString.split(':').map(Number);
+            const [minutes, seconds] = timeString.split(":").map(Number);
             return minutes * 60 + seconds;
         };
 
-        const handleInPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleInPointChange = (
+            e: React.ChangeEvent<HTMLInputElement>
+        ) => {
             setInPoint(e.target.value);
             const newInPoint = parseTime(e.target.value);
-            if (!isNaN(newInPoint) && newInPoint >= min && newInPoint < value[1]) {
+            if (
+                !isNaN(newInPoint) &&
+                newInPoint >= min &&
+                newInPoint < value[1]
+            ) {
                 onChange([newInPoint, value[1]]);
             }
         };
 
-        const handleOutPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleOutPointChange = (
+            e: React.ChangeEvent<HTMLInputElement>
+        ) => {
             setOutPoint(e.target.value);
             const newOutPoint = parseTime(e.target.value);
-            if (!isNaN(newOutPoint) && newOutPoint > value[0] && newOutPoint <= max) {
+            if (
+                !isNaN(newOutPoint) &&
+                newOutPoint > value[0] &&
+                newOutPoint <= max
+            ) {
                 onChange([value[0], newOutPoint]);
             }
         };
@@ -345,7 +377,7 @@ export default function AudioWaveform() {
         const zoomIn = () => {
             const currentDuration = value[1] - value[0];
             const newDuration = Math.max(currentDuration * 0.5, 5); // Zoom in by 50%, with a minimum duration of 5 seconds
-            const center = (value[0] + value[1]) / 2;
+            const center = currentTime;
             const newStart = Math.max(center - newDuration / 2, min);
             const newEnd = Math.min(newStart + newDuration, max);
             onChange([newStart, newEnd]);
@@ -354,7 +386,7 @@ export default function AudioWaveform() {
         const zoomOut = () => {
             const currentDuration = value[1] - value[0];
             const newDuration = Math.min(currentDuration * 2, max - min); // Zoom out by 100%, but not beyond the full duration
-            const center = (value[0] + value[1]) / 2;
+            const center = currentTime;
             const newStart = Math.max(center - newDuration / 2, min);
             const newEnd = Math.min(newStart + newDuration, max);
             onChange([newStart, newEnd]);
@@ -401,9 +433,16 @@ export default function AudioWaveform() {
 
     // Add this memoized function to efficiently get colors for each data point
     const colorMap = useMemo(() => {
-        if (waveformData.length === 0 || rttmData.length === 0 || !isRTTMUploaded) return [];
+        if (
+            waveformData.length === 0 ||
+            rttmData.length === 0 ||
+            !isRTTMUploaded
+        )
+            return [];
 
-        const colors = new Array(waveformData.length).fill("rgba(200, 200, 200, 0.5)");
+        const colors = new Array(waveformData.length).fill(
+            "rgba(200, 200, 200, 0.5)"
+        );
         const timeStep = duration / waveformData.length;
 
         rttmData.forEach((segment) => {
@@ -430,8 +469,8 @@ export default function AudioWaveform() {
 
     const updateZoomRange = (currentTime: number) => {
         const zoomDuration = zoomRange[1] - zoomRange[0];
-        if (currentTime >= zoomRange[1] - zoomDuration * 0.1) {
-            const newStart = Math.max(currentTime - zoomDuration * 0.9, 0);
+        if (currentTime < zoomRange[0] || currentTime > zoomRange[1]) {
+            const newStart = Math.max(currentTime - zoomDuration / 2, 0);
             const newEnd = Math.min(newStart + zoomDuration, duration);
             setZoomRange([newStart, newEnd]);
         }
@@ -456,8 +495,9 @@ export default function AudioWaveform() {
     useEffect(() => {
         const handleTimeUpdate = () => {
             if (audioRef.current) {
-                setCurrentTime(audioRef.current.currentTime);
-                updateZoomRange(audioRef.current.currentTime);
+                const newCurrentTime = audioRef.current.currentTime;
+                setCurrentTime(newCurrentTime);
+                updateZoomRange(newCurrentTime);
             }
         };
 
@@ -586,11 +626,15 @@ export default function AudioWaveform() {
                         />
                     </div>
                 </div>
-                
+
                 {isAudioUploaded && (
                     <>
                         <div className='relative h-64'>
-                            <Line data={chartData} options={chartOptions} ref={chartRef} />
+                            <Line
+                                data={chartData}
+                                options={chartOptions}
+                                ref={chartRef}
+                            />
                         </div>
                         <div className='mt-4 space-y-2'>
                             <div className='flex items-center space-x-4'>
@@ -604,7 +648,9 @@ export default function AudioWaveform() {
                                     variant='ghost'
                                     size='icon'
                                     onClick={toggleMute}
-                                    aria-label={volume === 0 ? "Unmute" : "Mute"}
+                                    aria-label={
+                                        volume === 0 ? "Unmute" : "Mute"
+                                    }
                                 >
                                     {volume === 0 ? (
                                         <VolumeX className='h-4 w-4' />
@@ -614,11 +660,17 @@ export default function AudioWaveform() {
                                 </Button>
                             </div>
                             <div className='space-y-1'>
-                                <label htmlFor='full-file-slider' className='text-sm font-medium'>
-                                    Full File Playback (Always shows entire file)
+                                <label
+                                    htmlFor='full-file-slider'
+                                    className='text-sm font-medium'
+                                >
+                                    Full File Playback (Always shows entire
+                                    file)
                                 </label>
                                 <div className='flex items-center space-x-2'>
-                                    <span className='text-sm'>{formatTime(0)}</span>
+                                    <span className='text-sm'>
+                                        {formatTime(0)}
+                                    </span>
                                     <Slider
                                         id='full-file-slider'
                                         value={[currentTime]}
@@ -628,24 +680,35 @@ export default function AudioWaveform() {
                                         onValueChange={handleSliderChange}
                                         className='flex-grow'
                                     />
-                                    <span className='text-sm'>{formatTime(duration)}</span>
+                                    <span className='text-sm'>
+                                        {formatTime(duration)}
+                                    </span>
                                 </div>
                                 <div className='text-center'>
-                                    <span className='text-sm font-medium'>{formatTime(currentTime)}</span>
+                                    <span className='text-sm font-medium'>
+                                        {formatTime(currentTime)}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                         {isAudioUploaded && isRTTMUploaded && (
                             <div className='mt-4 flex flex-wrap justify-center gap-4'>
-                                {Object.entries(speakerColors).map(([speaker, color]) => (
-                                    <div key={speaker} className='flex items-center'>
+                                {Object.entries(speakerColors).map(
+                                    ([speaker, color]) => (
                                         <div
-                                            className='w-4 h-4 mr-2 rounded-full'
-                                            style={{ backgroundColor: color }}
-                                        ></div>
-                                        <span>{speaker}</span>
-                                    </div>
-                                ))}
+                                            key={speaker}
+                                            className='flex items-center'
+                                        >
+                                            <div
+                                                className='w-4 h-4 mr-2 rounded-full'
+                                                style={{
+                                                    backgroundColor: color,
+                                                }}
+                                            ></div>
+                                            <span>{speaker}</span>
+                                        </div>
+                                    )
+                                )}
                             </div>
                         )}
                         <ZoomControls
@@ -653,6 +716,7 @@ export default function AudioWaveform() {
                             max={duration}
                             value={zoomRange}
                             onChange={(value) => setZoomRange(value)}
+                            currentTime={currentTime}
                         />
                     </>
                 )}
