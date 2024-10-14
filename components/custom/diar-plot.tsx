@@ -670,6 +670,12 @@ export default function AudioWaveform() {
 
                 {isAudioUploaded && (
                     <>
+                        <div className='flex justify-end mb-2'>
+                            <WaveformSizeControl
+                                value={verticalScale}
+                                onChange={setVerticalScale}
+                            />
+                        </div>
                         <div className='relative h-64'>
                             <Line
                                 data={chartData}
@@ -758,10 +764,6 @@ export default function AudioWaveform() {
                             value={zoomRange}
                             onChange={(value) => setZoomRange(value)}
                             currentTime={currentTime}
-                        />
-                        <WaveformSizeControl
-                            value={verticalScale}
-                            onChange={setVerticalScale}
                         />
                     </>
                 )}
