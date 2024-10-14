@@ -49,21 +49,21 @@ export default function AudioWaveform() {
     const [waveformData, setWaveformData] = useState<number[]>([]);
     const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const chartRef = useRef<ChartJS<"line", { x: number; y: number; }[], number> | null>(null);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
         audioRef.current = audio;
 
-        const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
         const handleLoadedMetadata = () => {
             console.log("Audio loaded, duration:", audio.duration);
             setDuration(audio.duration);
+            setZoomRange([0, audio.duration]);
         };
         const handleError = (e: ErrorEvent) => {
             console.error("Error loading audio:", e);
         };
 
-        audio.addEventListener("timeupdate", handleTimeUpdate);
         audio.addEventListener("loadedmetadata", handleLoadedMetadata);
         audio.addEventListener("error", handleError);
 
@@ -93,7 +93,6 @@ export default function AudioWaveform() {
             });
 
         return () => {
-            audio.removeEventListener("timeupdate", handleTimeUpdate);
             audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
             audio.removeEventListener("error", handleError);
             audio.pause();
@@ -292,6 +291,11 @@ export default function AudioWaveform() {
         const [inPoint, setInPoint] = useState(formatTime(value[0]));
         const [outPoint, setOutPoint] = useState(formatTime(value[1]));
 
+        useEffect(() => {
+            setInPoint(formatTime(value[0]));
+            setOutPoint(formatTime(value[1]));
+        }, [value]);
+
         const parseTime = (timeString: string): number => {
             const [minutes, seconds] = timeString.split(':').map(Number);
             return minutes * 60 + seconds;
@@ -378,6 +382,46 @@ export default function AudioWaveform() {
         console.log("Chart data updated:", chartData);
     }, [chartData]);
 
+    const updateZoomRange = (currentTime: number) => {
+        const zoomDuration = zoomRange[1] - zoomRange[0];
+        if (currentTime >= zoomRange[1] - zoomDuration * 0.1) {
+            const newStart = Math.max(currentTime - zoomDuration * 0.9, 0);
+            const newEnd = Math.min(newStart + zoomDuration, duration);
+            setZoomRange([newStart, newEnd]);
+        }
+    };
+
+    // Add this useEffect hook to update the chart when zoomRange changes
+    useEffect(() => {
+        if (chartRef.current) {
+            const chart = chartRef.current;
+            if (chart.options && chart.options.scales && chart.options.scales.x) {
+                chart.options.scales.x.min = zoomRange[0];
+                chart.options.scales.x.max = zoomRange[1];
+                chart.update();
+            }
+        }
+    }, [zoomRange]);
+
+    useEffect(() => {
+        const handleTimeUpdate = () => {
+            if (audioRef.current) {
+                setCurrentTime(audioRef.current.currentTime);
+                updateZoomRange(audioRef.current.currentTime);
+            }
+        };
+
+        if (audioRef.current) {
+            audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+        }
+
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+            }
+        };
+    }, [zoomRange, duration]);
+
     return (
         <Card className='w-full max-w-4xl'>
             <CardHeader>
@@ -385,7 +429,7 @@ export default function AudioWaveform() {
             </CardHeader>
             <CardContent>
                 <div className='relative h-64'>
-                    <Line data={chartData} options={chartOptions} />
+                    <Line data={chartData} options={chartOptions} ref={chartRef} />
                 </div>
                 <div className='mt-4 space-y-2'>
                     <div className='flex items-center space-x-4'>
