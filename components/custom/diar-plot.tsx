@@ -23,6 +23,7 @@ import { ScriptableContext } from "chart.js";
 import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
 import { Range } from "../../components/ui/range";
 import { Input } from "@/components/ui";
+import { PlusIcon, MinusIcon } from "lucide-react";
 
 Chart.register(annotationPlugin);
 
@@ -315,34 +316,22 @@ export default function AudioWaveform() {
         }, [value]);
 
         const parseTime = (timeString: string): number => {
-            const [minutes, seconds] = timeString.split(":").map(Number);
+            const [minutes, seconds] = timeString.split(':').map(Number);
             return minutes * 60 + seconds;
         };
 
-        const handleInPointChange = (
-            e: React.ChangeEvent<HTMLInputElement>
-        ) => {
+        const handleInPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             setInPoint(e.target.value);
             const newInPoint = parseTime(e.target.value);
-            if (
-                !isNaN(newInPoint) &&
-                newInPoint >= min &&
-                newInPoint < value[1]
-            ) {
+            if (!isNaN(newInPoint) && newInPoint >= min && newInPoint < value[1]) {
                 onChange([newInPoint, value[1]]);
             }
         };
 
-        const handleOutPointChange = (
-            e: React.ChangeEvent<HTMLInputElement>
-        ) => {
+        const handleOutPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             setOutPoint(e.target.value);
             const newOutPoint = parseTime(e.target.value);
-            if (
-                !isNaN(newOutPoint) &&
-                newOutPoint > value[0] &&
-                newOutPoint <= max
-            ) {
+            if (!isNaN(newOutPoint) && newOutPoint > value[0] && newOutPoint <= max) {
                 onChange([value[0], newOutPoint]);
             }
         };
@@ -351,6 +340,24 @@ export default function AudioWaveform() {
             onChange([min, max]);
             setInPoint(formatTime(min));
             setOutPoint(formatTime(max));
+        };
+
+        const zoomIn = () => {
+            const currentDuration = value[1] - value[0];
+            const newDuration = Math.max(currentDuration * 0.5, 5); // Zoom in by 50%, with a minimum duration of 5 seconds
+            const center = (value[0] + value[1]) / 2;
+            const newStart = Math.max(center - newDuration / 2, min);
+            const newEnd = Math.min(newStart + newDuration, max);
+            onChange([newStart, newEnd]);
+        };
+
+        const zoomOut = () => {
+            const currentDuration = value[1] - value[0];
+            const newDuration = Math.min(currentDuration * 2, max - min); // Zoom out by 100%, but not beyond the full duration
+            const center = (value[0] + value[1]) / 2;
+            const newStart = Math.max(center - newDuration / 2, min);
+            const newEnd = Math.min(newStart + newDuration, max);
+            onChange([newStart, newEnd]);
         };
 
         return (
@@ -377,9 +384,17 @@ export default function AudioWaveform() {
                         />
                     </div>
                 </div>
-                <Button onClick={resetZoom} variant='outline' size='sm'>
-                    Reset Zoom
-                </Button>
+                <div className='flex items-center space-x-2'>
+                    <Button onClick={zoomIn} variant='outline' size='sm'>
+                        <PlusIcon className='h-4 w-4' />
+                    </Button>
+                    <Button onClick={zoomOut} variant='outline' size='sm'>
+                        <MinusIcon className='h-4 w-4' />
+                    </Button>
+                    <Button onClick={resetZoom} variant='outline' size='sm'>
+                        Reset Zoom
+                    </Button>
+                </div>
             </div>
         );
     };
