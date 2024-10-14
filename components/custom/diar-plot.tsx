@@ -764,17 +764,6 @@ export default function AudioWaveform() {
                     </div>
                     <div className='flex-1 min-w-[200px]'>
                         <div className='text-sm font-medium mb-1'>
-                            Upload Ground Truth RTTM (Optional)
-                        </div>
-                        <Input
-                            id='ground-truth-upload'
-                            type='file'
-                            accept='.rttm'
-                            onChange={handleGroundTruthRTTMUpload}
-                        />
-                    </div>
-                    <div className='flex-1 min-w-[200px]'>
-                        <div className='text-sm font-medium mb-1'>
                             Upload Prediction RTTM
                         </div>
                         <Input
@@ -782,6 +771,17 @@ export default function AudioWaveform() {
                             type='file'
                             accept='.rttm'
                             onChange={handlePredictionRTTMUpload}
+                        />
+                    </div>
+                    <div className='flex-1 min-w-[200px]'>
+                        <div className='text-sm font-medium mb-1'>
+                            Upload Ground Truth RTTM (Optional)
+                        </div>
+                        <Input
+                            id='ground-truth-upload'
+                            type='file'
+                            accept='.rttm'
+                            onChange={handleGroundTruthRTTMUpload}
                         />
                     </div>
                 </div>
