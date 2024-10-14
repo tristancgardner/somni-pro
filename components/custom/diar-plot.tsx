@@ -66,6 +66,7 @@ export default function AudioWaveform() {
     );
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [isRTTMUploaded, setIsRTTMUploaded] = useState(false);
+    const [verticalScale, setVerticalScale] = useState(1);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -166,23 +167,26 @@ export default function AudioWaveform() {
                 audioRef.current.pause();
                 console.log("Audio paused");
             } else {
-                audioRef.current
-                    .play()
+                audioRef.current.play()
                     .then(() => console.log("Audio playing successfully"))
                     .catch((e) => {
                         console.error("Error playing audio:", e);
-                        console.error(
-                            "Audio error code:",
-                            audioRef.current?.error?.code
-                        );
-                        console.error(
-                            "Audio error message:",
-                            audioRef.current?.error?.message
-                        );
+                        console.error("Audio error code:", audioRef.current?.error?.code);
+                        console.error("Audio error message:", audioRef.current?.error?.message);
                     });
                 console.log("Attempting to play audio");
             }
             setIsPlaying(!isPlaying);
+
+            // Update chart options to maintain vertical scale
+            if (chartRef.current) {
+                const chart = chartRef.current;
+                if (chart.options && chart.options.scales && chart.options.scales.y) {
+                    chart.options.scales.y.min = -1 / verticalScale;
+                    chart.options.scales.y.max = 1 / verticalScale;
+                    chart.update();
+                }
+            }
         } else {
             console.error("Audio element not initialized");
         }
@@ -250,8 +254,8 @@ export default function AudioWaveform() {
                 },
             },
             y: {
-                min: -1,
-                max: 1,
+                min: -1 / verticalScale,
+                max: 1 / verticalScale,
                 ticks: {
                     display: false,
                 },
@@ -480,17 +484,19 @@ export default function AudioWaveform() {
     useEffect(() => {
         if (chartRef.current) {
             const chart = chartRef.current;
-            if (
-                chart.options &&
-                chart.options.scales &&
-                chart.options.scales.x
-            ) {
-                chart.options.scales.x.min = zoomRange[0];
-                chart.options.scales.x.max = zoomRange[1];
+            if (chart.options && chart.options.scales) {
+                if (chart.options.scales.x) {
+                    chart.options.scales.x.min = zoomRange[0];
+                    chart.options.scales.x.max = zoomRange[1];
+                }
+                if (chart.options.scales.y) {
+                    chart.options.scales.y.min = -1 / verticalScale;
+                    chart.options.scales.y.max = 1 / verticalScale;
+                }
                 chart.update();
             }
         }
-    }, [zoomRange]);
+    }, [zoomRange, verticalScale]);
 
     useEffect(() => {
         const handleTimeUpdate = () => {
@@ -513,7 +519,7 @@ export default function AudioWaveform() {
                 );
             }
         };
-    }, [zoomRange, duration]);
+    }, [zoomRange, duration, verticalScale]); // Add verticalScale to the dependency array
 
     const handleAudioFileUpload = (
         event: React.ChangeEvent<HTMLInputElement>
@@ -584,6 +590,41 @@ export default function AudioWaveform() {
             reader.readAsText(file);
         }
     };
+
+    const WaveformSizeControl = ({
+        value,
+        onChange,
+    }: {
+        value: number;
+        onChange: (value: number) => void;
+    }) => {
+        return (
+            <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium">Waveform Size:</span>
+                <input
+                    type="range"
+                    min="0.2"
+                    max="5"
+                    step="0.1"
+                    value={value}
+                    onChange={(e) => onChange(parseFloat(e.target.value))}
+                    className="w-32"
+                />
+                <span className="text-sm">{value.toFixed(1)}x</span>
+            </div>
+        );
+    };
+
+    useEffect(() => {
+        if (chartRef.current) {
+            const chart = chartRef.current;
+            if (chart.options && chart.options.scales && chart.options.scales.y) {
+                chart.options.scales.y.min = -1 / verticalScale;
+                chart.options.scales.y.max = 1 / verticalScale;
+                chart.update();
+            }
+        }
+    }, [verticalScale]);
 
     return (
         <Card className='w-full max-w-4xl'>
@@ -717,6 +758,10 @@ export default function AudioWaveform() {
                             value={zoomRange}
                             onChange={(value) => setZoomRange(value)}
                             currentTime={currentTime}
+                        />
+                        <WaveformSizeControl
+                            value={verticalScale}
+                            onChange={setVerticalScale}
                         />
                     </>
                 )}
