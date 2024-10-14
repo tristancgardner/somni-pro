@@ -49,12 +49,22 @@ export default function AudioWaveform() {
     const [waveformData, setWaveformData] = useState<number[]>([]);
     const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const chartRef = useRef<ChartJS<"line", { x: number; y: number; }[], number> | null>(null);
+    const chartRef = useRef<ChartJS<
+        "line",
+        { x: number; y: number }[],
+        number
+    > | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [groundTruthRTTM, setGroundTruthRTTM] = useState<File | null>(null);
     const [predictionRTTM, setPredictionRTTM] = useState<File | null>(null);
-    const [groundTruthRTTMData, setGroundTruthRTTMData] = useState<RTTMSegment[]>([]);
-    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>([]);
+    const [groundTruthRTTMData, setGroundTruthRTTMData] = useState<
+        RTTMSegment[]
+    >([]);
+    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>(
+        []
+    );
+    const [isAudioUploaded, setIsAudioUploaded] = useState(false);
+    const [isRTTMUploaded, setIsRTTMUploaded] = useState(false);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -190,14 +200,17 @@ export default function AudioWaveform() {
             {
                 data: waveformData.flatMap((v, i) => [
                     { x: i * (duration / waveformData.length), y: -v },
-                    { x: i * (duration / waveformData.length), y: v }
+                    { x: i * (duration / waveformData.length), y: v },
                 ]),
                 borderWidth: 1,
                 pointRadius: 0,
                 fill: false,
                 tension: 0,
                 segment: {
-                    borderColor: (ctx: any) => colorMap[Math.floor(ctx.p0DataIndex / 2)] || "rgba(200, 200, 200, 0.5)",
+                    borderColor: (ctx: any) =>
+                        isRTTMUploaded
+                            ? colorMap[Math.floor(ctx.p0DataIndex / 2)] || "rgba(200, 200, 200, 0.5)"
+                            : "rgba(200, 200, 200, 0.5)",
                 },
             },
         ],
@@ -279,7 +292,7 @@ export default function AudioWaveform() {
             filteredData.push(sum / blockSize);
         }
         const maxAmplitude = Math.max(...filteredData);
-        return filteredData.map(v => v / maxAmplitude);
+        return filteredData.map((v) => v / maxAmplitude);
     };
 
     const ZoomControls = ({
@@ -302,22 +315,34 @@ export default function AudioWaveform() {
         }, [value]);
 
         const parseTime = (timeString: string): number => {
-            const [minutes, seconds] = timeString.split(':').map(Number);
+            const [minutes, seconds] = timeString.split(":").map(Number);
             return minutes * 60 + seconds;
         };
 
-        const handleInPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleInPointChange = (
+            e: React.ChangeEvent<HTMLInputElement>
+        ) => {
             setInPoint(e.target.value);
             const newInPoint = parseTime(e.target.value);
-            if (!isNaN(newInPoint) && newInPoint >= min && newInPoint < value[1]) {
+            if (
+                !isNaN(newInPoint) &&
+                newInPoint >= min &&
+                newInPoint < value[1]
+            ) {
                 onChange([newInPoint, value[1]]);
             }
         };
 
-        const handleOutPointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleOutPointChange = (
+            e: React.ChangeEvent<HTMLInputElement>
+        ) => {
             setOutPoint(e.target.value);
             const newOutPoint = parseTime(e.target.value);
-            if (!isNaN(newOutPoint) && newOutPoint > value[0] && newOutPoint <= max) {
+            if (
+                !isNaN(newOutPoint) &&
+                newOutPoint > value[0] &&
+                newOutPoint <= max
+            ) {
                 onChange([value[0], newOutPoint]);
             }
         };
@@ -329,30 +354,30 @@ export default function AudioWaveform() {
         };
 
         return (
-            <div className="mt-4 space-y-2">
-                <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                        <span className="w-8">In:</span>
+            <div className='mt-4 space-y-2'>
+                <div className='flex items-center space-x-4'>
+                    <div className='flex items-center space-x-2'>
+                        <span className='w-8'>In:</span>
                         <Input
-                            type="text"
+                            type='text'
                             value={inPoint}
                             onChange={handleInPointChange}
-                            placeholder="MM:SS"
-                            className="w-20"
+                            placeholder='MM:SS'
+                            className='w-20'
                         />
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <span className="w-8">Out:</span>
+                    <div className='flex items-center space-x-2'>
+                        <span className='w-8'>Out:</span>
                         <Input
-                            type="text"
+                            type='text'
                             value={outPoint}
                             onChange={handleOutPointChange}
-                            placeholder="MM:SS"
-                            className="w-20"
+                            placeholder='MM:SS'
+                            className='w-20'
                         />
                     </div>
                 </div>
-                <Button onClick={resetZoom} variant="outline" size="sm">
+                <Button onClick={resetZoom} variant='outline' size='sm'>
                     Reset Zoom
                 </Button>
             </div>
@@ -361,23 +386,24 @@ export default function AudioWaveform() {
 
     // Add this memoized function to efficiently get colors for each data point
     const colorMap = useMemo(() => {
-        if (waveformData.length === 0 || rttmData.length === 0) return [];
-        
+        if (waveformData.length === 0 || rttmData.length === 0 || !isRTTMUploaded) return [];
+
         const colors = new Array(waveformData.length).fill("rgba(200, 200, 200, 0.5)");
         const timeStep = duration / waveformData.length;
 
         rttmData.forEach((segment) => {
             const startIndex = Math.floor(segment.start / timeStep);
-            const endIndex = Math.min(Math.floor((segment.start + segment.duration) / timeStep), waveformData.length);
-            console.log(`Segment: ${segment.speaker}, Start: ${startIndex}, End: ${endIndex}, Color: ${speakerColors[segment.speaker]}`);
+            const endIndex = Math.min(
+                Math.floor((segment.start + segment.duration) / timeStep),
+                waveformData.length
+            );
             for (let i = startIndex; i < endIndex; i++) {
                 colors[i] = speakerColors[segment.speaker];
             }
         });
 
-        console.log("Color Map (first 100 elements):", colors.slice(0, 100));
         return colors;
-    }, [waveformData, rttmData, duration, speakerColors]);
+    }, [waveformData, rttmData, duration, speakerColors, isRTTMUploaded]);
 
     useEffect(() => {
         console.log("Color map updated:", colorMap);
@@ -400,7 +426,11 @@ export default function AudioWaveform() {
     useEffect(() => {
         if (chartRef.current) {
             const chart = chartRef.current;
-            if (chart.options && chart.options.scales && chart.options.scales.x) {
+            if (
+                chart.options &&
+                chart.options.scales &&
+                chart.options.scales.x
+            ) {
                 chart.options.scales.x.min = zoomRange[0];
                 chart.options.scales.x.max = zoomRange[1];
                 chart.update();
@@ -417,17 +447,22 @@ export default function AudioWaveform() {
         };
 
         if (audioRef.current) {
-            audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+            audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
         }
 
         return () => {
             if (audioRef.current) {
-                audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+                audioRef.current.removeEventListener(
+                    "timeupdate",
+                    handleTimeUpdate
+                );
             }
         };
     }, [zoomRange, duration]);
 
-    const handleAudioFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAudioFileUpload = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
         if (file) {
             setAudioFile(file);
@@ -438,13 +473,16 @@ export default function AudioWaveform() {
                 console.log("Audio loaded, duration:", audio.duration);
                 setDuration(audio.duration);
                 setZoomRange([0, audio.duration]);
+                setIsAudioUploaded(true); // Set this to true when audio is loaded
             });
 
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const arrayBuffer = e.target?.result as ArrayBuffer;
                 const audioContext = new AudioContext();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const audioBuffer = await audioContext.decodeAudioData(
+                    arrayBuffer
+                );
                 const waveform = generateWaveformData(audioBuffer, 10000);
                 setWaveformData(waveform);
             };
@@ -452,7 +490,9 @@ export default function AudioWaveform() {
         }
     };
 
-    const handleGroundTruthRTTMUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleGroundTruthRTTMUpload = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
         if (file) {
             setGroundTruthRTTM(file);
@@ -463,12 +503,16 @@ export default function AudioWaveform() {
                 setGroundTruthRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
                 setSpeakerColors(colors);
+                setRttmData(parsedRttm); // Set the rttmData to be used for coloring
+                setIsRTTMUploaded(true);
             };
             reader.readAsText(file);
         }
     };
 
-    const handlePredictionRTTMUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePredictionRTTMUpload = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
         if (file) {
             setPredictionRTTM(file);
@@ -477,6 +521,10 @@ export default function AudioWaveform() {
                 const content = e.target?.result as string;
                 const parsedRttm = parseRTTM(content);
                 setPredictionRTTMData(parsedRttm);
+                const colors = getSpeakerColors(parsedRttm);
+                setSpeakerColors(colors);
+                setRttmData(parsedRttm); // Set the rttmData to be used for coloring
+                setIsRTTMUploaded(true);
             };
             reader.readAsText(file);
         }
@@ -488,98 +536,111 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-wrap gap-4 mb-4">
-                    <div className="flex-1 min-w-[200px]">
-                        <div className="text-sm font-medium mb-1">Upload Audio File (WAV)</div>
+                <div className='flex flex-wrap gap-4 mb-4'>
+                    <div className='flex-1 min-w-[200px]'>
+                        <div className='text-sm font-medium mb-1'>
+                            Upload Audio File (WAV)
+                        </div>
                         <Input
-                            id="audio-upload"
-                            type="file"
-                            accept=".wav"
+                            id='audio-upload'
+                            type='file'
+                            accept='.wav'
                             onChange={handleAudioFileUpload}
                         />
                     </div>
-                    <div className="flex-1 min-w-[200px]">
-                        <div className="text-sm font-medium mb-1">Upload Ground Truth RTTM (Optional)</div>
+                    <div className='flex-1 min-w-[200px]'>
+                        <div className='text-sm font-medium mb-1'>
+                            Upload Ground Truth RTTM (Optional)
+                        </div>
                         <Input
-                            id="ground-truth-upload"
-                            type="file"
-                            accept=".rttm"
+                            id='ground-truth-upload'
+                            type='file'
+                            accept='.rttm'
                             onChange={handleGroundTruthRTTMUpload}
                         />
                     </div>
-                    <div className="flex-1 min-w-[200px]">
-                        <div className="text-sm font-medium mb-1">Upload Prediction RTTM</div>
+                    <div className='flex-1 min-w-[200px]'>
+                        <div className='text-sm font-medium mb-1'>
+                            Upload Prediction RTTM
+                        </div>
                         <Input
-                            id="prediction-upload"
-                            type="file"
-                            accept=".rttm"
+                            id='prediction-upload'
+                            type='file'
+                            accept='.rttm'
                             onChange={handlePredictionRTTMUpload}
                         />
                     </div>
                 </div>
-                <div className='relative h-64'>
-                    <Line data={chartData} options={chartOptions} ref={chartRef} />
-                </div>
-                <div className='mt-4 space-y-2'>
-                    <div className='flex items-center space-x-4'>
-                        <Button
-                            onClick={togglePlayPause}
-                            aria-label={isPlaying ? "Pause" : "Play"}
-                        >
-                            {isPlaying ? "Pause" : "Play"}
-                        </Button>
-                        <Button
-                            variant='ghost'
-                            size='icon'
-                            onClick={toggleMute}
-                            aria-label={volume === 0 ? "Unmute" : "Mute"}
-                        >
-                            {volume === 0 ? (
-                                <VolumeX className='h-4 w-4' />
-                            ) : (
-                                <Volume2 className='h-4 w-4' />
-                            )}
-                        </Button>
-                    </div>
-                    <div className='space-y-1'>
-                        <label htmlFor="full-file-slider" className="text-sm font-medium">
-                            Full File Playback (Always shows entire file)
-                        </label>
-                        <div className="flex items-center space-x-2">
-                            <span className="text-sm">{formatTime(0)}</span>
-                            <Slider
-                                id="full-file-slider"
-                                value={[currentTime]}
-                                min={0}
-                                max={duration}
-                                step={0.1}
-                                onValueChange={handleSliderChange}
-                                className='flex-grow'
-                            />
-                            <span className="text-sm">{formatTime(duration)}</span>
+                
+                {isAudioUploaded && (
+                    <>
+                        <div className='relative h-64'>
+                            <Line data={chartData} options={chartOptions} ref={chartRef} />
                         </div>
-                        <div className="text-center">
-                            <span className="text-sm font-medium">{formatTime(currentTime)}</span>
+                        <div className='mt-4 space-y-2'>
+                            <div className='flex items-center space-x-4'>
+                                <Button
+                                    onClick={togglePlayPause}
+                                    aria-label={isPlaying ? "Pause" : "Play"}
+                                >
+                                    {isPlaying ? "Pause" : "Play"}
+                                </Button>
+                                <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    onClick={toggleMute}
+                                    aria-label={volume === 0 ? "Unmute" : "Mute"}
+                                >
+                                    {volume === 0 ? (
+                                        <VolumeX className='h-4 w-4' />
+                                    ) : (
+                                        <Volume2 className='h-4 w-4' />
+                                    )}
+                                </Button>
+                            </div>
+                            <div className='space-y-1'>
+                                <label htmlFor='full-file-slider' className='text-sm font-medium'>
+                                    Full File Playback (Always shows entire file)
+                                </label>
+                                <div className='flex items-center space-x-2'>
+                                    <span className='text-sm'>{formatTime(0)}</span>
+                                    <Slider
+                                        id='full-file-slider'
+                                        value={[currentTime]}
+                                        min={0}
+                                        max={duration}
+                                        step={0.1}
+                                        onValueChange={handleSliderChange}
+                                        className='flex-grow'
+                                    />
+                                    <span className='text-sm'>{formatTime(duration)}</span>
+                                </div>
+                                <div className='text-center'>
+                                    <span className='text-sm font-medium'>{formatTime(currentTime)}</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div className='mt-4 flex flex-wrap justify-center gap-4'>
-                    {Object.entries(speakerColors).map(([speaker, color]) => (
-                        <div key={speaker} className='flex items-center'>
-                            <div
-                                className='w-4 h-4 mr-2 rounded-full'
-                                style={{ backgroundColor: color }}
-                            ></div>
-                            <span>{speaker}</span>
-                        </div>
-                    ))}
-                </div>
-                <ZoomControls
-                    min={0}
-                    max={duration}
-                    value={zoomRange}
-                    onChange={(value) => setZoomRange(value)}
-                />
+                        {isAudioUploaded && isRTTMUploaded && (
+                            <div className='mt-4 flex flex-wrap justify-center gap-4'>
+                                {Object.entries(speakerColors).map(([speaker, color]) => (
+                                    <div key={speaker} className='flex items-center'>
+                                        <div
+                                            className='w-4 h-4 mr-2 rounded-full'
+                                            style={{ backgroundColor: color }}
+                                        ></div>
+                                        <span>{speaker}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <ZoomControls
+                            min={0}
+                            max={duration}
+                            value={zoomRange}
+                            onChange={(value) => setZoomRange(value)}
+                        />
+                    </>
+                )}
             </CardContent>
         </Card>
     );
