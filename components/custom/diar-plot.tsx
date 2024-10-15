@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, {
+    useEffect,
+    useRef,
+    useState,
+    useMemo,
+    useCallback,
+} from "react";
 import { Line } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -30,8 +36,43 @@ import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
 import { Range } from "../../components/ui/range";
 import { Input } from "@/components/ui";
 import { PlusIcon, MinusIcon } from "lucide-react";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+// import { Label } from "@/components/ui/label";
+import { ChromePicker } from "react-color";
 
 ChartJS.register(...registerables);
+
+// Add this constant at the top of the file, after the imports
+const SPEAKER_COLORS = [
+    "#FF6B6B",
+    "#4ECDC4",
+    "#45B7D1",
+    "#FFA07A",
+    "#98D8C8",
+    "#F06292",
+    "#AED581",
+    "#7986CB",
+    "#FFD54F",
+    "#4DB6AC",
+    "#9575CD",
+    "#F06292",
+    "#81C784",
+    "#64B5F6",
+    "#FFB74D",
+    "#A1887F",
+    "#9575CD",
+    "#4DB6AC",
+    "#DCE775",
+    "#4DD0E1",
+    "#BA68C8",
+    "#FF8A65",
+    "#7986CB",
+    "#81C784",
+];
 
 // Define the plugin
 const GroundTruthPlugin: Plugin = {
@@ -71,6 +112,18 @@ ChartJS.register(
     annotationPlugin
 );
 
+// Add this debounce function after the imports
+function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+): (...args: Parameters<T>) => void {
+    let timeout: NodeJS.Timeout | null = null;
+    return (...args: Parameters<T>) => {
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+}
+
 export default function AudioWaveform() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -103,6 +156,10 @@ export default function AudioWaveform() {
     const [showGroundTruthLegend, setShowGroundTruthLegend] = useState(false);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
     const [showGroundTruth, setShowGroundTruth] = useState(true);
+    const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
+    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<
+        Record<string, string>
+    >({});
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -175,24 +232,10 @@ export default function AudioWaveform() {
         const speakers = Array.from(
             new Set(rttmData.map((segment) => segment.speaker))
         );
-        const colors = [
-            "#FF6B6B",
-            "#4ECDC4",
-            "#45B7D1",
-            "#FFA07A",
-            "#98D8C8",
-            "#F06292",
-            "#AED581",
-            "#7986CB",
-            "#FFD54F",
-            "#4DB6AC",
-            "#9575CD",
-            "#F06292",
-        ];
         return Object.fromEntries(
             speakers.map((speaker, index) => [
                 speaker,
-                colors[index % colors.length],
+                SPEAKER_COLORS[index % SPEAKER_COLORS.length],
             ])
         );
     };
@@ -257,6 +300,41 @@ export default function AudioWaveform() {
         return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
+    // Update the colorMap useMemo to use predictionRTTMData instead of rttmData
+    const colorMap = useMemo(() => {
+        if (
+            waveformData.length === 0 ||
+            predictionRTTMData.length === 0 ||
+            !isRTTMUploaded
+        )
+            return [];
+
+        const colors = new Array(waveformData.length).fill(
+            "rgba(200, 200, 200, 0.5)"
+        );
+        const timeStep = duration / waveformData.length;
+
+        predictionRTTMData.forEach((segment) => {
+            const startIndex = Math.floor(segment.start / timeStep);
+            const endIndex = Math.min(
+                Math.floor((segment.start + segment.duration) / timeStep),
+                waveformData.length
+            );
+            for (let i = startIndex; i < endIndex; i++) {
+                colors[i] = speakerColors[segment.speaker];
+            }
+        });
+
+        return colors;
+    }, [
+        waveformData,
+        predictionRTTMData,
+        duration,
+        speakerColors,
+        isRTTMUploaded,
+    ]);
+
+    // Update the chartData to use the colorMap
     const chartData = {
         labels: Array.from(
             { length: waveformData.length },
@@ -340,7 +418,12 @@ export default function AudioWaveform() {
             groundTruthPlugin: {
                 showGroundTruth,
                 groundTruthData: groundTruthRTTMData,
-                speakerColors,
+                speakerColors: Object.fromEntries(
+                    groundTruthRTTMData.map((segment, index) => [
+                        segment.speaker,
+                        SPEAKER_COLORS[index % SPEAKER_COLORS.length],
+                    ])
+                ),
             },
         },
         animation: {
@@ -503,34 +586,6 @@ export default function AudioWaveform() {
         );
     };
 
-    // Add this memoized function to efficiently get colors for each data point
-    const colorMap = useMemo(() => {
-        if (
-            waveformData.length === 0 ||
-            rttmData.length === 0 ||
-            !isRTTMUploaded
-        )
-            return [];
-
-        const colors = new Array(waveformData.length).fill(
-            "rgba(200, 200, 200, 0.5)"
-        );
-        const timeStep = duration / waveformData.length;
-
-        rttmData.forEach((segment) => {
-            const startIndex = Math.floor(segment.start / timeStep);
-            const endIndex = Math.min(
-                Math.floor((segment.start + segment.duration) / timeStep),
-                waveformData.length
-            );
-            for (let i = startIndex; i < endIndex; i++) {
-                colors[i] = speakerColors[segment.speaker];
-            }
-        });
-
-        return colors;
-    }, [waveformData, rttmData, duration, speakerColors, isRTTMUploaded]);
-
     useEffect(() => {
         console.log("Color map updated:", colorMap);
     }, [colorMap]);
@@ -569,19 +624,18 @@ export default function AudioWaveform() {
                     (chart.options.plugins.groundTruthPlugin as any) = {
                         showGroundTruth,
                         groundTruthData: groundTruthRTTMData,
-                        speakerColors,
+                        speakerColors: Object.fromEntries(
+                            groundTruthRTTMData.map((segment, index) => [
+                                segment.speaker,
+                                SPEAKER_COLORS[index % SPEAKER_COLORS.length],
+                            ])
+                        ),
                     };
                 }
                 chart.update();
             }
         }
-    }, [
-        zoomRange,
-        verticalScale,
-        groundTruthRTTMData,
-        speakerColors,
-        showGroundTruth,
-    ]);
+    }, [zoomRange, verticalScale, groundTruthRTTMData, showGroundTruth]);
 
     useEffect(() => {
         const handleTimeUpdate = () => {
@@ -676,11 +730,9 @@ export default function AudioWaveform() {
                 const parsedRttm = parseRTTM(content);
                 setPredictionRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors((prevColors) => ({
-                    ...prevColors,
-                    ...colors,
-                }));
-                setRttmData(parsedRttm); // Set the rttmData to be used for coloring
+                setSpeakerColors(colors);
+                setOriginalSpeakerColors(colors); // Store the original color assignments
+                setRttmData(parsedRttm);
                 setShowPredictionLegend(true);
                 setIsRTTMUploaded(true);
             };
@@ -735,30 +787,133 @@ export default function AudioWaveform() {
         }
     };
 
+    // Update the updateSpeakerColor function
+    const updateSpeakerColor = (speaker: string, color: string) => {
+        setSpeakerColors((prevColors) => {
+            const newColors = {
+                ...prevColors,
+                [speaker]: color,
+            };
+            // Force chart update
+            if (chartRef.current) {
+                chartRef.current.update();
+            }
+            return newColors;
+        });
+    };
+
+    // Update the updateSpeakerLabel function
+    const updateSpeakerLabel = useCallback(
+        (oldLabel: string, newLabel: string) => {
+            setPredictionRTTMData((prevData) =>
+                prevData.map((segment) =>
+                    segment.speaker === oldLabel
+                        ? { ...segment, speaker: newLabel }
+                        : segment
+                )
+            );
+            setSpeakerColors((prevColors) => {
+                const { [oldLabel]: color, ...rest } = prevColors;
+                return { ...rest, [newLabel]: color };
+            });
+        },
+        []
+    );
+
+    // Add this useEffect to update the chart when predictionRTTMData or speakerColors change
+    useEffect(() => {
+        if (chartRef.current) {
+            chartRef.current.update();
+        }
+    }, [predictionRTTMData, speakerColors]);
+
+    // Update the RTTMLegend component
     const RTTMLegend = ({
         data,
         title,
         colors,
+        editable = false,
+        onResetColors,
+        onUpdateSpeakerLabel,
     }: {
         data: RTTMSegment[];
         title: string;
         colors: Record<string, string>;
+        editable?: boolean;
+        onResetColors?: () => void;
+        onUpdateSpeakerLabel: (oldLabel: string, newLabel: string) => void;
     }) => {
         const speakers = Array.from(
             new Set(data.map((segment) => segment.speaker))
         );
 
+        const debouncedUpdateSpeakerLabel = useCallback(
+            debounce((oldLabel: string, newLabel: string) => {
+                onUpdateSpeakerLabel(oldLabel, newLabel);
+            }, 300),
+            [onUpdateSpeakerLabel]
+        );
+
         return (
             <div className='mt-4'>
-                <h3 className='text-sm font-semibold mb-2'>{title}</h3>
+                <div className='flex justify-between items-center mb-2'>
+                    <h3 className='text-sm font-semibold'>{title}</h3>
+                    {editable && onResetColors && (
+                        <Button
+                            onClick={onResetColors}
+                            variant='outline'
+                            size='sm'
+                        >
+                            Reset Colors
+                        </Button>
+                    )}
+                </div>
                 <div className='flex flex-wrap justify-center gap-4'>
                     {speakers.map((speaker) => (
                         <div key={speaker} className='flex items-center'>
-                            <div
-                                className='w-4 h-4 mr-2 rounded-full'
-                                style={{ backgroundColor: colors[speaker] }}
-                            ></div>
-                            <span>{speaker}</span>
+                            {editable ? (
+                                <Popover>
+                                    <PopoverTrigger>
+                                        <div
+                                            className='w-6 h-6 mr-2 rounded-full cursor-pointer'
+                                            style={{
+                                                backgroundColor:
+                                                    colors[speaker],
+                                            }}
+                                        />
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                        <ChromePicker
+                                            color={colors[speaker]}
+                                            onChange={(color) =>
+                                                updateSpeakerColor(
+                                                    speaker,
+                                                    color.hex
+                                                )
+                                            }
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            ) : (
+                                <div
+                                    className='w-4 h-4 mr-2 rounded-full'
+                                    style={{ backgroundColor: colors[speaker] }}
+                                />
+                            )}
+                            {editable ? (
+                                <Input
+                                    defaultValue={speaker}
+                                    onChange={(e) =>
+                                        debouncedUpdateSpeakerLabel(
+                                            speaker,
+                                            e.target.value
+                                        )
+                                    }
+                                    className='w-24'
+                                />
+                            ) : (
+                                <span>{speaker}</span>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -768,6 +923,13 @@ export default function AudioWaveform() {
 
     const toggleGroundTruth = () => {
         setShowGroundTruth(!showGroundTruth);
+        if (chartRef.current) {
+            chartRef.current.update();
+        }
+    };
+
+    const resetColors = () => {
+        setSpeakerColors(originalSpeakerColors);
         if (chartRef.current) {
             chartRef.current.update();
         }
@@ -893,6 +1055,9 @@ export default function AudioWaveform() {
                                             data={groundTruthRTTMData}
                                             title='Ground Truth RTTM Labels'
                                             colors={speakerColors}
+                                            onUpdateSpeakerLabel={
+                                                updateSpeakerLabel
+                                            }
                                         />
                                         <Button
                                             onClick={toggleGroundTruth}
@@ -909,6 +1074,11 @@ export default function AudioWaveform() {
                                         data={predictionRTTMData}
                                         title='Prediction RTTM Labels'
                                         colors={speakerColors}
+                                        editable={true}
+                                        onResetColors={resetColors}
+                                        onUpdateSpeakerLabel={
+                                            updateSpeakerLabel
+                                        }
                                     />
                                 )}
                             </>
