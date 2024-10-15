@@ -162,88 +162,13 @@ export default function AudioWaveform() {
         Record<string, string>
     >({});
     const [playbackRate, setPlaybackRate] = useState(1);
+    const [useDefaultFiles, setUseDefaultFiles] = useState(true);
 
     useEffect(() => {
-        // Load default audio file
-        const audio = new Audio("/V40914AB1_1of2_pp.wav");
-        audioRef.current = audio;
-
-        const handleLoadedMetadata = () => {
-            console.log("Audio loaded, duration:", audio.duration);
-            setDuration(audio.duration);
-            setZoomRange([0, audio.duration]);
-            setIsAudioUploaded(true);
-        };
-        const handleError = (e: ErrorEvent) => {
-            console.error("Error loading audio:", e);
-        };
-
-        audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-        audio.addEventListener("error", handleError);
-
-        // Load audio data for waveform
-        fetch("/V40914AB1_1of2_pp.wav")
-            .then((response) => response.arrayBuffer())
-            .then((arrayBuffer) =>
-                new AudioContext().decodeAudioData(arrayBuffer)
-            )
-            .then((audioBuffer) => {
-                const waveform = generateWaveformData(audioBuffer, 10000);
-                setWaveformData(waveform);
-            })
-            .catch((error) =>
-                console.error("Error loading audio data:", error)
-            );
-
-        // Load default prediction RTTM file
-        console.log("Starting to fetch RTTM file");
-        fetch("/V40914AB1_PART1OF2_3dia_large-v3_min2max4.rttm")
-            .then((response) => {
-                console.log("RTTM file fetch response:", response);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text();
-            })
-            .then((content) => {
-                console.log(
-                    "Raw RTTM file content:",
-                    content.slice(0, 200) + "..."
-                ); // Log first 200 characters
-                if (content.trim().length === 0) {
-                    throw new Error("RTTM file is empty");
-                }
-                const parsedRttm = parseRTTM(content);
-                console.log("Parsed RTTM data:", parsedRttm.slice(0, 5)); // Log first 5 parsed segments
-                if (parsedRttm.length === 0) {
-                    throw new Error("No valid RTTM segments found");
-                }
-                setPredictionRTTMData(parsedRttm);
-                const colors = getSpeakerColors(parsedRttm);
-                console.log("Speaker colors:", colors);
-                setSpeakerColors(colors);
-                setOriginalSpeakerColors(colors);
-                setRttmData(parsedRttm);
-                setShowPredictionLegend(true);
-                setIsRTTMUploaded(true);
-
-                // Force chart update
-                if (chartRef.current) {
-                    console.log("Updating chart");
-                    chartRef.current.update();
-                }
-            })
-            .catch((error) => {
-                console.error("Error loading prediction RTTM:", error);
-                console.error("Error details:", error.message, error.stack);
-            });
-
-        return () => {
-            audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-            audio.removeEventListener("error", handleError);
-            audio.pause();
-        };
-    }, []);
+        if (useDefaultFiles) {
+            loadDefaultFiles();
+        }
+    }, [useDefaultFiles]);
 
     const getSpeakerColors = (
         rttmData: RTTMSegment[]
@@ -897,22 +822,101 @@ export default function AudioWaveform() {
     };
 
     const generateRTTMContent = () => {
-        return predictionRTTMData.map(segment => {
-            return `SPEAKER file 1 ${segment.start.toFixed(3)} ${segment.duration.toFixed(3)} <NA> <NA> ${segment.speaker} <NA> <NA>`;
-        }).join('\n');
+        return predictionRTTMData
+            .map((segment) => {
+                return `SPEAKER file 1 ${segment.start.toFixed(
+                    3
+                )} ${segment.duration.toFixed(3)} <NA> <NA> ${
+                    segment.speaker
+                } <NA> <NA>`;
+            })
+            .join("\n");
     };
 
     const handleExportRTTM = () => {
         const content = generateRTTMContent();
-        const blob = new Blob([content], { type: 'text/plain' });
+        const blob = new Blob([content], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.download = 'updated_prediction.rttm';
+        link.download = "updated_prediction.rttm";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    };
+
+    const toggleDefaultFiles = () => {
+        setUseDefaultFiles(!useDefaultFiles);
+        if (!useDefaultFiles) {
+            // Load default files
+            loadDefaultFiles();
+        } else {
+            // Reset to uploaded files (if any)
+            if (audioFile) {
+                const dummyEvent = {
+                    target: { files: [audioFile] },
+                } as unknown as React.ChangeEvent<HTMLInputElement>;
+                handleAudioFileUpload(dummyEvent);
+            }
+            if (predictionRTTM) {
+                const dummyEvent = {
+                    target: { files: [predictionRTTM] },
+                } as unknown as React.ChangeEvent<HTMLInputElement>;
+                handlePredictionRTTMUpload(dummyEvent);
+            }
+            if (groundTruthRTTM) {
+                const dummyEvent = {
+                    target: { files: [groundTruthRTTM] },
+                } as unknown as React.ChangeEvent<HTMLInputElement>;
+                handleGroundTruthRTTMUpload(dummyEvent);
+            }
+        }
+    };
+
+    const loadDefaultFiles = () => {
+        // Load default audio file
+        const audio = new Audio("/V40914AB1_1of2_pp.wav");
+        audioRef.current = audio;
+        audio.addEventListener("loadedmetadata", () => {
+            setDuration(audio.duration);
+            setZoomRange([0, audio.duration]);
+            setIsAudioUploaded(true);
+        });
+
+        // Load audio data for waveform
+        fetch("/V40914AB1_1of2_pp.wav")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) =>
+                new AudioContext().decodeAudioData(arrayBuffer)
+            )
+            .then((audioBuffer) => {
+                const waveform = generateWaveformData(audioBuffer, 10000);
+                setWaveformData(waveform);
+            })
+            .catch((error) =>
+                console.error("Error loading audio data:", error)
+            );
+
+        // Load default prediction RTTM file
+        fetch("/V40914AB1_PART1OF2_3dia_large-v3_min2max4.rttm")
+            .then((response) => response.text())
+            .then((content) => {
+                const parsedRttm = parseRTTM(content);
+                setPredictionRTTMData(parsedRttm);
+                const colors = getSpeakerColors(parsedRttm);
+                setSpeakerColors(colors);
+                setOriginalSpeakerColors(colors);
+                setRttmData(parsedRttm);
+                setShowPredictionLegend(true);
+                setIsRTTMUploaded(true);
+                if (chartRef.current) {
+                    chartRef.current.update();
+                }
+            })
+            .catch((error) =>
+                console.error("Error loading prediction RTTM:", error)
+            );
     };
 
     return (
@@ -921,38 +925,58 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
+                <div className='flex justify-end mb-4'>
+                    <Button
+                        onClick={toggleDefaultFiles}
+                        variant='outline'
+                        size='sm'
+                    >
+                        {useDefaultFiles
+                            ? "Use Uploaded Files"
+                            : "Use Default Files"}
+                    </Button>
+                </div>
                 <div className='flex flex-wrap gap-4 mb-4'>
                     <div className='flex-1 min-w-[200px]'>
                         <div className='text-sm font-medium mb-1'>
-                            Upload Audio File (WAV)
+                            {useDefaultFiles
+                                ? "Using Default Audio File"
+                                : "Upload Audio File (WAV)"}
                         </div>
                         <Input
                             id='audio-upload'
                             type='file'
                             accept='.wav'
                             onChange={handleAudioFileUpload}
+                            disabled={useDefaultFiles}
                         />
                     </div>
                     <div className='flex-1 min-w-[200px]'>
                         <div className='text-sm font-medium mb-1'>
-                            Upload Prediction RTTM
+                            {useDefaultFiles
+                                ? "Using Default Prediction RTTM"
+                                : "Upload Prediction RTTM"}
                         </div>
                         <Input
                             id='prediction-upload'
                             type='file'
                             accept='.rttm'
                             onChange={handlePredictionRTTMUpload}
+                            disabled={useDefaultFiles}
                         />
                     </div>
                     <div className='flex-1 min-w-[200px]'>
                         <div className='text-sm font-medium mb-1'>
-                            Upload Ground Truth RTTM (Optional)
+                            {useDefaultFiles
+                                ? "No Default Ground Truth RTTM"
+                                : "Upload Ground Truth RTTM (Optional)"}
                         </div>
                         <Input
                             id='ground-truth-upload'
                             type='file'
                             accept='.rttm'
                             onChange={handleGroundTruthRTTMUpload}
+                            disabled={useDefaultFiles}
                         />
                     </div>
                 </div>
@@ -1054,8 +1078,7 @@ export default function AudioWaveform() {
                                     htmlFor='full-file-slider'
                                     className='text-sm font-medium'
                                 >
-                                    Full File Playback (Always shows entire
-                                    file)
+                                    Global Timeline
                                 </label>
                                 <div className='flex items-center space-x-2'>
                                     <span className='text-sm'>
@@ -1104,20 +1127,23 @@ export default function AudioWaveform() {
                                     </div>
                                 )}
                                 {showPredictionLegend && (
-                                    <div className="mt-4">
+                                    <div className='mt-4'>
                                         <RTTMLegend
                                             data={predictionRTTMData}
                                             title='Prediction RTTM Labels'
                                             colors={speakerColors}
                                             editable={true}
                                             onResetColors={resetColors}
-                                            onUpdateSpeakerLabel={updateSpeakerLabel}
+                                            onUpdateSpeakerLabel={
+                                                updateSpeakerLabel
+                                            }
                                         />
-                                        <div className="mt-2 flex justify-end space-x-2">
-                                            <Button onClick={resetColors} variant='outline' size='sm'>
-                                                Reset Colors
-                                            </Button>
-                                            <Button onClick={handleExportRTTM} variant='outline' size='sm'>
+                                        <div className='mt-2 flex justify-end space-x-2'>
+                                            <Button
+                                                onClick={handleExportRTTM}
+                                                variant='outline'
+                                                size='sm'
+                                            >
                                                 Export Updated RTTM
                                             </Button>
                                         </div>
