@@ -196,24 +196,47 @@ export default function AudioWaveform() {
             );
 
         // Load default prediction RTTM file
-        fetch("/V40914AB1_1of2_pred.rttm")
-            .then((response) => response.text())
+        console.log("Starting to fetch RTTM file");
+        fetch("/V40914AB1_PART1OF2_3dia_large-v3_min2max4.rttm")
+            .then((response) => {
+                console.log("RTTM file fetch response:", response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
             .then((content) => {
+                console.log(
+                    "Raw RTTM file content:",
+                    content.slice(0, 200) + "..."
+                ); // Log first 200 characters
+                if (content.trim().length === 0) {
+                    throw new Error("RTTM file is empty");
+                }
                 const parsedRttm = parseRTTM(content);
+                console.log("Parsed RTTM data:", parsedRttm.slice(0, 5)); // Log first 5 parsed segments
+                if (parsedRttm.length === 0) {
+                    throw new Error("No valid RTTM segments found");
+                }
                 setPredictionRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
+                console.log("Speaker colors:", colors);
                 setSpeakerColors(colors);
                 setOriginalSpeakerColors(colors);
                 setRttmData(parsedRttm);
                 setShowPredictionLegend(true);
                 setIsRTTMUploaded(true);
-                
+
                 // Force chart update
                 if (chartRef.current) {
+                    console.log("Updating chart");
                     chartRef.current.update();
                 }
             })
-            .catch((error) => console.error("Error loading prediction RTTM:", error));
+            .catch((error) => {
+                console.error("Error loading prediction RTTM:", error);
+                console.error("Error details:", error.message, error.stack);
+            });
 
         return () => {
             audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
@@ -299,10 +322,16 @@ export default function AudioWaveform() {
 
     // Update the colorMap useMemo
     const colorMap = useMemo(() => {
-        if (waveformData.length === 0 || predictionRTTMData.length === 0 || !isRTTMUploaded)
+        if (
+            waveformData.length === 0 ||
+            predictionRTTMData.length === 0 ||
+            !isRTTMUploaded
+        )
             return [];
 
-        const colors = new Array(waveformData.length).fill("rgba(200, 200, 200, 0.5)");
+        const colors = new Array(waveformData.length).fill(
+            "rgba(200, 200, 200, 0.5)"
+        );
         const timeStep = duration / waveformData.length;
 
         predictionRTTMData.forEach((segment) => {
@@ -312,12 +341,21 @@ export default function AudioWaveform() {
                 waveformData.length
             );
             for (let i = startIndex; i < endIndex; i++) {
-                colors[i] = speakerColors[segment.speaker] || "rgba(200, 200, 200, 0.5)";
+                colors[i] =
+                    speakerColors[segment.speaker] ||
+                    "rgba(200, 200, 200, 0.5)";
             }
         });
 
+        console.log("Color map updated:", colors); // Add this line
         return colors;
-    }, [waveformData, predictionRTTMData, duration, speakerColors, isRTTMUploaded]);
+    }, [
+        waveformData,
+        predictionRTTMData,
+        duration,
+        speakerColors,
+        isRTTMUploaded,
+    ]);
 
     // Update the chartData
     const chartData = {
@@ -603,7 +641,7 @@ export default function AudioWaveform() {
                 setRttmData(parsedRttm);
                 setShowPredictionLegend(true);
                 setIsRTTMUploaded(true);
-                
+
                 // Force chart update
                 if (chartRef.current) {
                     chartRef.current.update();
@@ -716,6 +754,9 @@ export default function AudioWaveform() {
         onResetColors?: () => void;
         onUpdateSpeakerLabel: (oldLabel: string, newLabel: string) => void;
     }) => {
+        console.log("RTTMLegend data:", data); // Add this line
+        console.log("RTTMLegend colors:", colors); // Add this line
+
         const speakers = Array.from(
             new Set(data.map((segment) => segment.speaker))
         );
@@ -854,7 +895,6 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
-                {/* Comment out or remove these file upload inputs
                 <div className='flex flex-wrap gap-4 mb-4'>
                     <div className='flex-1 min-w-[200px]'>
                         <div className='text-sm font-medium mb-1'>
@@ -890,7 +930,6 @@ export default function AudioWaveform() {
                         />
                     </div>
                 </div>
-                */}
 
                 {isAudioUploaded && (
                     <>
