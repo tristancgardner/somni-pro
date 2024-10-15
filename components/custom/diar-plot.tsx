@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/popover";
 // import { Label } from "@/components/ui/label";
 import { ChromePicker } from "react-color";
+import { SkipBack, SkipForward, FastForward } from "lucide-react";
 
 ChartJS.register(...registerables);
 
@@ -160,6 +161,7 @@ export default function AudioWaveform() {
     const [originalSpeakerColors, setOriginalSpeakerColors] = useState<
         Record<string, string>
     >({});
+    const [playbackRate, setPlaybackRate] = useState(1);
 
     useEffect(() => {
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
@@ -246,6 +248,7 @@ export default function AudioWaveform() {
                 audioRef.current.pause();
                 console.log("Audio paused");
             } else {
+                audioRef.current.playbackRate = playbackRate; // Set the current playback rate
                 audioRef.current
                     .play()
                     .then(() => console.log("Audio playing successfully"))
@@ -467,123 +470,6 @@ export default function AudioWaveform() {
         }
         const maxAmplitude = Math.max(...filteredData);
         return filteredData.map((v) => v / maxAmplitude);
-    };
-
-    const ZoomControls = ({
-        min,
-        max,
-        value,
-        onChange,
-        currentTime,
-    }: {
-        min: number;
-        max: number;
-        value: [number, number];
-        onChange: (value: [number, number]) => void;
-        currentTime: number;
-    }) => {
-        const [inPoint, setInPoint] = useState(formatTime(value[0]));
-        const [outPoint, setOutPoint] = useState(formatTime(value[1]));
-
-        useEffect(() => {
-            setInPoint(formatTime(value[0]));
-            setOutPoint(formatTime(value[1]));
-        }, [value]);
-
-        const parseTime = (timeString: string): number => {
-            const [minutes, seconds] = timeString.split(":").map(Number);
-            return minutes * 60 + seconds;
-        };
-
-        const handleInPointChange = (
-            e: React.ChangeEvent<HTMLInputElement>
-        ) => {
-            setInPoint(e.target.value);
-            const newInPoint = parseTime(e.target.value);
-            if (
-                !isNaN(newInPoint) &&
-                newInPoint >= min &&
-                newInPoint < value[1]
-            ) {
-                onChange([newInPoint, value[1]]);
-            }
-        };
-
-        const handleOutPointChange = (
-            e: React.ChangeEvent<HTMLInputElement>
-        ) => {
-            setOutPoint(e.target.value);
-            const newOutPoint = parseTime(e.target.value);
-            if (
-                !isNaN(newOutPoint) &&
-                newOutPoint > value[0] &&
-                newOutPoint <= max
-            ) {
-                onChange([value[0], newOutPoint]);
-            }
-        };
-
-        const resetZoom = () => {
-            onChange([min, max]);
-            setInPoint(formatTime(min));
-            setOutPoint(formatTime(max));
-        };
-
-        const zoomIn = () => {
-            const currentDuration = value[1] - value[0];
-            const newDuration = Math.max(currentDuration * 0.5, 5); // Zoom in by 50%, with a minimum duration of 5 seconds
-            const center = currentTime;
-            const newStart = Math.max(center - newDuration / 2, min);
-            const newEnd = Math.min(newStart + newDuration, max);
-            onChange([newStart, newEnd]);
-        };
-
-        const zoomOut = () => {
-            const currentDuration = value[1] - value[0];
-            const newDuration = Math.min(currentDuration * 2, max - min); // Zoom out by 100%, but not beyond the full duration
-            const center = currentTime;
-            const newStart = Math.max(center - newDuration / 2, min);
-            const newEnd = Math.min(newStart + newDuration, max);
-            onChange([newStart, newEnd]);
-        };
-
-        return (
-            <div className='mt-4 space-y-2'>
-                <div className='flex items-center space-x-4'>
-                    <div className='flex items-center space-x-2'>
-                        <span className='w-8'>In:</span>
-                        <Input
-                            type='text'
-                            value={inPoint}
-                            onChange={handleInPointChange}
-                            placeholder='MM:SS'
-                            className='w-20'
-                        />
-                    </div>
-                    <div className='flex items-center space-x-2'>
-                        <span className='w-8'>Out:</span>
-                        <Input
-                            type='text'
-                            value={outPoint}
-                            onChange={handleOutPointChange}
-                            placeholder='MM:SS'
-                            className='w-20'
-                        />
-                    </div>
-                </div>
-                <div className='flex items-center space-x-2'>
-                    <Button onClick={zoomIn} variant='outline' size='sm'>
-                        <PlusIcon className='h-4 w-4' />
-                    </Button>
-                    <Button onClick={zoomOut} variant='outline' size='sm'>
-                        <MinusIcon className='h-4 w-4' />
-                    </Button>
-                    <Button onClick={resetZoom} variant='outline' size='sm'>
-                        Reset Zoom
-                    </Button>
-                </div>
-            </div>
-        );
     };
 
     useEffect(() => {
@@ -935,6 +821,46 @@ export default function AudioWaveform() {
         }
     };
 
+    const jumpToBeginning = () => {
+        updatePlayhead(0);
+    };
+
+    const jumpToEnd = () => {
+        updatePlayhead(duration);
+    };
+
+    const cyclePlaybackSpeed = () => {
+        if (audioRef.current) {
+            const newRate =
+                playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+            audioRef.current.playbackRate = newRate;
+            setPlaybackRate(newRate);
+        }
+    };
+
+    // Add these functions at the component level
+    const zoomIn = () => {
+        const currentDuration = zoomRange[1] - zoomRange[0];
+        const newDuration = Math.max(currentDuration * 0.5, 5); // Zoom in by 50%, with a minimum duration of 5 seconds
+        const center = currentTime;
+        const newStart = Math.max(center - newDuration / 2, 0);
+        const newEnd = Math.min(newStart + newDuration, duration);
+        setZoomRange([newStart, newEnd]);
+    };
+
+    const zoomOut = () => {
+        const currentDuration = zoomRange[1] - zoomRange[0];
+        const newDuration = Math.min(currentDuration * 2, duration); // Zoom out by 100%, but not beyond the full duration
+        const center = currentTime;
+        const newStart = Math.max(center - newDuration / 2, 0);
+        const newEnd = Math.min(newStart + newDuration, duration);
+        setZoomRange([newStart, newEnd]);
+    };
+
+    const resetZoom = () => {
+        setZoomRange([0, duration]);
+    };
+
     return (
         <Card className='w-full max-w-4xl'>
             <CardHeader>
@@ -993,27 +919,65 @@ export default function AudioWaveform() {
                             />
                         </div>
                         <div className='mt-4 space-y-2'>
-                            <div className='flex items-center space-x-4'>
-                                <Button
-                                    onClick={togglePlayPause}
-                                    aria-label={isPlaying ? "Pause" : "Play"}
-                                >
-                                    {isPlaying ? "Pause" : "Play"}
-                                </Button>
-                                <Button
-                                    variant='ghost'
-                                    size='icon'
-                                    onClick={toggleMute}
-                                    aria-label={
-                                        volume === 0 ? "Unmute" : "Mute"
-                                    }
-                                >
-                                    {volume === 0 ? (
-                                        <VolumeX className='h-4 w-4' />
-                                    ) : (
-                                        <Volume2 className='h-4 w-4' />
-                                    )}
-                                </Button>
+                            <div className='flex justify-center items-center space-x-4'>
+                                {/* Zoom controls */}
+                                <div className='flex items-center space-x-2'>
+                                    <Button onClick={zoomIn} variant='outline' size='sm'>
+                                        <PlusIcon className='h-4 w-4' />
+                                    </Button>
+                                    <Button onClick={zoomOut} variant='outline' size='sm'>
+                                        <MinusIcon className='h-4 w-4' />
+                                    </Button>
+                                    <Button onClick={resetZoom} variant='outline' size='sm'>
+                                        Reset Zoom
+                                    </Button>
+                                </div>
+
+                                {/* Playback controls */}
+                                <div className='flex items-center space-x-4'>
+                                    <Button
+                                        onClick={jumpToBeginning}
+                                        variant='outline'
+                                        size='icon'
+                                        aria-label='Jump to beginning'
+                                    >
+                                        <SkipBack className='h-4 w-4' />
+                                    </Button>
+                                    <Button
+                                        onClick={togglePlayPause}
+                                        aria-label={isPlaying ? "Pause" : "Play"}
+                                    >
+                                        {isPlaying ? "Pause" : "Play"}
+                                    </Button>
+                                    <Button
+                                        onClick={jumpToEnd}
+                                        variant='outline'
+                                        size='icon'
+                                        aria-label='Jump to end'
+                                    >
+                                        <SkipForward className='h-4 w-4' />
+                                    </Button>
+                                    <Button
+                                        onClick={cyclePlaybackSpeed}
+                                        variant='outline'
+                                        size='sm'
+                                        aria-label={`Playback speed: ${playbackRate}x`}
+                                    >
+                                        {playbackRate}x
+                                    </Button>
+                                    <Button
+                                        variant='ghost'
+                                        size='icon'
+                                        onClick={toggleMute}
+                                        aria-label={volume === 0 ? "Unmute" : "Mute"}
+                                    >
+                                        {volume === 0 ? (
+                                            <VolumeX className='h-4 w-4' />
+                                        ) : (
+                                            <Volume2 className='h-4 w-4' />
+                                        )}
+                                    </Button>
+                                </div>
                             </div>
                             <div className='space-y-1'>
                                 <label
@@ -1024,9 +988,7 @@ export default function AudioWaveform() {
                                     file)
                                 </label>
                                 <div className='flex items-center space-x-2'>
-                                    <span className='text-sm'>
-                                        {formatTime(0)}
-                                    </span>
+                                    <span className='text-sm'>{formatTime(0)}</span>
                                     <Slider
                                         id='full-file-slider'
                                         value={[currentTime]}
@@ -1036,9 +998,7 @@ export default function AudioWaveform() {
                                         onValueChange={handleSliderChange}
                                         className='flex-grow'
                                     />
-                                    <span className='text-sm'>
-                                        {formatTime(duration)}
-                                    </span>
+                                    <span className='text-sm'>{formatTime(duration)}</span>
                                 </div>
                                 <div className='text-center'>
                                     <span className='text-sm font-medium'>
@@ -1083,13 +1043,6 @@ export default function AudioWaveform() {
                                 )}
                             </>
                         )}
-                        <ZoomControls
-                            min={0}
-                            max={duration}
-                            value={zoomRange}
-                            onChange={(value) => setZoomRange(value)}
-                            currentTime={currentTime}
-                        />
                     </>
                 )}
             </CardContent>
