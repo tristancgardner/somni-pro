@@ -723,6 +723,13 @@ export default function AudioWaveform() {
                         : segment
                 )
             );
+            setRttmData((prevData) =>
+                prevData.map((segment) =>
+                    segment.speaker === oldLabel
+                        ? { ...segment, speaker: newLabel }
+                        : segment
+                )
+            );
             setSpeakerColors((prevColors) => {
                 const { [oldLabel]: color, ...rest } = prevColors;
                 return { ...rest, [newLabel]: color };
@@ -887,6 +894,25 @@ export default function AudioWaveform() {
 
     const resetZoom = () => {
         setZoomRange([0, duration]);
+    };
+
+    const generateRTTMContent = () => {
+        return predictionRTTMData.map(segment => {
+            return `SPEAKER file 1 ${segment.start.toFixed(3)} ${segment.duration.toFixed(3)} <NA> <NA> ${segment.speaker} <NA> <NA>`;
+        }).join('\n');
+    };
+
+    const handleExportRTTM = () => {
+        const content = generateRTTMContent();
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'updated_prediction.rttm';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -1078,16 +1104,24 @@ export default function AudioWaveform() {
                                     </div>
                                 )}
                                 {showPredictionLegend && (
-                                    <RTTMLegend
-                                        data={predictionRTTMData}
-                                        title='Prediction RTTM Labels'
-                                        colors={speakerColors}
-                                        editable={true}
-                                        onResetColors={resetColors}
-                                        onUpdateSpeakerLabel={
-                                            updateSpeakerLabel
-                                        }
-                                    />
+                                    <div className="mt-4">
+                                        <RTTMLegend
+                                            data={predictionRTTMData}
+                                            title='Prediction RTTM Labels'
+                                            colors={speakerColors}
+                                            editable={true}
+                                            onResetColors={resetColors}
+                                            onUpdateSpeakerLabel={updateSpeakerLabel}
+                                        />
+                                        <div className="mt-2 flex justify-end space-x-2">
+                                            <Button onClick={resetColors} variant='outline' size='sm'>
+                                                Reset Colors
+                                            </Button>
+                                            <Button onClick={handleExportRTTM} variant='outline' size='sm'>
+                                                Export Updated RTTM
+                                            </Button>
+                                        </div>
+                                    </div>
                                 )}
                             </>
                         )}
