@@ -164,6 +164,7 @@ export default function AudioWaveform() {
     const [playbackRate, setPlaybackRate] = useState(1);
 
     useEffect(() => {
+        // Load default audio file
         const audio = new Audio("/V40914AB1_1of2_pp.wav");
         audioRef.current = audio;
 
@@ -171,6 +172,7 @@ export default function AudioWaveform() {
             console.log("Audio loaded, duration:", audio.duration);
             setDuration(audio.duration);
             setZoomRange([0, audio.duration]);
+            setIsAudioUploaded(true);
         };
         const handleError = (e: ErrorEvent) => {
             console.error("Error loading audio:", e);
@@ -186,40 +188,32 @@ export default function AudioWaveform() {
                 new AudioContext().decodeAudioData(arrayBuffer)
             )
             .then((audioBuffer) => {
-                const waveform = generateWaveformData(audioBuffer, 10000); // Increased from 2000
+                const waveform = generateWaveformData(audioBuffer, 10000);
                 setWaveformData(waveform);
             })
             .catch((error) =>
                 console.error("Error loading audio data:", error)
             );
 
-        fetch("/api/rttm")
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text(); // Get the raw text first
-            })
-            .then((text) => {
-                try {
-                    return JSON.parse(text); // Try to parse it as JSON
-                } catch (e) {
-                    console.error("Failed to parse JSON:", text);
-                    throw new Error("Invalid JSON response");
-                }
-            })
-            .then((data) => {
-                const parsedRttm = parseRTTM(data.content);
-                setRttmData(parsedRttm);
+        // Load default prediction RTTM file
+        fetch("/V40914AB1_1of2_pred.rttm")
+            .then((response) => response.text())
+            .then((content) => {
+                const parsedRttm = parseRTTM(content);
+                setPredictionRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
                 setSpeakerColors(colors);
-                console.log("RTTM Data:", parsedRttm);
-                console.log("Speaker Colors:", colors);
+                setOriginalSpeakerColors(colors);
+                setRttmData(parsedRttm);
+                setShowPredictionLegend(true);
+                setIsRTTMUploaded(true);
+                
+                // Force chart update
+                if (chartRef.current) {
+                    chartRef.current.update();
+                }
             })
-            .catch((error) => {
-                console.error("Error fetching or parsing RTTM data:", error);
-                // Handle the error appropriately in your UI
-            });
+            .catch((error) => console.error("Error loading prediction RTTM:", error));
 
         return () => {
             audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
@@ -303,18 +297,12 @@ export default function AudioWaveform() {
         return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
-    // Update the colorMap useMemo to use predictionRTTMData instead of rttmData
+    // Update the colorMap useMemo
     const colorMap = useMemo(() => {
-        if (
-            waveformData.length === 0 ||
-            predictionRTTMData.length === 0 ||
-            !isRTTMUploaded
-        )
+        if (waveformData.length === 0 || predictionRTTMData.length === 0 || !isRTTMUploaded)
             return [];
 
-        const colors = new Array(waveformData.length).fill(
-            "rgba(200, 200, 200, 0.5)"
-        );
+        const colors = new Array(waveformData.length).fill("rgba(200, 200, 200, 0.5)");
         const timeStep = duration / waveformData.length;
 
         predictionRTTMData.forEach((segment) => {
@@ -324,20 +312,14 @@ export default function AudioWaveform() {
                 waveformData.length
             );
             for (let i = startIndex; i < endIndex; i++) {
-                colors[i] = speakerColors[segment.speaker];
+                colors[i] = speakerColors[segment.speaker] || "rgba(200, 200, 200, 0.5)";
             }
         });
 
         return colors;
-    }, [
-        waveformData,
-        predictionRTTMData,
-        duration,
-        speakerColors,
-        isRTTMUploaded,
-    ]);
+    }, [waveformData, predictionRTTMData, duration, speakerColors, isRTTMUploaded]);
 
-    // Update the chartData to use the colorMap
+    // Update the chartData
     const chartData = {
         labels: Array.from(
             { length: waveformData.length },
@@ -617,10 +599,15 @@ export default function AudioWaveform() {
                 setPredictionRTTMData(parsedRttm);
                 const colors = getSpeakerColors(parsedRttm);
                 setSpeakerColors(colors);
-                setOriginalSpeakerColors(colors); // Store the original color assignments
+                setOriginalSpeakerColors(colors);
                 setRttmData(parsedRttm);
                 setShowPredictionLegend(true);
                 setIsRTTMUploaded(true);
+                
+                // Force chart update
+                if (chartRef.current) {
+                    chartRef.current.update();
+                }
             };
             reader.readAsText(file);
         }
@@ -867,6 +854,7 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
+                {/* Comment out or remove these file upload inputs
                 <div className='flex flex-wrap gap-4 mb-4'>
                     <div className='flex-1 min-w-[200px]'>
                         <div className='text-sm font-medium mb-1'>
@@ -902,6 +890,7 @@ export default function AudioWaveform() {
                         />
                     </div>
                 </div>
+                */}
 
                 {isAudioUploaded && (
                     <>
@@ -922,13 +911,25 @@ export default function AudioWaveform() {
                             <div className='flex justify-center items-center space-x-4'>
                                 {/* Zoom controls */}
                                 <div className='flex items-center space-x-2'>
-                                    <Button onClick={zoomIn} variant='outline' size='sm'>
+                                    <Button
+                                        onClick={zoomIn}
+                                        variant='outline'
+                                        size='sm'
+                                    >
                                         <PlusIcon className='h-4 w-4' />
                                     </Button>
-                                    <Button onClick={zoomOut} variant='outline' size='sm'>
+                                    <Button
+                                        onClick={zoomOut}
+                                        variant='outline'
+                                        size='sm'
+                                    >
                                         <MinusIcon className='h-4 w-4' />
                                     </Button>
-                                    <Button onClick={resetZoom} variant='outline' size='sm'>
+                                    <Button
+                                        onClick={resetZoom}
+                                        variant='outline'
+                                        size='sm'
+                                    >
                                         Reset Zoom
                                     </Button>
                                 </div>
@@ -945,7 +946,9 @@ export default function AudioWaveform() {
                                     </Button>
                                     <Button
                                         onClick={togglePlayPause}
-                                        aria-label={isPlaying ? "Pause" : "Play"}
+                                        aria-label={
+                                            isPlaying ? "Pause" : "Play"
+                                        }
                                     >
                                         {isPlaying ? "Pause" : "Play"}
                                     </Button>
@@ -969,7 +972,9 @@ export default function AudioWaveform() {
                                         variant='ghost'
                                         size='icon'
                                         onClick={toggleMute}
-                                        aria-label={volume === 0 ? "Unmute" : "Mute"}
+                                        aria-label={
+                                            volume === 0 ? "Unmute" : "Mute"
+                                        }
                                     >
                                         {volume === 0 ? (
                                             <VolumeX className='h-4 w-4' />
@@ -988,7 +993,9 @@ export default function AudioWaveform() {
                                     file)
                                 </label>
                                 <div className='flex items-center space-x-2'>
-                                    <span className='text-sm'>{formatTime(0)}</span>
+                                    <span className='text-sm'>
+                                        {formatTime(0)}
+                                    </span>
                                     <Slider
                                         id='full-file-slider'
                                         value={[currentTime]}
@@ -998,7 +1005,9 @@ export default function AudioWaveform() {
                                         onValueChange={handleSliderChange}
                                         className='flex-grow'
                                     />
-                                    <span className='text-sm'>{formatTime(duration)}</span>
+                                    <span className='text-sm'>
+                                        {formatTime(duration)}
+                                    </span>
                                 </div>
                                 <div className='text-center'>
                                     <span className='text-sm font-medium'>
