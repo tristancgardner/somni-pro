@@ -1142,9 +1142,9 @@ export default function AudioWaveform() {
                                             <Button
                                                 onClick={handleExportRTTM}
                                                 variant='outline'
-                                                size='sm'
+                                                size='lg'
                                             >
-                                                Export Updated RTTM
+                                                Export w/ Speaker Labels
                                             </Button>
                                         </div>
                                     </div>
