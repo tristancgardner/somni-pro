@@ -71,33 +71,6 @@ const SPEAKER_COLORS = [
     "#81C784",
 ];
 
-// Define the plugin
-const GroundTruthPlugin: Plugin = {
-    id: "groundTruthPlugin",
-    beforeDraw(chart, args, options) {
-        const { ctx, chartArea, scales } = chart;
-        const { showGroundTruth, groundTruthData, speakerColors } = options;
-
-        if (!showGroundTruth) return;
-
-        const barHeight = 20;
-        const yPosition = chartArea.top - barHeight - 5;
-
-        groundTruthData.forEach((segment: RTTMSegment) => {
-            const startX = scales.x.getPixelForValue(segment.start);
-            const endX = scales.x.getPixelForValue(
-                segment.start + segment.duration
-            );
-
-            ctx.fillStyle = speakerColors[segment.speaker];
-            ctx.fillRect(startX, yPosition, endX - startX, barHeight);
-        });
-    },
-};
-
-// Register the plugin
-ChartJS.register(GroundTruthPlugin);
-
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -124,49 +97,25 @@ function debounce<T extends (...args: any[]) => any>(
 export default function AudioWaveform() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(600); // Total duration in seconds
+    const [duration, setDuration] = useState(600);
     const [volume, setVolume] = useState(1);
     const [rttmData, setRttmData] = useState<RTTMSegment[]>([]);
-    const [speakerColors, setSpeakerColors] = useState<Record<string, string>>(
-        {}
-    );
+    const [speakerColors, setSpeakerColors] = useState<Record<string, string>>({});
     const [waveformData, setWaveformData] = useState<number[]>([]);
     const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const chartRef = useRef<ChartJS<
-        "line",
-        { x: number; y: number }[],
-        number
-    > | null>(null);
+    const chartRef = useRef<ChartJS<"line", { x: number; y: number }[], number> | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
-    const [groundTruthRTTM, setGroundTruthRTTM] = useState<File | null>(null);
     const [predictionRTTM, setPredictionRTTM] = useState<File | null>(null);
-    const [groundTruthRTTMData, setGroundTruthRTTMData] = useState<
-        RTTMSegment[]
-    >([]);
-    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>(
-        []
-    );
+    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>([]);
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [isRTTMUploaded, setIsRTTMUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
-    const [showGroundTruthLegend, setShowGroundTruthLegend] = useState(false);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
-    const [showGroundTruth, setShowGroundTruth] = useState(true);
-    const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
-    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<
-        Record<string, string>
-    >({});
+    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<Record<string, string>>({});
     const [playbackRate, setPlaybackRate] = useState(1);
-    const [useDefaultFiles, setUseDefaultFiles] = useState(true);
     const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
-
-    useEffect(() => {
-        if (useDefaultFiles) {
-            loadDefaultFiles();
-        }
-    }, [useDefaultFiles]);
 
     const getSpeakerColors = (
         rttmData: RTTMSegment[]
@@ -361,16 +310,6 @@ export default function AudioWaveform() {
                     },
                 },
             },
-            groundTruthPlugin: {
-                showGroundTruth,
-                groundTruthData: groundTruthRTTMData,
-                speakerColors: Object.fromEntries(
-                    groundTruthRTTMData.map((segment, index) => [
-                        segment.speaker,
-                        SPEAKER_COLORS[index % SPEAKER_COLORS.length],
-                    ])
-                ),
-            },
         },
         animation: {
             duration: 0,
@@ -445,26 +384,10 @@ export default function AudioWaveform() {
                     chart.options.scales.y.min = -1 / verticalScale;
                     chart.options.scales.y.max = 1 / verticalScale;
                 }
-                // Update the ground truth plugin options
-                if (
-                    chart.options.plugins &&
-                    "groundTruthPlugin" in chart.options.plugins
-                ) {
-                    (chart.options.plugins.groundTruthPlugin as any) = {
-                        showGroundTruth,
-                        groundTruthData: groundTruthRTTMData,
-                        speakerColors: Object.fromEntries(
-                            groundTruthRTTMData.map((segment, index) => [
-                                segment.speaker,
-                                SPEAKER_COLORS[index % SPEAKER_COLORS.length],
-                            ])
-                        ),
-                    };
-                }
                 chart.update();
             }
         }
-    }, [zoomRange, verticalScale, groundTruthRTTMData, showGroundTruth]);
+    }, [zoomRange, verticalScale]);
 
     useEffect(() => {
         const handleTimeUpdate = () => {
@@ -516,34 +439,6 @@ export default function AudioWaveform() {
                 setWaveformData(waveform);
             };
             reader.readAsArrayBuffer(file);
-        }
-    };
-
-    const handleGroundTruthRTTMUpload = (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setGroundTruthRTTM(file);
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const content = e.target?.result as string;
-                const parsedRttm = parseRTTM(content);
-                setGroundTruthRTTMData(parsedRttm);
-                const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors((prevColors) => ({
-                    ...prevColors,
-                    ...colors,
-                }));
-                setShowGroundTruthLegend(true);
-                setIsRTTMUploaded(true);
-
-                // Update the chart to show ground truth bars
-                if (chartRef.current) {
-                    chartRef.current.update();
-                }
-            };
-            reader.readAsText(file);
         }
     };
 
@@ -765,13 +660,6 @@ export default function AudioWaveform() {
         );
     };
 
-    const toggleGroundTruth = () => {
-        setShowGroundTruth(!showGroundTruth);
-        if (chartRef.current) {
-            chartRef.current.update();
-        }
-    };
-
     const resetColors = () => {
         setSpeakerColors(originalSpeakerColors);
         if (chartRef.current) {
@@ -844,79 +732,6 @@ export default function AudioWaveform() {
         URL.revokeObjectURL(url);
     };
 
-    const toggleDefaultFiles = () => {
-        setUseDefaultFiles(!useDefaultFiles);
-        if (!useDefaultFiles) {
-            // Load default files
-            loadDefaultFiles();
-        } else {
-            // Reset to uploaded files (if any)
-            if (audioFile) {
-                const dummyEvent = {
-                    target: { files: [audioFile] },
-                } as unknown as React.ChangeEvent<HTMLInputElement>;
-                handleAudioFileUpload(dummyEvent);
-            }
-            if (predictionRTTM) {
-                const dummyEvent = {
-                    target: { files: [predictionRTTM] },
-                } as unknown as React.ChangeEvent<HTMLInputElement>;
-                handlePredictionRTTMUpload(dummyEvent);
-            }
-            if (groundTruthRTTM) {
-                const dummyEvent = {
-                    target: { files: [groundTruthRTTM] },
-                } as unknown as React.ChangeEvent<HTMLInputElement>;
-                handleGroundTruthRTTMUpload(dummyEvent);
-            }
-        }
-    };
-
-    const loadDefaultFiles = () => {
-        // Load default audio file
-        const audio = new Audio("/V40914AB1_1of2_pp.wav");
-        audioRef.current = audio;
-        audio.addEventListener("loadedmetadata", () => {
-            setDuration(audio.duration);
-            setZoomRange([0, audio.duration]);
-            setIsAudioUploaded(true);
-        });
-
-        // Load audio data for waveform
-        fetch("/V40914AB1_1of2_pp.wav")
-            .then((response) => response.arrayBuffer())
-            .then((arrayBuffer) =>
-                new AudioContext().decodeAudioData(arrayBuffer)
-            )
-            .then((audioBuffer) => {
-                const waveform = generateWaveformData(audioBuffer, 10000);
-                setWaveformData(waveform);
-            })
-            .catch((error) =>
-                console.error("Error loading audio data:", error)
-            );
-
-        // Load default prediction RTTM file
-        fetch("/V40914AB1_PART1OF2_3dia_large-v3_min2max4.rttm")
-            .then((response) => response.text())
-            .then((content) => {
-                const parsedRttm = parseRTTM(content);
-                setPredictionRTTMData(parsedRttm);
-                const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors(colors);
-                setOriginalSpeakerColors(colors);
-                setRttmData(parsedRttm);
-                setShowPredictionLegend(true);
-                setIsRTTMUploaded(true);
-                if (chartRef.current) {
-                    chartRef.current.update();
-                }
-            })
-            .catch((error) =>
-                console.error("Error loading prediction RTTM:", error)
-            );
-    };
-
     const handleTranscriptionFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
@@ -961,44 +776,27 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className='flex justify-end mb-4'>
-                    <Button
-                        onClick={toggleDefaultFiles}
-                        variant='outline'
-                        size='sm'
-                    >
-                        {useDefaultFiles
-                            ? "Use Uploaded Files"
-                            : "Use Default Files"}
-                    </Button>
-                </div>
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4'>
                     <div>
                         <div className='text-sm font-medium mb-1'>
-                            {useDefaultFiles
-                                ? "Using Default Audio File"
-                                : "Upload Audio File (WAV)"}
+                            Upload Audio File (WAV)
                         </div>
                         <Input
                             id='audio-upload'
                             type='file'
                             accept='.wav'
                             onChange={handleAudioFileUpload}
-                            disabled={useDefaultFiles}
                         />
                     </div>
                     <div>
                         <div className='text-sm font-medium mb-1'>
-                            {useDefaultFiles
-                                ? "Using Default Prediction RTTM"
-                                : "Upload Prediction RTTM"}
+                            Upload Prediction RTTM
                         </div>
                         <Input
                             id='prediction-upload'
                             type='file'
                             accept='.rttm'
                             onChange={handlePredictionRTTMUpload}
-                            disabled={useDefaultFiles}
                         />
                     </div>
                     <div>
@@ -1154,26 +952,6 @@ export default function AudioWaveform() {
                         </div>
                         {isAudioUploaded && isRTTMUploaded && (
                             <>
-                                {showGroundTruthLegend && (
-                                    <div className='mt-4 flex justify-between items-center'>
-                                        <RTTMLegend
-                                            data={groundTruthRTTMData}
-                                            title='Ground Truth RTTM Labels'
-                                            colors={speakerColors}
-                                            onUpdateSpeakerLabel={
-                                                updateSpeakerLabel
-                                            }
-                                        />
-                                        <Button
-                                            onClick={toggleGroundTruth}
-                                            variant='outline'
-                                            size='sm'
-                                        >
-                                            {showGroundTruth ? "Hide" : "Show"}{" "}
-                                            Ground Truth
-                                        </Button>
-                                    </div>
-                                )}
                                 {showPredictionLegend && (
                                     <div className='mt-4'>
                                         <RTTMLegend
