@@ -44,6 +44,7 @@ import {
 // import { Label } from "@/components/ui/label";
 import { ChromePicker } from "react-color";
 import { SkipBack, SkipForward, FastForward } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 ChartJS.register(...registerables);
 
@@ -163,6 +164,8 @@ export default function AudioWaveform() {
     >({});
     const [playbackRate, setPlaybackRate] = useState(1);
     const [useDefaultFiles, setUseDefaultFiles] = useState(true);
+    const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
 
     useEffect(() => {
         if (useDefaultFiles) {
@@ -919,8 +922,46 @@ export default function AudioWaveform() {
             );
     };
 
+    const handleTranscriptionFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setTranscriptionFile(file);
+        }
+    };
+
+    const sendForTranscription = async () => {
+        if (!transcriptionFile) {
+            console.error("No file selected for transcription");
+            return;
+        }
+
+        setIsTranscribing(true);
+
+        const formData = new FormData();
+        formData.append("file", transcriptionFile);
+
+        try {
+            const response = await fetch("http://your-fastapi-endpoint/transcribe", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log("Transcription result:", result);
+            // Handle the transcription result as needed
+        } catch (error) {
+            console.error("Error sending file for transcription:", error);
+        } finally {
+            setIsTranscribing(false);
+        }
+    };
+
     return (
-        <Card className='w-full max-w-4xl'>
+        <Card className='w-full max-w-full'>
             <CardHeader>
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
@@ -936,8 +977,8 @@ export default function AudioWaveform() {
                             : "Use Default Files"}
                     </Button>
                 </div>
-                <div className='flex flex-wrap gap-4 mb-4'>
-                    <div className='flex-1 min-w-[200px]'>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4'>
+                    <div>
                         <div className='text-sm font-medium mb-1'>
                             {useDefaultFiles
                                 ? "Using Default Audio File"
@@ -951,7 +992,7 @@ export default function AudioWaveform() {
                             disabled={useDefaultFiles}
                         />
                     </div>
-                    <div className='flex-1 min-w-[200px]'>
+                    <div>
                         <div className='text-sm font-medium mb-1'>
                             {useDefaultFiles
                                 ? "Using Default Prediction RTTM"
@@ -965,7 +1006,7 @@ export default function AudioWaveform() {
                             disabled={useDefaultFiles}
                         />
                     </div>
-                    <div className='flex-1 min-w-[200px]'>
+                    <div>
                         <div className='text-sm font-medium mb-1'>
                             {useDefaultFiles
                                 ? "No Default Ground Truth RTTM"
@@ -978,6 +1019,32 @@ export default function AudioWaveform() {
                             onChange={handleGroundTruthRTTMUpload}
                             disabled={useDefaultFiles}
                         />
+                    </div>
+                    <div>
+                        <div className='text-sm font-medium mb-1'>
+                            Upload File for Transcription
+                        </div>
+                        <div className='flex items-center space-x-2'>
+                            <Input
+                                id='transcription-upload'
+                                type='file'
+                                onChange={handleTranscriptionFileUpload}
+                                disabled={isTranscribing}
+                            />
+                            <Button
+                                onClick={sendForTranscription}
+                                disabled={!transcriptionFile || isTranscribing}
+                            >
+                                {isTranscribing ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Transcribing...
+                                    </>
+                                ) : (
+                                    "Send"
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
