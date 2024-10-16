@@ -21,7 +21,6 @@ import {
     ActiveElement,
     ChartType,
     Plugin,
-    Chart,
     registerables,
     ChartConfiguration,
 } from "chart.js";
@@ -29,11 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Volume2, VolumeX } from "lucide-react";
-import { ChartOptions } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
-import { ScriptableContext } from "chart.js";
 import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
-import { Range } from "../../components/ui/range";
 import { Input } from "@/components/ui";
 import { PlusIcon, MinusIcon } from "lucide-react";
 import {
@@ -41,7 +37,6 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-// import { Label } from "@/components/ui/label";
 import { ChromePicker } from "react-color";
 import { SkipBack, SkipForward, FastForward } from "lucide-react";
 import { Loader2 } from "lucide-react";
