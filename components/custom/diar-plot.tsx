@@ -977,7 +977,7 @@ export default function AudioWaveform() {
                             : "Use Default Files"}
                     </Button>
                 </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4'>
                     <div>
                         <div className='text-sm font-medium mb-1'>
                             {useDefaultFiles
@@ -1003,20 +1003,6 @@ export default function AudioWaveform() {
                             type='file'
                             accept='.rttm'
                             onChange={handlePredictionRTTMUpload}
-                            disabled={useDefaultFiles}
-                        />
-                    </div>
-                    <div>
-                        <div className='text-sm font-medium mb-1'>
-                            {useDefaultFiles
-                                ? "No Default Ground Truth RTTM"
-                                : "Upload Ground Truth RTTM (Optional)"}
-                        </div>
-                        <Input
-                            id='ground-truth-upload'
-                            type='file'
-                            accept='.rttm'
-                            onChange={handleGroundTruthRTTMUpload}
                             disabled={useDefaultFiles}
                         />
                     </div>
