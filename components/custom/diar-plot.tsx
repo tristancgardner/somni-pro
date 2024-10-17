@@ -112,12 +112,10 @@ export default function AudioWaveform() {
         number
     > | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
-    const [predictionRTTM, setPredictionRTTM] = useState<File | null>(null);
     const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>(
         []
     );
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
-    const [isRTTMUploaded, setIsRTTMUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
     const [originalSpeakerColors, setOriginalSpeakerColors] = useState<
@@ -206,12 +204,9 @@ export default function AudioWaveform() {
 
     // Update the colorMap useMemo
     const colorMap = useMemo(() => {
-        if (
-            waveformData.length === 0 ||
-            predictionRTTMData.length === 0 ||
-            !isRTTMUploaded
-        )
+        if (waveformData.length === 0 || predictionRTTMData.length === 0) {
             return [];
+        }
 
         const colors = new Array(waveformData.length).fill(
             "rgba(200, 200, 200, 0.5)"
@@ -231,15 +226,9 @@ export default function AudioWaveform() {
             }
         });
 
-        console.log("Color map updated:", colors); // Add this line
+        console.log("Color map updated:", colors);
         return colors;
-    }, [
-        waveformData,
-        predictionRTTMData,
-        duration,
-        speakerColors,
-        isRTTMUploaded,
-    ]);
+    }, [waveformData, predictionRTTMData, duration, speakerColors]);
 
     // Update the chartData
     const chartData = {
@@ -259,10 +248,8 @@ export default function AudioWaveform() {
                 tension: 0,
                 segment: {
                     borderColor: (ctx: any) =>
-                        isRTTMUploaded
-                            ? colorMap[Math.floor(ctx.p0DataIndex / 2)] ||
-                              "rgba(200, 200, 200, 0.5)"
-                            : "rgba(200, 200, 200, 0.5)",
+                        colorMap[Math.floor(ctx.p0DataIndex / 2)] ||
+                        "rgba(200, 200, 200, 0.5)",
                 },
             },
         ],
@@ -423,33 +410,6 @@ export default function AudioWaveform() {
             }
         };
     }, [zoomRange, duration, verticalScale]); // Add verticalScale to the dependency array
-
-    const handlePredictionRTTMUpload = (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setPredictionRTTM(file);
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const content = e.target?.result as string;
-                const parsedRttm = parseRTTM(content);
-                setPredictionRTTMData(parsedRttm);
-                const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors(colors);
-                setOriginalSpeakerColors(colors);
-                setRttmData(parsedRttm);
-                setShowPredictionLegend(true);
-                setIsRTTMUploaded(true);
-
-                // Force chart update
-                if (chartRef.current) {
-                    chartRef.current.update();
-                }
-            };
-            reader.readAsText(file);
-        }
-    };
 
     const WaveformSizeControl = ({
         value,
@@ -767,7 +727,22 @@ export default function AudioWaveform() {
 
             const result = await response.json();
             console.log("Transcription result:", result);
-            // Handle the transcription result as needed
+
+            // Assuming the API returns the RTTM content in the response
+            if (result.rttm) {
+                const parsedRttm = parseRTTM(result.rttm);
+                setPredictionRTTMData(parsedRttm);
+                const colors = getSpeakerColors(parsedRttm);
+                setSpeakerColors(colors);
+                setOriginalSpeakerColors(colors);
+                setRttmData(parsedRttm);
+                setShowPredictionLegend(true);
+
+                // Force chart update
+                if (chartRef.current) {
+                    chartRef.current.update();
+                }
+            }
         } catch (error) {
             console.error("Error sending file for transcription:", error);
         } finally {
@@ -781,44 +756,31 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
-                    <div>
-                        <div className='text-sm font-medium mb-1'>
-                            Upload Prediction RTTM
-                        </div>
-                        <Input
-                            id='prediction-upload'
-                            type='file'
-                            accept='.rttm'
-                            onChange={handlePredictionRTTMUpload}
-                        />
+                <div className='mb-4'>
+                    <div className='text-sm font-medium mb-1'>
+                        Upload Audio File for Transcription
                     </div>
-                    <div>
-                        <div className='text-sm font-medium mb-1'>
-                            Upload Audio File for Transcription
-                        </div>
-                        <div className='flex items-center space-x-2'>
-                            <Input
-                                id='transcription-upload'
-                                type='file'
-                                accept='audio/*'
-                                onChange={handleTranscriptionFileUpload}
-                                disabled={isTranscribing}
-                            />
-                            <Button
-                                onClick={sendForTranscription}
-                                disabled={!transcriptionFile || isTranscribing}
-                            >
-                                {isTranscribing ? (
-                                    <>
-                                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                        Transcribing...
-                                    </>
-                                ) : (
-                                    "Send"
-                                )}
-                            </Button>
-                        </div>
+                    <div className='flex items-center space-x-2'>
+                        <Input
+                            id='transcription-upload'
+                            type='file'
+                            accept='audio/*'
+                            onChange={handleTranscriptionFileUpload}
+                            disabled={isTranscribing}
+                        />
+                        <Button
+                            onClick={sendForTranscription}
+                            disabled={!transcriptionFile || isTranscribing}
+                        >
+                            {isTranscribing ? (
+                                <>
+                                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                    Transcribing...
+                                </>
+                            ) : (
+                                "Send"
+                            )}
+                        </Button>
                     </div>
                 </div>
 
@@ -945,32 +907,26 @@ export default function AudioWaveform() {
                                 </div>
                             </div>
                         </div>
-                        {isAudioUploaded && isRTTMUploaded && (
-                            <>
-                                {showPredictionLegend && (
-                                    <div className='mt-4'>
-                                        <RTTMLegend
-                                            data={predictionRTTMData}
-                                            title='Prediction RTTM Labels'
-                                            colors={speakerColors}
-                                            editable={true}
-                                            onResetColors={resetColors}
-                                            onUpdateSpeakerLabel={
-                                                updateSpeakerLabel
-                                            }
-                                        />
-                                        <div className='mt-2 flex justify-end space-x-2'>
-                                            <Button
-                                                onClick={handleExportRTTM}
-                                                variant='outline'
-                                                size='lg'
-                                            >
-                                                Export w/ Speaker Labels
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
+                        {showPredictionLegend && (
+                            <div className='mt-4'>
+                                <RTTMLegend
+                                    data={predictionRTTMData}
+                                    title='Transcription RTTM Labels'
+                                    colors={speakerColors}
+                                    editable={true}
+                                    onResetColors={resetColors}
+                                    onUpdateSpeakerLabel={updateSpeakerLabel}
+                                />
+                                <div className='mt-2 flex justify-end space-x-2'>
+                                    <Button
+                                        onClick={handleExportRTTM}
+                                        variant='outline'
+                                        size='lg'
+                                    >
+                                        Export w/ Speaker Labels
+                                    </Button>
+                                </div>
+                            </div>
                         )}
                     </>
                 )}
