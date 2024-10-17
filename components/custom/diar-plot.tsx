@@ -680,7 +680,7 @@ export default function AudioWaveform() {
         const file = event.target.files?.[0];
         if (file) {
             setTranscriptionFile(file);
-            
+
             // Handle audio file
             const audio = new Audio(URL.createObjectURL(file));
             audioRef.current = audio;
@@ -696,7 +696,9 @@ export default function AudioWaveform() {
             reader.onload = async (e) => {
                 const arrayBuffer = e.target?.result as ArrayBuffer;
                 const audioContext = new AudioContext();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const audioBuffer = await audioContext.decodeAudioData(
+                    arrayBuffer
+                );
                 const waveform = generateWaveformData(audioBuffer, 10000);
                 setWaveformData(waveform);
             };
@@ -722,7 +724,11 @@ export default function AudioWaveform() {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error("Error response:", errorText);
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${errorText}`
+                );
             }
 
             const result = await response.json();
