@@ -40,6 +40,7 @@ import {
 import { ChromePicker } from "react-color";
 import { SkipBack, SkipForward, FastForward } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { saveAs } from 'file-saver';
 
 ChartJS.register(...registerables);
 
@@ -126,6 +127,7 @@ export default function AudioWaveform() {
         null
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
+    const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
 
     const getSpeakerColors = (
         rttmData: RTTMSegment[]
@@ -734,7 +736,10 @@ export default function AudioWaveform() {
             const result = await response.json();
             console.log("Transcription result:", result);
 
-            // Assuming the API returns the RTTM content in the response
+            // Store the full result for later use
+            setTranscriptionResult(result);
+
+            // Parse the RTTM content
             if (result.rttm) {
                 const parsedRttm = parseRTTM(result.rttm);
                 setPredictionRTTMData(parsedRttm);
@@ -753,6 +758,20 @@ export default function AudioWaveform() {
             console.error("Error sending file for transcription:", error);
         } finally {
             setIsTranscribing(false);
+        }
+    };
+
+    const downloadRTTM = () => {
+        if (transcriptionResult && transcriptionResult.rttm) {
+            const blob = new Blob([transcriptionResult.rttm], { type: 'text/plain' });
+            saveAs(blob, 'transcription.rttm');
+        }
+    };
+
+    const downloadJSON = () => {
+        if (transcriptionResult) {
+            const blob = new Blob([JSON.stringify(transcriptionResult, null, 2)], { type: 'application/json' });
+            saveAs(blob, 'transcription_result.json');
         }
     };
 
@@ -930,6 +949,20 @@ export default function AudioWaveform() {
                                         size='lg'
                                     >
                                         Export w/ Speaker Labels
+                                    </Button>
+                                    <Button
+                                        onClick={downloadRTTM}
+                                        variant='outline'
+                                        size='lg'
+                                    >
+                                        Download RTTM
+                                    </Button>
+                                    <Button
+                                        onClick={downloadJSON}
+                                        variant='outline'
+                                        size='lg'
+                                    >
+                                        Download JSON
                                     </Button>
                                 </div>
                             </div>
