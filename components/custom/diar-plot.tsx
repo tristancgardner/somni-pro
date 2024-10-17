@@ -424,36 +424,6 @@ export default function AudioWaveform() {
         };
     }, [zoomRange, duration, verticalScale]); // Add verticalScale to the dependency array
 
-    const handleAudioFileUpload = (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setAudioFile(file);
-            const audio = new Audio(URL.createObjectURL(file));
-            audioRef.current = audio;
-
-            audio.addEventListener("loadedmetadata", () => {
-                console.log("Audio loaded, duration:", audio.duration);
-                setDuration(audio.duration);
-                setZoomRange([0, audio.duration]);
-                setIsAudioUploaded(true); // Set this to true when audio is loaded
-            });
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const arrayBuffer = e.target?.result as ArrayBuffer;
-                const audioContext = new AudioContext();
-                const audioBuffer = await audioContext.decodeAudioData(
-                    arrayBuffer
-                );
-                const waveform = generateWaveformData(audioBuffer, 10000);
-                setWaveformData(waveform);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-    };
-
     const handlePredictionRTTMUpload = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -750,6 +720,27 @@ export default function AudioWaveform() {
         const file = event.target.files?.[0];
         if (file) {
             setTranscriptionFile(file);
+            
+            // Handle audio file
+            const audio = new Audio(URL.createObjectURL(file));
+            audioRef.current = audio;
+
+            audio.addEventListener("loadedmetadata", () => {
+                console.log("Audio loaded, duration:", audio.duration);
+                setDuration(audio.duration);
+                setZoomRange([0, audio.duration]);
+                setIsAudioUploaded(true);
+            });
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const arrayBuffer = e.target?.result as ArrayBuffer;
+                const audioContext = new AudioContext();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const waveform = generateWaveformData(audioBuffer, 10000);
+                setWaveformData(waveform);
+            };
+            reader.readAsArrayBuffer(file);
         }
     };
 
@@ -790,18 +781,7 @@ export default function AudioWaveform() {
                 <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4'>
-                    <div>
-                        <div className='text-sm font-medium mb-1'>
-                            Upload Audio File (WAV)
-                        </div>
-                        <Input
-                            id='audio-upload'
-                            type='file'
-                            accept='.wav'
-                            onChange={handleAudioFileUpload}
-                        />
-                    </div>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
                     <div>
                         <div className='text-sm font-medium mb-1'>
                             Upload Prediction RTTM
@@ -815,12 +795,13 @@ export default function AudioWaveform() {
                     </div>
                     <div>
                         <div className='text-sm font-medium mb-1'>
-                            Upload File for Transcription
+                            Upload Audio File for Transcription
                         </div>
                         <div className='flex items-center space-x-2'>
                             <Input
                                 id='transcription-upload'
                                 type='file'
+                                accept='audio/*'
                                 onChange={handleTranscriptionFileUpload}
                                 disabled={isTranscribing}
                             />
