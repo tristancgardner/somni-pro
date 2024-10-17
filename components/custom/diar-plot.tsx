@@ -766,7 +766,7 @@ export default function AudioWaveform() {
 
         try {
             const response = await fetch(
-                "http://your-fastapi-endpoint/transcribe",
+                "https://api.somnipro.io/transcribe",
                 {
                     method: "POST",
                     body: formData,
