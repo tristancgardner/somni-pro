@@ -40,7 +40,7 @@ import {
 import { ChromePicker } from "react-color";
 import { SkipBack, SkipForward, FastForward } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import { saveAs } from 'file-saver';
+import { saveAs } from "file-saver";
 
 ChartJS.register(...registerables);
 
@@ -763,15 +763,20 @@ export default function AudioWaveform() {
 
     const downloadRTTM = () => {
         if (transcriptionResult && transcriptionResult.rttm) {
-            const blob = new Blob([transcriptionResult.rttm], { type: 'text/plain' });
-            saveAs(blob, 'transcription.rttm');
+            const blob = new Blob([transcriptionResult.rttm], {
+                type: "text/plain",
+            });
+            saveAs(blob, "transcription.rttm");
         }
     };
 
     const downloadJSON = () => {
         if (transcriptionResult) {
-            const blob = new Blob([JSON.stringify(transcriptionResult, null, 2)], { type: 'application/json' });
-            saveAs(blob, 'transcription_result.json');
+            const blob = new Blob(
+                [JSON.stringify(transcriptionResult, null, 2)],
+                { type: "application/json" }
+            );
+            saveAs(blob, "transcription_result.json");
         }
     };
 
