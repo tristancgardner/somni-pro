@@ -29,7 +29,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Volume2, VolumeX } from "lucide-react";
 import annotationPlugin from "chartjs-plugin-annotation";
-import { parseRTTM, RTTMSegment } from "@/utils/rttmParser";
+import {
+    parseRTTM,
+    RTTMSegment as ImportedRTTMSegment,
+} from "@/utils/rttmParser";
 import { Input } from "@/components/ui";
 import { PlusIcon, MinusIcon } from "lucide-react";
 import {
@@ -101,7 +104,7 @@ export default function AudioWaveform() {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(600);
     const [volume, setVolume] = useState(1);
-    const [rttmData, setRttmData] = useState<RTTMSegment[]>([]);
+    const [rttmData, setRttmData] = useState<ImportedRTTMSegment[]>([]);
     const [speakerColors, setSpeakerColors] = useState<Record<string, string>>(
         {}
     );
@@ -114,9 +117,9 @@ export default function AudioWaveform() {
         number
     > | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
-    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>(
-        []
-    );
+    const [predictionRTTMData, setPredictionRTTMData] = useState<
+        ImportedRTTMSegment[]
+    >([]);
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
@@ -131,7 +134,7 @@ export default function AudioWaveform() {
     const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
 
     const getSpeakerColors = (
-        rttmData: RTTMSegment[]
+        rttmData: ImportedRTTMSegment[]
     ): Record<string, string> => {
         const speakers = Array.from(
             new Set(rttmData.map((segment) => segment.speaker))
@@ -517,7 +520,7 @@ export default function AudioWaveform() {
         onResetColors,
         onUpdateSpeakerLabel,
     }: {
-        data: RTTMSegment[];
+        data: ImportedRTTMSegment[];
         title: string;
         colors: Record<string, string>;
         editable?: boolean;
@@ -685,35 +688,48 @@ export default function AudioWaveform() {
     };
 
     const processZipFile = async (zipBlob: Blob) => {
-        const zip = await JSZip.loadAsync(zipBlob);
+        try {
+            console.log("Processing zip file...");
+            const zip = await JSZip.loadAsync(zipBlob);
 
-        const files = Object.values(zip.files);
-        const rttmFile = files.find((file) => file.name.endsWith(".rttm"));
-        const jsonFile = files.find((file) => file.name.endsWith(".json"));
+            const files = Object.values(zip.files);
+            console.log("Files in zip:", files.map(f => f.name));
 
-        if (rttmFile && jsonFile) {
-            const rttmContent = await rttmFile.async("text");
-            const jsonContent = await jsonFile.async("text");
+            const rttmFile = files.find((file) => file.name.endsWith(".rttm"));
+            const jsonFile = files.find((file) => file.name.endsWith(".json"));
 
-            // Parse the RTTM content
-            const parsedRttm = parseRTTM(rttmContent);
-            setPredictionRTTMData(parsedRttm);
-            const colors = getSpeakerColors(parsedRttm);
-            setSpeakerColors(colors);
-            setOriginalSpeakerColors(colors);
-            setRttmData(parsedRttm);
-            setShowPredictionLegend(true);
+            if (rttmFile && jsonFile) {
+                console.log("Found RTTM and JSON files");
+                const rttmContent = await rttmFile.async("text");
+                const jsonContent = await jsonFile.async("text");
 
-            // Parse and store the JSON content
-            const jsonResult = JSON.parse(jsonContent);
-            setTranscriptionResult(jsonResult);
+                console.log("RTTM content:", rttmContent);
+                console.log("JSON content:", jsonContent);
 
-            // Force chart update
-            if (chartRef.current) {
-                chartRef.current.update();
+                // Parse the RTTM content
+                const parsedRttm = parseRTTM(rttmContent);
+                setPredictionRTTMData(parsedRttm as ImportedRTTMSegment[]);
+                const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
+                setSpeakerColors(colors);
+                setOriginalSpeakerColors(colors);
+                setRttmData(parsedRttm as ImportedRTTMSegment[]);
+                setShowPredictionLegend(true);
+
+                // Parse and store the JSON content
+                const jsonResult = JSON.parse(jsonContent);
+                setTranscriptionResult(jsonResult);
+
+                // Force chart update
+                if (chartRef.current) {
+                    chartRef.current.update();
+                }
+            } else {
+                console.error("RTTM or JSON file not found in the zip");
+                throw new Error("Required files not found in the zip");
             }
-        } else {
-            console.error("RTTM or JSON file not found in the zip");
+        } catch (error) {
+            console.error("Error processing zip file:", error);
+            throw error;
         }
     };
 
@@ -729,31 +745,61 @@ export default function AudioWaveform() {
         formData.append("file", transcriptionFile);
 
         try {
-            const response = await fetch("https://api.somnipro.io/transcribe", {
+            console.log("Sending file for transcription...");
+            const response = await fetch("https://api.somnipro.io/transcribe/", {
                 method: "POST",
                 body: formData,
             });
 
+            console.log("Response status:", response.status);
+            console.log("Response headers:", response.headers);
+
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Error response:", errorText);
-                throw new Error(
-                    `HTTP error! status: ${response.status}, message: ${errorText}`
-                );
+                let errorMessage = await response.text();
+                console.error("Error response body:", errorMessage);
+                if (response.status === 413) {
+                    errorMessage = "File too large";
+                } else if (response.status === 400) {
+                    errorMessage = "Invalid file type";
+                }
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorMessage}`);
             }
 
-            const zipBlob = await response.blob();
-            await processZipFile(zipBlob);
+            const contentType = response.headers.get("content-type");
+            console.log("Response content type:", contentType);
+
+            if (contentType && contentType.includes("application/zip")) {
+                const zipBlob = await response.blob();
+                console.log("Received zip blob:", zipBlob);
+                await processZipFile(zipBlob);
+            } else {
+                const responseText = await response.text();
+                console.log("Unexpected response:", responseText);
+                throw new Error("Unexpected response format");
+            }
         } catch (error) {
             console.error("Error sending file for transcription:", error);
+            // You might want to show an error message to the user here
         } finally {
             setIsTranscribing(false);
         }
     };
 
     const downloadRTTM = () => {
-        if (transcriptionResult && transcriptionResult.rttm) {
-            const blob = new Blob([transcriptionResult.rttm], {
+        if (rttmData.length > 0) {
+            const rttmContent = rttmData
+                .map(
+                    (segment) =>
+                        `SPEAKER ${
+                            (segment as any).audioFileName || "unknown"
+                        } 1 ${segment.start.toFixed(
+                            3
+                        )} ${segment.duration.toFixed(3)} <NA> <NA> ${
+                            segment.speaker
+                        } <NA> <NA>`
+                )
+                .join("\n");
+            const blob = new Blob([rttmContent], {
                 type: "text/plain",
             });
             saveAs(blob, "transcription.rttm");
@@ -763,7 +809,7 @@ export default function AudioWaveform() {
     const downloadJSON = () => {
         if (transcriptionResult) {
             const blob = new Blob(
-                [JSON.stringify(transcriptionResult, null, 2)],
+                [JSON.stringify(transcriptionResult, null, 4)],
                 { type: "application/json" }
             );
             saveAs(blob, "transcription_result.json");
