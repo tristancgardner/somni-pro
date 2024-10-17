@@ -100,21 +100,33 @@ export default function AudioWaveform() {
     const [duration, setDuration] = useState(600);
     const [volume, setVolume] = useState(1);
     const [rttmData, setRttmData] = useState<RTTMSegment[]>([]);
-    const [speakerColors, setSpeakerColors] = useState<Record<string, string>>({});
+    const [speakerColors, setSpeakerColors] = useState<Record<string, string>>(
+        {}
+    );
     const [waveformData, setWaveformData] = useState<number[]>([]);
     const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const chartRef = useRef<ChartJS<"line", { x: number; y: number }[], number> | null>(null);
+    const chartRef = useRef<ChartJS<
+        "line",
+        { x: number; y: number }[],
+        number
+    > | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [predictionRTTM, setPredictionRTTM] = useState<File | null>(null);
-    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>([]);
+    const [predictionRTTMData, setPredictionRTTMData] = useState<RTTMSegment[]>(
+        []
+    );
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [isRTTMUploaded, setIsRTTMUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
-    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<Record<string, string>>({});
+    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<
+        Record<string, string>
+    >({});
     const [playbackRate, setPlaybackRate] = useState(1);
-    const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null);
+    const [transcriptionFile, setTranscriptionFile] = useState<File | null>(
+        null
+    );
     const [isTranscribing, setIsTranscribing] = useState(false);
 
     const getSpeakerColors = (
@@ -732,7 +744,9 @@ export default function AudioWaveform() {
         URL.revokeObjectURL(url);
     };
 
-    const handleTranscriptionFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTranscriptionFileUpload = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
         if (file) {
             setTranscriptionFile(file);
@@ -751,10 +765,13 @@ export default function AudioWaveform() {
         formData.append("file", transcriptionFile);
 
         try {
-            const response = await fetch("http://your-fastapi-endpoint/transcribe", {
-                method: "POST",
-                body: formData,
-            });
+            const response = await fetch(
+                "http://your-fastapi-endpoint/transcribe",
+                {
+                    method: "POST",
+                    body: formData,
+                }
+            );
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -816,7 +833,7 @@ export default function AudioWaveform() {
                             >
                                 {isTranscribing ? (
                                     <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                                         Transcribing...
                                     </>
                                 ) : (
