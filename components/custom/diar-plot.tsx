@@ -41,6 +41,7 @@ import { ChromePicker } from "react-color";
 import { SkipBack, SkipForward, FastForward } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 
 ChartJS.register(...registerables);
 
@@ -128,8 +129,6 @@ export default function AudioWaveform() {
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
-    const [ws, setWs] = useState<WebSocket | null>(null);
-    const [clientId, setClientId] = useState<string | null>(null);
 
     const getSpeakerColors = (
         rttmData: RTTMSegment[]
@@ -653,31 +652,6 @@ export default function AudioWaveform() {
         setZoomRange([0, duration]);
     };
 
-    const generateRTTMContent = () => {
-        return predictionRTTMData
-            .map((segment) => {
-                return `SPEAKER file 1 ${segment.start.toFixed(
-                    3
-                )} ${segment.duration.toFixed(3)} <NA> <NA> ${
-                    segment.speaker
-                } <NA> <NA>`;
-            })
-            .join("\n");
-    };
-
-    const handleExportRTTM = () => {
-        const content = generateRTTMContent();
-        const blob = new Blob([content], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "updated_prediction.rttm";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
-
     const handleTranscriptionFileUpload = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -710,37 +684,19 @@ export default function AudioWaveform() {
         }
     };
 
-    const connectWebSocket = useCallback((cId: string) => {
-        const socket = new WebSocket(`wss://api.somnipro.io/ws/${cId}`);
-        
-        socket.onopen = () => {
-            console.log('WebSocket connected');
-            setWs(socket);
-        };
+    const processZipFile = async (zipBlob: Blob) => {
+        const zip = await JSZip.loadAsync(zipBlob);
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.error) {
-                console.error('Error from server:', data.error);
-            } else {
-                processReceivedData(data);
-            }
-        };
+        const files = Object.values(zip.files);
+        const rttmFile = files.find((file) => file.name.endsWith(".rttm"));
+        const jsonFile = files.find((file) => file.name.endsWith(".json"));
 
-        socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
+        if (rttmFile && jsonFile) {
+            const rttmContent = await rttmFile.async("text");
+            const jsonContent = await jsonFile.async("text");
 
-        socket.onclose = () => {
-            console.log('WebSocket disconnected');
-            setWs(null);
-        };
-    }, []);
-
-    const processReceivedData = (data: any) => {
-        if (data.rttm && data.json) {
             // Parse the RTTM content
-            const parsedRttm = parseRTTM(data.rttm);
+            const parsedRttm = parseRTTM(rttmContent);
             setPredictionRTTMData(parsedRttm);
             const colors = getSpeakerColors(parsedRttm);
             setSpeakerColors(colors);
@@ -749,13 +705,15 @@ export default function AudioWaveform() {
             setShowPredictionLegend(true);
 
             // Parse and store the JSON content
-            const jsonResult = JSON.parse(data.json);
+            const jsonResult = JSON.parse(jsonContent);
             setTranscriptionResult(jsonResult);
 
             // Force chart update
             if (chartRef.current) {
                 chartRef.current.update();
             }
+        } else {
+            console.error("RTTM or JSON file not found in the zip");
         }
     };
 
@@ -779,16 +737,13 @@ export default function AudioWaveform() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("Error response:", errorText);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${errorText}`
+                );
             }
 
-            const result = await response.json();
-            console.log("Transcription started:", result);
-
-            // Store the client_id and connect to WebSocket
-            setClientId(result.file_id);
-            connectWebSocket(result.file_id);
-
+            const zipBlob = await response.blob();
+            await processZipFile(zipBlob);
         } catch (error) {
             console.error("Error sending file for transcription:", error);
         } finally {
@@ -796,25 +751,21 @@ export default function AudioWaveform() {
         }
     };
 
-    // Add this useEffect hook to handle WebSocket cleanup
-    useEffect(() => {
-        return () => {
-            if (ws) {
-                ws.close();
-            }
-        };
-    }, [ws]);
-
     const downloadRTTM = () => {
         if (transcriptionResult && transcriptionResult.rttm) {
-            const blob = new Blob([transcriptionResult.rttm], { type: "text/plain" });
+            const blob = new Blob([transcriptionResult.rttm], {
+                type: "text/plain",
+            });
             saveAs(blob, "transcription.rttm");
         }
     };
 
     const downloadJSON = () => {
         if (transcriptionResult) {
-            const blob = new Blob([JSON.stringify(transcriptionResult, null, 2)], { type: "application/json" });
+            const blob = new Blob(
+                [JSON.stringify(transcriptionResult, null, 2)],
+                { type: "application/json" }
+            );
             saveAs(blob, "transcription_result.json");
         }
     };
@@ -987,13 +938,6 @@ export default function AudioWaveform() {
                                     onUpdateSpeakerLabel={updateSpeakerLabel}
                                 />
                                 <div className='mt-2 flex justify-end space-x-2'>
-                                    <Button
-                                        onClick={handleExportRTTM}
-                                        variant='outline'
-                                        size='lg'
-                                    >
-                                        Export w/ Speaker Labels
-                                    </Button>
                                     <Button
                                         onClick={downloadRTTM}
                                         variant='outline'
