@@ -128,6 +128,8 @@ export default function AudioWaveform() {
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
+    const [ws, setWs] = useState<WebSocket | null>(null);
+    const [clientId, setClientId] = useState<string | null>(null);
 
     const getSpeakerColors = (
         rttmData: RTTMSegment[]
@@ -708,6 +710,55 @@ export default function AudioWaveform() {
         }
     };
 
+    const connectWebSocket = useCallback((cId: string) => {
+        const socket = new WebSocket(`wss://api.somnipro.io/ws/${cId}`);
+        
+        socket.onopen = () => {
+            console.log('WebSocket connected');
+            setWs(socket);
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.error) {
+                console.error('Error from server:', data.error);
+            } else {
+                processReceivedData(data);
+            }
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        socket.onclose = () => {
+            console.log('WebSocket disconnected');
+            setWs(null);
+        };
+    }, []);
+
+    const processReceivedData = (data: any) => {
+        if (data.rttm && data.json) {
+            // Parse the RTTM content
+            const parsedRttm = parseRTTM(data.rttm);
+            setPredictionRTTMData(parsedRttm);
+            const colors = getSpeakerColors(parsedRttm);
+            setSpeakerColors(colors);
+            setOriginalSpeakerColors(colors);
+            setRttmData(parsedRttm);
+            setShowPredictionLegend(true);
+
+            // Parse and store the JSON content
+            const jsonResult = JSON.parse(data.json);
+            setTranscriptionResult(jsonResult);
+
+            // Force chart update
+            if (chartRef.current) {
+                chartRef.current.update();
+            }
+        }
+    };
+
     const sendForTranscription = async () => {
         if (!transcriptionFile) {
             console.error("No file selected for transcription");
@@ -728,32 +779,16 @@ export default function AudioWaveform() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("Error response:", errorText);
-                throw new Error(
-                    `HTTP error! status: ${response.status}, message: ${errorText}`
-                );
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const result = await response.json();
-            console.log("Transcription result:", result);
+            console.log("Transcription started:", result);
 
-            // Store the full result for later use
-            setTranscriptionResult(result);
+            // Store the client_id and connect to WebSocket
+            setClientId(result.file_id);
+            connectWebSocket(result.file_id);
 
-            // Parse the RTTM content
-            if (result.rttm) {
-                const parsedRttm = parseRTTM(result.rttm);
-                setPredictionRTTMData(parsedRttm);
-                const colors = getSpeakerColors(parsedRttm);
-                setSpeakerColors(colors);
-                setOriginalSpeakerColors(colors);
-                setRttmData(parsedRttm);
-                setShowPredictionLegend(true);
-
-                // Force chart update
-                if (chartRef.current) {
-                    chartRef.current.update();
-                }
-            }
         } catch (error) {
             console.error("Error sending file for transcription:", error);
         } finally {
@@ -761,21 +796,25 @@ export default function AudioWaveform() {
         }
     };
 
+    // Add this useEffect hook to handle WebSocket cleanup
+    useEffect(() => {
+        return () => {
+            if (ws) {
+                ws.close();
+            }
+        };
+    }, [ws]);
+
     const downloadRTTM = () => {
         if (transcriptionResult && transcriptionResult.rttm) {
-            const blob = new Blob([transcriptionResult.rttm], {
-                type: "text/plain",
-            });
+            const blob = new Blob([transcriptionResult.rttm], { type: "text/plain" });
             saveAs(blob, "transcription.rttm");
         }
     };
 
     const downloadJSON = () => {
         if (transcriptionResult) {
-            const blob = new Blob(
-                [JSON.stringify(transcriptionResult, null, 2)],
-                { type: "application/json" }
-            );
+            const blob = new Blob([JSON.stringify(transcriptionResult, null, 2)], { type: "application/json" });
             saveAs(blob, "transcription_result.json");
         }
     };
