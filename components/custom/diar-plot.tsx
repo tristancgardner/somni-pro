@@ -765,13 +765,10 @@ export default function AudioWaveform() {
         formData.append("file", transcriptionFile);
 
         try {
-            const response = await fetch(
-                "https://api.somnipro.io/transcribe",
-                {
-                    method: "POST",
-                    body: formData,
-                }
-            );
+            const response = await fetch("https://api.somnipro.io/transcribe", {
+                method: "POST",
+                body: formData,
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
