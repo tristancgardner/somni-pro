@@ -687,53 +687,116 @@ export default function AudioWaveform() {
         }
     };
 
-    const processZipFile = async (zipBlob: Blob) => {
-        try {
-            console.log("Processing zip file...");
-            const zip = await JSZip.loadAsync(zipBlob);
+    const test_transcribe_endpoint = async () => {
+        if (!transcriptionFile) {
+            throw new Error("No file selected for transcription");
+        }
 
-            const files = Object.values(zip.files);
-            console.log("Files in zip:", files.map(f => f.name));
+        const formData = new FormData();
+        formData.append("file", transcriptionFile);
+        console.log(
+            "Sending request to:",
+            "https://api.somnipro.io/transcribe/"
+        );
+        console.log("Request payload:", formData);
 
-            const rttmFile = files.find((file) => file.name.endsWith(".rttm"));
-            const jsonFile = files.find((file) => file.name.endsWith(".json"));
+        const response = await fetch("https://api.somnipro.io/transcribe/", {
+            method: "POST",
+            body: formData,
+            headers: {
+                Accept: "text/plain",
+            },
+        });
+        console.log("Response Headers:", response.headers);
+        console.log("Waiting for response...");
+        console.log("Response Status:", response.status);
+        const result = await response.text();
+        console.log("Response received:", result);
+    };
 
-            if (rttmFile && jsonFile) {
-                console.log("Found RTTM and JSON files");
-                const rttmContent = await rttmFile.async("text");
-                const jsonContent = await jsonFile.async("text");
+    const performTranscription = async () => {
+        if (!transcriptionFile) {
+            throw new Error("No file selected for transcription");
+        }
 
-                console.log("RTTM content:", rttmContent);
-                console.log("JSON content:", jsonContent);
+        const formData = new FormData();
+        formData.append("file", transcriptionFile);
 
-                // Parse the RTTM content
-                const parsedRttm = parseRTTM(rttmContent);
+        const MAX_RETRIES = 3;
+        let retries = 0;
+
+        while (retries < MAX_RETRIES) {
+            try {
+                console.log(`Attempt ${retries + 1} of ${MAX_RETRIES}`);
+                console.log(
+                    "Sending request to:",
+                    "https://api.somnipro.io/transcribe/"
+                );
+                console.log("Request payload:", formData);
+
+                const response = await fetch(
+                    "https://api.somnipro.io/transcribe/",
+                    {
+                        method: "POST",
+                        body: formData,
+                        // Add these headers
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    }
+                );
+
+                console.log("Response received");
+                console.log("Response status:", response.status);
+                console.log("Response headers:", response.headers);
+
+                if (!response.ok) {
+                    let errorMessage = await response.text();
+                    console.error("Error response body:", errorMessage);
+                    throw new Error(
+                        `HTTP error! status: ${response.status}, message: ${errorMessage}`
+                    );
+                }
+
+                const result = await response.json();
+                console.log("Processing complete:", result.message);
+
+                // Process RTTM content
+                const parsedRttm = parseRTTM(result.rttm_content);
                 setPredictionRTTMData(parsedRttm as ImportedRTTMSegment[]);
-                const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
+                const colors = getSpeakerColors(
+                    parsedRttm as ImportedRTTMSegment[]
+                );
                 setSpeakerColors(colors);
                 setOriginalSpeakerColors(colors);
                 setRttmData(parsedRttm as ImportedRTTMSegment[]);
                 setShowPredictionLegend(true);
 
-                // Parse and store the JSON content
-                const jsonResult = JSON.parse(jsonContent);
-                setTranscriptionResult(jsonResult);
+                // Process JSON content
+                setTranscriptionResult(result.json_content);
 
                 // Force chart update
                 if (chartRef.current) {
                     chartRef.current.update();
                 }
-            } else {
-                console.error("RTTM or JSON file not found in the zip");
-                throw new Error("Required files not found in the zip");
+
+                break; // Success, exit the retry loop
+            } catch (error) {
+                console.error("Detailed error:", error);
+                console.error(`Error on attempt ${retries + 1}:`, error);
+                retries++;
+                if (retries >= MAX_RETRIES) {
+                    throw new Error(
+                        "Max retries reached. Transcription failed."
+                    );
+                } else {
+                    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds before retrying
+                }
             }
-        } catch (error) {
-            console.error("Error processing zip file:", error);
-            throw error;
         }
     };
 
-    const sendForTranscription = async () => {
+    const sendForTranscription = useCallback(async () => {
         if (!transcriptionFile) {
             console.error("No file selected for transcription");
             return;
@@ -741,49 +804,18 @@ export default function AudioWaveform() {
 
         setIsTranscribing(true);
 
-        const formData = new FormData();
-        formData.append("file", transcriptionFile);
-
-        try {
-            console.log("Sending file for transcription...");
-            const response = await fetch("https://api.somnipro.io/transcribe/", {
-                method: "POST",
-                body: formData,
-            });
-
-            console.log("Response status:", response.status);
-            console.log("Response headers:", response.headers);
-
-            if (!response.ok) {
-                let errorMessage = await response.text();
-                console.error("Error response body:", errorMessage);
-                if (response.status === 413) {
-                    errorMessage = "File too large";
-                } else if (response.status === 400) {
-                    errorMessage = "Invalid file type";
-                }
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorMessage}`);
+        // Move the heavy lifting to a separate function
+        requestAnimationFrame(async () => {
+            try {
+                await performTranscription();
+            } catch (error) {
+                console.error("Transcription failed:", error);
+                // Handle error (e.g., show error message to user)
+            } finally {
+                setIsTranscribing(false);
             }
-
-            const contentType = response.headers.get("content-type");
-            console.log("Response content type:", contentType);
-
-            if (contentType && contentType.includes("application/zip")) {
-                const zipBlob = await response.blob();
-                console.log("Received zip blob:", zipBlob);
-                await processZipFile(zipBlob);
-            } else {
-                const responseText = await response.text();
-                console.log("Unexpected response:", responseText);
-                throw new Error("Unexpected response format");
-            }
-        } catch (error) {
-            console.error("Error sending file for transcription:", error);
-            // You might want to show an error message to the user here
-        } finally {
-            setIsTranscribing(false);
-        }
-    };
+        });
+    }, [transcriptionFile]);
 
     const downloadRTTM = () => {
         if (rttmData.length > 0) {
@@ -816,194 +848,233 @@ export default function AudioWaveform() {
         }
     };
 
+    const testSimpleEndpoint = async () => {
+        try {
+            const response = await fetch("https://api.somnipro.io/test/", {
+                method: "GET",
+            });
+            const text = await response.text();
+            console.log("Test endpoint response:", text);
+            alert(`Test endpoint response: ${text}`); // Add this line to show the response in an alert
+        } catch (error) {
+            console.error("Error testing simple endpoint:", error);
+            alert(`Error testing simple endpoint: ${error}`); // Add this line to show the error in an alert
+        }
+    };
+
     return (
-        <Card className='w-full max-w-full'>
-            <CardHeader>
-                <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className='mb-4'>
-                    <div className='text-sm font-medium mb-1'>
-                        Upload Audio File for Transcription
-                    </div>
+        <div className='space-y-4'>
+            <Card className='w-full max-w-full'>
+                <CardHeader>
+                    <CardTitle>API Tests</CardTitle>
+                </CardHeader>
+                <CardContent>
                     <div className='flex items-center space-x-2'>
-                        <Input
-                            id='transcription-upload'
-                            type='file'
-                            accept='audio/*'
-                            onChange={handleTranscriptionFileUpload}
-                            disabled={isTranscribing}
-                        />
                         <Button
-                            onClick={sendForTranscription}
-                            disabled={!transcriptionFile || isTranscribing}
+                            onClick={testSimpleEndpoint}
+                            variant='secondary'
                         >
-                            {isTranscribing ? (
-                                <>
-                                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                    Transcribing...
-                                </>
-                            ) : (
-                                "Send"
-                            )}
+                            Test API Connection
+                        </Button>
+                        <Button
+                            onClick={test_transcribe_endpoint}
+                            variant='secondary'
+                        >
+                            Test Transcribe Endpoint
                         </Button>
                     </div>
-                </div>
-
-                {isAudioUploaded && (
-                    <>
-                        <div className='flex justify-end mb-2'>
-                            <WaveformSizeControl
-                                value={verticalScale}
-                                onChange={setVerticalScale}
+                </CardContent>
+            </Card>
+            <Card className='w-full max-w-full'>
+                <CardHeader>
+                    <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className='mb-4'>
+                        <div className='text-sm font-medium mb-1'>
+                            Upload Audio File for Transcription
+                        </div>
+                        <div className='flex items-center space-x-2'>
+                            <Input
+                                id='transcription-upload'
+                                type='file'
+                                accept='audio/*'
+                                onChange={handleTranscriptionFileUpload}
+                                disabled={isTranscribing}
                             />
+                            <Button
+                                onClick={sendForTranscription}
+                                disabled={!transcriptionFile || isTranscribing}
+                            >
+                                {isTranscribing ? (
+                                    <>
+                                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                        Transcribing...
+                                    </>
+                                ) : (
+                                    "Send"
+                                )}
+                            </Button>
                         </div>
-                        <div className='relative h-64'>
-                            <Line
-                                data={chartData}
-                                options={chartOptions}
-                                ref={chartRef}
-                            />
-                        </div>
-                        <div className='mt-4 space-y-2'>
-                            <div className='flex justify-center items-center space-x-4'>
-                                {/* Zoom controls */}
-                                <div className='flex items-center space-x-2'>
-                                    <Button
-                                        onClick={zoomIn}
-                                        variant='outline'
-                                        size='sm'
-                                    >
-                                        <PlusIcon className='h-4 w-4' />
-                                    </Button>
-                                    <Button
-                                        onClick={zoomOut}
-                                        variant='outline'
-                                        size='sm'
-                                    >
-                                        <MinusIcon className='h-4 w-4' />
-                                    </Button>
-                                    <Button
-                                        onClick={resetZoom}
-                                        variant='outline'
-                                        size='sm'
-                                    >
-                                        Reset Zoom
-                                    </Button>
-                                </div>
+                    </div>
 
-                                {/* Playback controls */}
-                                <div className='flex items-center space-x-4'>
-                                    <Button
-                                        onClick={jumpToBeginning}
-                                        variant='outline'
-                                        size='icon'
-                                        aria-label='Jump to beginning'
-                                    >
-                                        <SkipBack className='h-4 w-4' />
-                                    </Button>
-                                    <Button
-                                        onClick={togglePlayPause}
-                                        aria-label={
-                                            isPlaying ? "Pause" : "Play"
-                                        }
-                                    >
-                                        {isPlaying ? "Pause" : "Play"}
-                                    </Button>
-                                    <Button
-                                        onClick={jumpToEnd}
-                                        variant='outline'
-                                        size='icon'
-                                        aria-label='Jump to end'
-                                    >
-                                        <SkipForward className='h-4 w-4' />
-                                    </Button>
-                                    <Button
-                                        onClick={cyclePlaybackSpeed}
-                                        variant='outline'
-                                        size='sm'
-                                        aria-label={`Playback speed: ${playbackRate}x`}
-                                    >
-                                        {playbackRate}x
-                                    </Button>
-                                    <Button
-                                        variant='ghost'
-                                        size='icon'
-                                        onClick={toggleMute}
-                                        aria-label={
-                                            volume === 0 ? "Unmute" : "Mute"
-                                        }
-                                    >
-                                        {volume === 0 ? (
-                                            <VolumeX className='h-4 w-4' />
-                                        ) : (
-                                            <Volume2 className='h-4 w-4' />
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className='space-y-1'>
-                                <label
-                                    htmlFor='full-file-slider'
-                                    className='text-sm font-medium'
-                                >
-                                    Global Timeline
-                                </label>
-                                <div className='flex items-center space-x-2'>
-                                    <span className='text-sm'>
-                                        {formatTime(0)}
-                                    </span>
-                                    <Slider
-                                        id='full-file-slider'
-                                        value={[currentTime]}
-                                        min={0}
-                                        max={duration}
-                                        step={0.1}
-                                        onValueChange={handleSliderChange}
-                                        className='flex-grow'
-                                    />
-                                    <span className='text-sm'>
-                                        {formatTime(duration)}
-                                    </span>
-                                </div>
-                                <div className='text-center'>
-                                    <span className='text-sm font-medium'>
-                                        {formatTime(currentTime)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        {showPredictionLegend && (
-                            <div className='mt-4'>
-                                <RTTMLegend
-                                    data={predictionRTTMData}
-                                    title='Transcription RTTM Labels'
-                                    colors={speakerColors}
-                                    editable={true}
-                                    onResetColors={resetColors}
-                                    onUpdateSpeakerLabel={updateSpeakerLabel}
+                    {isAudioUploaded && (
+                        <>
+                            <div className='flex justify-end mb-2'>
+                                <WaveformSizeControl
+                                    value={verticalScale}
+                                    onChange={setVerticalScale}
                                 />
-                                <div className='mt-2 flex justify-end space-x-2'>
-                                    <Button
-                                        onClick={downloadRTTM}
-                                        variant='outline'
-                                        size='lg'
+                            </div>
+                            <div className='relative h-64'>
+                                <Line
+                                    data={chartData}
+                                    options={chartOptions}
+                                    ref={chartRef}
+                                />
+                            </div>
+                            <div className='mt-4 space-y-2'>
+                                <div className='flex justify-center items-center space-x-4'>
+                                    {/* Zoom controls */}
+                                    <div className='flex items-center space-x-2'>
+                                        <Button
+                                            onClick={zoomIn}
+                                            variant='outline'
+                                            size='sm'
+                                        >
+                                            <PlusIcon className='h-4 w-4' />
+                                        </Button>
+                                        <Button
+                                            onClick={zoomOut}
+                                            variant='outline'
+                                            size='sm'
+                                        >
+                                            <MinusIcon className='h-4 w-4' />
+                                        </Button>
+                                        <Button
+                                            onClick={resetZoom}
+                                            variant='outline'
+                                            size='sm'
+                                        >
+                                            Reset Zoom
+                                        </Button>
+                                    </div>
+
+                                    {/* Playback controls */}
+                                    <div className='flex items-center space-x-4'>
+                                        <Button
+                                            onClick={jumpToBeginning}
+                                            variant='outline'
+                                            size='icon'
+                                            aria-label='Jump to beginning'
+                                        >
+                                            <SkipBack className='h-4 w-4' />
+                                        </Button>
+                                        <Button
+                                            onClick={togglePlayPause}
+                                            aria-label={
+                                                isPlaying ? "Pause" : "Play"
+                                            }
+                                        >
+                                            {isPlaying ? "Pause" : "Play"}
+                                        </Button>
+                                        <Button
+                                            onClick={jumpToEnd}
+                                            variant='outline'
+                                            size='icon'
+                                            aria-label='Jump to end'
+                                        >
+                                            <SkipForward className='h-4 w-4' />
+                                        </Button>
+                                        <Button
+                                            onClick={cyclePlaybackSpeed}
+                                            variant='outline'
+                                            size='sm'
+                                            aria-label={`Playback speed: ${playbackRate}x`}
+                                        >
+                                            {playbackRate}x
+                                        </Button>
+                                        <Button
+                                            variant='ghost'
+                                            size='icon'
+                                            onClick={toggleMute}
+                                            aria-label={
+                                                volume === 0 ? "Unmute" : "Mute"
+                                            }
+                                        >
+                                            {volume === 0 ? (
+                                                <VolumeX className='h-4 w-4' />
+                                            ) : (
+                                                <Volume2 className='h-4 w-4' />
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className='space-y-1'>
+                                    <label
+                                        htmlFor='full-file-slider'
+                                        className='text-sm font-medium'
                                     >
-                                        Download RTTM
-                                    </Button>
-                                    <Button
-                                        onClick={downloadJSON}
-                                        variant='outline'
-                                        size='lg'
-                                    >
-                                        Download JSON
-                                    </Button>
+                                        Global Timeline
+                                    </label>
+                                    <div className='flex items-center space-x-2'>
+                                        <span className='text-sm'>
+                                            {formatTime(0)}
+                                        </span>
+                                        <Slider
+                                            id='full-file-slider'
+                                            value={[currentTime]}
+                                            min={0}
+                                            max={duration}
+                                            step={0.1}
+                                            onValueChange={handleSliderChange}
+                                            className='flex-grow'
+                                        />
+                                        <span className='text-sm'>
+                                            {formatTime(duration)}
+                                        </span>
+                                    </div>
+                                    <div className='text-center'>
+                                        <span className='text-sm font-medium'>
+                                            {formatTime(currentTime)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        )}
-                    </>
-                )}
-            </CardContent>
-        </Card>
+                            {showPredictionLegend && (
+                                <div className='mt-4'>
+                                    <RTTMLegend
+                                        data={predictionRTTMData}
+                                        title='Transcription RTTM Labels'
+                                        colors={speakerColors}
+                                        editable={true}
+                                        onResetColors={resetColors}
+                                        onUpdateSpeakerLabel={
+                                            updateSpeakerLabel
+                                        }
+                                    />
+                                    <div className='mt-2 flex justify-end space-x-2'>
+                                        <Button
+                                            onClick={downloadRTTM}
+                                            variant='outline'
+                                            size='lg'
+                                        >
+                                            Download RTTM
+                                        </Button>
+                                        <Button
+                                            onClick={downloadJSON}
+                                            variant='outline'
+                                            size='lg'
+                                        >
+                                            Download JSON
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     );
 }
