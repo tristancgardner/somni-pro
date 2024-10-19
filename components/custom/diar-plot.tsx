@@ -46,6 +46,8 @@ import { Loader2 } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
+import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
+
 ChartJS.register(...registerables);
 
 // Add this constant at the top of the file, after the imports
@@ -687,33 +689,6 @@ export default function AudioWaveform() {
         }
     };
 
-    const test_transcribe_endpoint = async () => {
-        if (!transcriptionFile) {
-            throw new Error("No file selected for transcription");
-        }
-
-        const formData = new FormData();
-        formData.append("file", transcriptionFile);
-        console.log(
-            "Sending request to:",
-            "https://api.somnipro.io/transcribe/"
-        );
-        console.log("Request payload:", formData);
-
-        const response = await fetch("https://api.somnipro.io/transcribe/", {
-            method: "POST",
-            body: formData,
-            headers: {
-                Accept: "text/plain",
-            },
-        });
-        console.log("Response Headers:", response.headers);
-        console.log("Waiting for response...");
-        console.log("Response Status:", response.status);
-        const result = await response.text();
-        console.log("Response received:", result);
-    };
-
     const performTranscription = async () => {
         if (!transcriptionFile) {
             throw new Error("No file selected for transcription");
@@ -722,7 +697,7 @@ export default function AudioWaveform() {
         const formData = new FormData();
         formData.append("file", transcriptionFile);
 
-        const MAX_RETRIES = 3;
+        const MAX_RETRIES = 0;
         let retries = 0;
 
         while (retries < MAX_RETRIES) {
@@ -732,7 +707,7 @@ export default function AudioWaveform() {
                     "Sending request to:",
                     "https://api.somnipro.io/transcribe/"
                 );
-                console.log("Request payload:", formData);
+                console.log("Request payload AAAA:", formData);
 
                 const response = await fetch(
                     "https://api.somnipro.io/transcribe/",
@@ -848,22 +823,29 @@ export default function AudioWaveform() {
         }
     };
 
-    const testSimpleEndpoint = async () => {
+    const handleTestSimpleEndpoint = () => {
+        testSimpleEndpoint();
+    };
+
+    const handleTestTranscribeEndpoint = async () => {
+        console.log("handleTestTranscribeEndpoint called");
+        if (!transcriptionFile) {
+            console.error("No transcription file selected");
+            alert("Please select a file first");
+            return;
+        }
         try {
-            const response = await fetch("https://api.somnipro.io/test/", {
-                method: "GET",
-            });
-            const text = await response.text();
-            console.log("Test endpoint response:", text);
-            alert(`Test endpoint response: ${text}`); // Add this line to show the response in an alert
+            console.log("Calling transcribe_endpoint");
+            await transcribe_endpoint(transcriptionFile);
+            console.log("transcribe_endpoint completed");
         } catch (error) {
-            console.error("Error testing simple endpoint:", error);
-            alert(`Error testing simple endpoint: ${error}`); // Add this line to show the error in an alert
+            console.error("Error in handleTestTranscribeEndpoint:", error);
+            alert(`Error: ${error}`);
         }
     };
 
     return (
-        <div className='space-y-4'>
+        <div className='w-full max-w-full'>
             <Card className='w-full max-w-full'>
                 <CardHeader>
                     <CardTitle>API Tests</CardTitle>
@@ -871,13 +853,13 @@ export default function AudioWaveform() {
                 <CardContent>
                     <div className='flex items-center space-x-2'>
                         <Button
-                            onClick={testSimpleEndpoint}
+                            onClick={handleTestSimpleEndpoint}
                             variant='secondary'
                         >
                             Test API Connection
                         </Button>
                         <Button
-                            onClick={test_transcribe_endpoint}
+                            onClick={handleTestTranscribeEndpoint}
                             variant='secondary'
                         >
                             Test Transcribe Endpoint
