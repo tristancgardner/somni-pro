@@ -855,6 +855,24 @@ export default function AudioWaveform() {
             console.log("transcribe_endpoint completed", result);
             // alert(`Transcription successful: ${JSON.stringify(result)}`);
             console.log("RTTM LINES ARE: ", result.rttm_lines);
+
+            const parsedRttm = parseRTTM(result.rttm_lines);
+            setPredictionRTTMData(parsedRttm as ImportedRTTMSegment[]);
+            const colors = getSpeakerColors(
+                parsedRttm as ImportedRTTMSegment[]
+            );
+            setSpeakerColors(colors);
+            setOriginalSpeakerColors(colors);
+            setRttmData(parsedRttm as ImportedRTTMSegment[]);
+            setShowPredictionLegend(true);
+
+            // Process JSON content
+            // setTranscriptionResult(result.json_content);
+
+            // Force chart update
+            if (chartRef.current) {
+                chartRef.current.update();
+            }
         } catch (error) {
             console.error("Error in handleTestTranscribeEndpoint:", error);
             alert(
@@ -864,7 +882,6 @@ export default function AudioWaveform() {
             );
         } finally {
             setIsTranscribing(false);
-            
         }
     };
 
