@@ -662,6 +662,20 @@ export default function AudioWaveform() {
     ) => {
         const file = event.target.files?.[0];
         if (file) {
+            // Check file size (e.g., max 100MB)
+            if (file.size > 100 * 1024 * 1024) {
+                alert(
+                    "File is too large. Please select a file smaller than 100MB."
+                );
+                return;
+            }
+
+            // Check file type
+            if (!file.type.startsWith("audio/")) {
+                alert("Please select an audio file.");
+                return;
+            }
+
             setTranscriptionFile(file);
 
             // Handle audio file
@@ -836,11 +850,21 @@ export default function AudioWaveform() {
         }
         try {
             console.log("Calling transcribe_endpoint");
-            await transcribe_endpoint(transcriptionFile);
-            console.log("transcribe_endpoint completed");
+            setIsTranscribing(true);
+            const result = await transcribe_endpoint(transcriptionFile);
+            console.log("transcribe_endpoint completed", result);
+            // alert(`Transcription successful: ${JSON.stringify(result)}`);
+            console.log("RTTM LINES ARE: ", result.rttm_lines);
         } catch (error) {
             console.error("Error in handleTestTranscribeEndpoint:", error);
-            alert(`Error: ${error}`);
+            alert(
+                `Error: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+        } finally {
+            setIsTranscribing(false);
+            
         }
     };
 

@@ -1,0 +1,321 @@
+{
+    "File": "1729298766_trim_sm",
+    "Segments": [
+        {
+            "start": 0.109,
+            "end": 7.581,
+            "text": "I could envision the paint or the color that they're wanting to put on this rock and wear off and it would not look so great.",
+            "words": [
+                {
+                    "word": "I",
+                    "start": 0.109,
+                    "end": 0.249,
+                    "score": 0.533,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "could",
+                    "start": 0.57,
+                    "end": 0.73,
+                    "score": 0.919,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "envision",
+                    "start": 0.77,
+                    "end": 1.191,
+                    "score": 0.567,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "the",
+                    "start": 1.752,
+                    "end": 1.852,
+                    "score": 0.863,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "paint",
+                    "start": 1.892,
+                    "end": 2.152,
+                    "score": 0.733,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "or",
+                    "start": 2.192,
+                    "end": 2.273,
+                    "score": 0.699,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "the",
+                    "start": 2.313,
+                    "end": 2.373,
+                    "score": 0.969,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "color",
+                    "start": 2.413,
+                    "end": 2.713,
+                    "score": 0.752,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "that",
+                    "start": 2.733,
+                    "end": 2.853,
+                    "score": 0.888,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "they're",
+                    "start": 2.874,
+                    "end": 3.194,
+                    "score": 0.784,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "wanting",
+                    "start": 3.795,
+                    "end": 4.035,
+                    "score": 0.899,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "to",
+                    "start": 4.055,
+                    "end": 4.135,
+                    "score": 0.507,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "put",
+                    "start": 4.156,
+                    "end": 4.296,
+                    "score": 0.903,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "on",
+                    "start": 4.396,
+                    "end": 4.516,
+                    "score": 0.784,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "this",
+                    "start": 4.536,
+                    "end": 4.797,
+                    "score": 0.708,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "rock",
+                    "start": 4.877,
+                    "end": 5.177,
+                    "score": 0.954,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "and",
+                    "start": 5.558,
+                    "end": 5.658,
+                    "score": 0.238,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "wear",
+                    "start": 5.698,
+                    "end": 5.938,
+                    "score": 0.846,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "off",
+                    "start": 6.099,
+                    "end": 6.279,
+                    "score": 0.915,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "and",
+                    "start": 6.339,
+                    "end": 6.439,
+                    "score": 0.961,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "it",
+                    "start": 6.459,
+                    "end": 6.519,
+                    "score": 0.734,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "would",
+                    "start": 6.559,
+                    "end": 6.7,
+                    "score": 0.296,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "not",
+                    "start": 6.74,
+                    "end": 6.9,
+                    "score": 0.595,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "look",
+                    "start": 6.92,
+                    "end": 7.12,
+                    "score": 0.886,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "so",
+                    "start": 7.16,
+                    "end": 7.3,
+                    "score": 0.884,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "great.",
+                    "start": 7.341,
+                    "end": 7.581,
+                    "score": 0.853,
+                    "speaker": "SPEAKER_00"
+                }
+            ],
+            "speaker": "SPEAKER_00"
+        },
+        {
+            "start": 7.641,
+            "end": 13.37,
+            "text": "So therefore, I think I suggested that we just have it engraved and then leave it.",
+            "words": [
+                {
+                    "word": "So",
+                    "start": 7.641,
+                    "end": 7.821,
+                    "score": 0.891,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "therefore,",
+                    "start": 7.861,
+                    "end": 8.282,
+                    "score": 0.873,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "I",
+                    "start": 8.663,
+                    "end": 8.723,
+                    "score": 0.935,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "think",
+                    "start": 8.743,
+                    "end": 8.943,
+                    "score": 0.787,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "I",
+                    "start": 9.644,
+                    "end": 9.724,
+                    "score": 0.974,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "suggested",
+                    "start": 9.744,
+                    "end": 10.205,
+                    "score": 0.914,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "that",
+                    "start": 10.245,
+                    "end": 10.365,
+                    "score": 0.884,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "we",
+                    "start": 10.405,
+                    "end": 10.546,
+                    "score": 0.978,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "just",
+                    "start": 10.586,
+                    "end": 10.786,
+                    "score": 0.912,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "have",
+                    "start": 11.948,
+                    "end": 12.108,
+                    "score": 0.938,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "it",
+                    "start": 12.168,
+                    "end": 12.228,
+                    "score": 0.748,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "engraved",
+                    "start": 12.308,
+                    "end": 12.789,
+                    "score": 0.873,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "and",
+                    "start": 12.829,
+                    "end": 12.909,
+                    "score": 0.213,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "then",
+                    "start": 12.929,
+                    "end": 13.07,
+                    "score": 0.347,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "leave",
+                    "start": 13.11,
+                    "end": 13.29,
+                    "score": 0.883,
+                    "speaker": "SPEAKER_00"
+                },
+                {
+                    "word": "it.",
+                    "start": 13.33,
+                    "end": 13.37,
+                    "score": 0.944,
+                    "speaker": "SPEAKER_00"
+                }
+            ],
+            "speaker": "SPEAKER_00"
+        }
+    ],
+    "Transcript": "[0.11 - 7.58] SPEAKER_00: I could envision the paint or the color that they're wanting to put on this rock and wear off and it would not look so great.\n[7.64 - 13.37] SPEAKER_00: So therefore, I think I suggested that we just have it engraved and then leave it.",
+    "Speaker RTTM": [
+        "SPEAKER file 1 0.109 7.472 <NA> <NA> SPEAKER_00 <NA> <NA>",
+        "SPEAKER file 1 7.641 5.729 <NA> <NA> SPEAKER_00 <NA> <NA>"
+    ],
+    "Num Speakers": 1
+}

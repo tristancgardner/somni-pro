@@ -4,10 +4,9 @@ export interface RTTMSegment {
     speaker: string;
 }
 
-export function parseRTTM(rttmContent: string): RTTMSegment[] {
-    const lines = rttmContent.trim().split('\n');
-    return lines.map(line => {
-        const parts = line.split(' ');
+export function parseRTTM(rttmLines: string[]): RTTMSegment[] {
+    return rttmLines.map(line => {
+        const parts = line.trim().split(' ');
         return {
             start: parseFloat(parts[3]),
             duration: parseFloat(parts[4]),

@@ -32,14 +32,16 @@ export const transcribe_endpoint = async (transcriptionFile: File) => {
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Server Error: ${response.status} - ${errorText}`);
+            throw new Error(
+                `Server Error in transcribe.ts: ${response.status} - ${errorText}`
+            );
         }
 
         const result = await response.json();
         console.log("Response received:", result);
-        alert(`Test transcribe endpoint response: ${JSON.stringify(result)}`);
+        return result; // Make sure to return the result
     } catch (error) {
         console.error("Error testing transcribe endpoint:", error);
-        alert(`Error testing transcribe endpoint: ${error}`);
+        throw error; // Re-throw the error to be handled by the caller
     }
 };

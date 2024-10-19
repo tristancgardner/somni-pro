@@ -1,0 +1,263 @@
+Fastapi whisperapi
+
+sudo tail -f /var/log/nginx/error.log
+sudo tail -f /var/log/nginx/access.log
+
+sudo nginx -t
+sudo systemctl reload nginx
+sudo systemctl restart whisperx
+
+sudo nano /etc/nginx/sites-available/api.somnipro.io
+
+curl -v https://api.somnipro.io/transcribe/ -F "file=@/Users/tristangardner/Documents/Programming/02_Media/_TB_Diarization/otf-V40914AB1/trim_sm.mp3"
+
+curl -v https://api.somnipro.io/transcribe/ -H "Content-Type: application/json" -d '{"file": "@/Users/tristangardner/Documents/Programming/02_Media/_TB_Diarization/otf-V40914AB1/trim_sm.mp3"}'
+
+curl -v https://api.somnipro.io/
+
+ssl_certificate /etc/letsencrypt/live/api.somnipro.io/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/api.somnipro.io/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+BACKUP
+  GNU nano 6.2                                                                      /etc/nginx/sites-available/api.somnipro.io                                                                                
+server {
+    server_name api.somnipro.io;
+
+    proxy_buffer_size   128k;
+    proxy_buffers   4 256k;
+    proxy_busy_buffers_size   256k;
+
+    # Increase header buffer sizes
+    large_client_header_buffers 4 16k;
+    client_header_buffer_size 16k;
+
+    location / {
+        proxy_pass http://127.0.0.1:62397;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        send_timeout 300;
+
+        # Adjust keepalive settings
+        keepalive_timeout 65;
+        keepalive_requests 10000;
+
+    }
+
+    listen 443 ssl; # managed by Certbot
+    client_max_body_size 500M;
+
+uvicorn main:app --host 127.0.0.1 --port 62397 --timeout-keep-alive 500
+
+client-side conosle error: 2transcribe.ts:8 Test endpoint response: {"message":"API connection successful"}
+transcribe.ts:28 
+        
+        
+       POST https://api.somnipro.io/transcribe/ net::ERR_CONNECTION_RESET
+test_transcribe_endpoint @ transcribe.ts:28
+handleTestTranscribeEndpoint @ diar-plot.tsx:842
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112
+Show 14 more frames
+Show lessUnderstand this error
+transcribe.ts:46 Error testing transcribe endpoint: TypeError: Failed to fetch
+    at test_transcribe_endpoint (transcribe.ts:28:32)
+    at handleTestTranscribeEndpoint (diar-plot.tsx:842:43)
+    at HTMLUnknownElement.callCallback (react-dom.development.js:20565:14)
+    at Object.invokeGuardedCallbackImpl (react-dom.development.js:20614:16)
+    at invokeGuardedCallback (react-dom.development.js:20689:29)
+    at invokeGuardedCallbackAndCatchFirstError (react-dom.development.js:20703:25)
+    at executeDispatch (react-dom.development.js:32128:3)
+    at processDispatchQueueItemsInOrder (react-dom.development.js:32160:7)
+    at processDispatchQueue (react-dom.development.js:32173:5)
+    at dispatchEventsForPlugins (react-dom.development.js:32184:3)
+    at eval (react-dom.development.js:32374:12)
+    at batchedUpdates$1 (react-dom.development.js:24953:12)
+    at batchedUpdates (react-dom.development.js:28844:12)
+    at dispatchEventForPluginEventSystem (react-dom.development.js:32373:3)
+    at dispatchEvent (react-dom.development.js:30141:5)
+    at dispatchDiscreteEvent (react-dom.development.js:30112:5)
+overrideMethod @ hook.js:591
+window.console.error @ app-index.js:33
+console.error @ hydration-error-info.js:63
+test_transcribe_endpoint @ transcribe.ts:46
+await in test_transcribe_endpoint
+handleTestTranscribeEndpoint @ diar-plot.tsx:842
+callCallback @ react-dom.development.js:20565
+invokeGuardedCallbackImpl @ react-dom.development.js:20614
+invokeGuardedCallback @ react-dom.development.js:20689
+invokeGuardedCallbackAndCatchFirstError @ react-dom.development.js:20703
+executeDispatch @ react-dom.development.js:32128
+processDispatchQueueItemsInOrder @ react-dom.development.js:32160
+processDispatchQueue @ react-dom.development.js:32173
+dispatchEventsForPlugins @ react-dom.development.js:32184
+eval @ react-dom.development.js:32374
+batchedUpdates$1 @ react-dom.development.js:24953
+batchedUpdates @ react-dom.development.js:28844
+dispatchEventForPluginEventSystem @ react-dom.development.js:32373
+dispatchEvent @ react-dom.development.js:30141
+dispatchDiscreteEvent @ react-dom.development.js:30112
+Show 17 more frames
+Show lessUnderstand this error
+diar-plot.tsx:843 test_transcribe_endpoint completed
+
+
+
+
+PROMPT
+I need you to fix a problem I'm having between a client browser and a server-side fastapi script. An audio file is sent from client to server and processed just fine, but I can't get the result to come back to the client browser, not even in the console. A simple GET method works just fine, and shows up in client console. Shown below:
+@app.get("/test/")
+async def test_endpoint():
+return {"message": "API connection successful"}
+
+However, my POST method which sends an audio file to server and then the server needs to return the result of a process, but it does not make its way back to the client browser. I've tried returning a zip file, an rttm and a json file, and even just a test of returning a text string based on the processing done in the method. I can see that the processing completes on fastapi terminal on server, but then nothing is returned to the console, a delay of maybe 20-30s happens, and then a "network err reset" shows up on the client side. The same thing happens from doing a curl request of the same method in terminal.
+
+here is the fastapi function:
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+import os
+import uuid
+import zipfile
+import shutil
+import json
+from io import BytesIO
+from transcribeAPI import transcribe_with_diar, merge_nearest_toRTTM, compile_transcript
+import time
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+@app.get("/")
+async def root():
+return {"message": "API is running"}
+
+# Setup CORS
+app.add_middleware(
+CORSMiddleware,
+allow_origins=["https://whisper-diar-app.vercel.app", "http://localhost:3000", "https://somnipro.io", "https://api.somnipro.io"], # Add your frontend domains
+allow_credentials=True,
+allow_methods=["*"],
+allow_headers=["*"],
+)
+
+# Setup directories
+UPLOAD_FOLDER = "static/uploads/"
+OUTPUT_FOLDER = "static/outputs/"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+# Increase the maximum file size limit to 500 MB
+MAX_FILE_SIZE = 500 * 1024 * 1024 # 500 MB in bytes
+
+@app.post("/transcribe/")
+async def process_audio(file: UploadFile = File(...)):
+# Check file size
+file_size = await file.read()
+await file.seek(0) # Reset file pointer
+if len(file_size) > MAX_FILE_SIZE:
+raise HTTPException(status_code=413, detail="File too large")
+
+if file.content_type not in ["audio/mpeg", "audio/wav", "audio/m4a", "audio/mp4", "audio/mp3", "audio/mpeg3"]:
+raise HTTPException(status_code=400, detail="Invalid file type")
+
+timestamp = int(time.time())
+session_filename = f"{timestamp}_{file.filename}"
+file_path = os.path.join(UPLOAD_FOLDER, session_filename)
+
+with open(file_path, "wb") as buffer:
+buffer.write(await file.read())
+
+try:
+file_name_base, result, rttm_lines, num_speakers = transcribe_with_diar(file_path)
+
+merge_nearest_toRTTM(file_name_base=file_name_base, rttm_lines=rttm_lines, max_gap=0.5)
+
+full_transcript = compile_transcript(result=result, export=False)
+
+file_dict = {
+"File": file_name_base,
+"Segments": result['segments'],
+"Transcript": full_transcript,
+"Num_Speakers": num_speakers
+}
+
+# Save JSON file
+json_file_path = os.path.join(OUTPUT_FOLDER, f"{file_name_base}.json")
+with open(json_file_path, 'w') as json_file:
+json.dump(file_dict, json_file, indent=4)
+
+# Read RTTM file
+rttm_file_path = os.path.join(OUTPUT_FOLDER, f"{file_name_base}.rttm")
+with open(rttm_file_path, 'r') as rttm_file:
+rttm_content = rttm_file.read()
+
+# Prepare the response
+response_data = {
+"message": "Files processed successfully",
+"rttm_content": rttm_content,
+"json_content": file_dict
+}
+
+return JSONResponse(content=response_data)
+
+except Exception as e:
+print(f"Error processing file: {str(e)}")
+raise HTTPException(status_code=500, detail=str(e))
+
+
+AND HERE IS THE client-side api function in app/api/transcribe.ts (remember everything works with the audio file sent, just nothing is returned from the server even tho processing is successful):
+export const test_transcribe_endpoint = async (transcriptionFile: File) => {
+try {
+if (!transcriptionFile) {
+throw new Error("No file selected for transcription");
+}
+
+const formData = new FormData();
+formData.append("file", transcriptionFile);
+console.log(
+"Sending request to:",
+"https://api.somnipro.io/transcribe/"
+);
+console.log("Request payload:", formData);
+
+const response = await fetch("https://api.somnipro.io/transcribe/", {
+method: "POST",
+body: formData,
+});
+if (!response.ok) {
+const errorText = await response.text();
+throw new Error(`Server Error: ${response.status} - ${errorText}`);
+}
+const result = await response.json();
+console.log("Response received:", result);
+alert(`Test transcribe endpoint response: ${result.message}`);
+} catch (error) {
+console.error("Fetch error:", error);
+}
+};
