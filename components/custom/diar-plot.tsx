@@ -743,6 +743,16 @@ export default function AudioWaveform() {
             setIsTranscribing(true);
             const result = await transcribe_endpoint(transcriptionFile);
             console.log("transcribe() endpoint returned: ", result);
+
+            const session_filename = result.file_name;
+            const splitIndex = session_filename.indexOf("_");
+            const ogFilename =
+                splitIndex !== -1
+                    ? session_filename.slice(splitIndex + 1)
+                    : session_filename;
+            console.log("OG filename:", ogFilename);
+            result.og_file_name = ogFilename;
+
             setTranscriptionResult(result);
 
             const parsedRttm = parseRTTM(result.rttm_lines);
@@ -778,13 +788,12 @@ export default function AudioWaveform() {
             <div className='space-y-2'>
                 {segments.map((segment, index) => (
                     <div key={index} className='border p-2 rounded'>
-                        <p>
-                            <strong>Speaker {segment.speaker}:</strong>{" "}
-                            {segment.text}
-                        </p>
                         <p className='text-sm text-gray-500'>
                             {formatTime(segment.start)} -{" "}
                             {formatTime(segment.end)}
+                        </p>
+                        <p>
+                            <strong>{segment.speaker}:</strong> {segment.text}
                         </p>
                     </div>
                 ))}
@@ -797,12 +806,12 @@ export default function AudioWaveform() {
     };
 
     const downloadRTTM = () => {
-        if (rttmData.length > 0) {
+        if (rttmData.length > 0 && transcriptionResult) {
             const rttmContent = rttmData
                 .map(
                     (segment) =>
                         `SPEAKER ${
-                            (segment as any).audioFileName || "unknown"
+                            transcriptionResult.og_file_name || "unknown"
                         } 1 ${segment.start.toFixed(
                             3
                         )} ${segment.duration.toFixed(3)} <NA> <NA> ${
@@ -813,7 +822,9 @@ export default function AudioWaveform() {
             const blob = new Blob([rttmContent], {
                 type: "text/plain",
             });
-            saveAs(blob, "transcription.rttm");
+            saveAs(blob, `${transcriptionResult.og_file_name}.rttm`);
+        } else {
+            console.error("No RTTM data or transcription result available");
         }
     };
 
