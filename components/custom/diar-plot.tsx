@@ -101,6 +101,27 @@ function debounce<T extends (...args: any[]) => any>(
     };
 }
 
+type TranscriptionResult = {
+    segments: Array<{
+        speaker: string;
+        // Add other properties of the segment here
+    }>;
+    // Add other properties of the transcription result here
+};
+
+type transcriptionResult = {
+    segments: Array<{
+        speaker: string;
+        start: number;
+        end: number;
+        text: string;
+    }>;
+    og_file_name: string;
+    file_name: string;
+    rttm_lines: string[];
+    // Add other properties as needed
+};
+
 export default function AudioWaveform() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -130,7 +151,7 @@ export default function AudioWaveform() {
         null
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
+    const [transcriptionResult, setTranscriptionResult] = useState<transcriptionResult | null>(null);
     const [transcriptionSegments, setTranscriptionSegments] = useState<any[]>(
         []
     );
@@ -482,7 +503,6 @@ export default function AudioWaveform() {
         });
     };
 
-    // Update the updateSpeakerLabel function
     const updateSpeakerLabel = useCallback(
         (oldLabel: string, newLabel: string) => {
             setRttmData((prevData) =>
@@ -496,6 +516,25 @@ export default function AudioWaveform() {
                 const { [oldLabel]: color, ...rest } = prevColors;
                 return { ...rest, [newLabel]: color };
             });
+            setTranscriptionSegments((prevSegments) =>
+                prevSegments.map((segment) =>
+                    segment.speaker === oldLabel
+                        ? { ...segment, speaker: newLabel }
+                        : segment
+                )
+            );
+            setTranscriptionResult((prevResult) => {
+                if (prevResult && prevResult.segments) {
+                    return {
+                        ...prevResult,
+                        segments: prevResult.segments.map((segment) => ({
+                            ...segment,
+                            speaker: segment.speaker === oldLabel ? newLabel : segment.speaker
+                        }))
+                    };
+                }
+                return prevResult;
+            });
         },
         []
     );
@@ -505,7 +544,7 @@ export default function AudioWaveform() {
         if (chartRef.current) {
             chartRef.current.update();
         }
-    }, [rttmData, speakerColors]);
+    }, [rttmData, speakerColors, transcriptionSegments]);
 
     // Update the RTTMLegend component
     const RTTMLegend = ({
@@ -782,17 +821,25 @@ export default function AudioWaveform() {
         }
     };
 
-    const TranscriptionSegments = ({ segments }: { segments: any[] }) => {
+    const TranscriptionSegments = ({ 
+        segments, 
+        speakerColors 
+    }: { 
+        segments: any[]; 
+        speakerColors: Record<string, string>;
+    }) => {
         return (
             <div className='space-y-2'>
                 {segments.map((segment, index) => (
                     <div key={index} className='border p-2 rounded'>
                         <p className='text-sm text-gray-500'>
-                            {formatTime(segment.start)} -{" "}
-                            {formatTime(segment.end)}
+                            {formatTime(segment.start)} - {formatTime(segment.end)}
                         </p>
                         <p>
-                            <strong>{segment.speaker}:</strong> {segment.text}
+                            <strong style={{ color: speakerColors[segment.speaker] || 'black' }}>
+                                {segment.speaker}:
+                            </strong>{' '}
+                            {segment.text}
                         </p>
                     </div>
                 ))}
@@ -1064,7 +1111,10 @@ export default function AudioWaveform() {
                     <CardTitle>Transcription Segments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <TranscriptionSegments segments={transcriptionSegments} />
+                    <TranscriptionSegments 
+                        segments={transcriptionSegments} 
+                        speakerColors={speakerColors}
+                    />
                 </CardContent>
             </Card>
         </div>
