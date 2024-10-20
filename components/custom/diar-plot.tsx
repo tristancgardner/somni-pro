@@ -152,9 +152,7 @@ export default function AudioWaveform() {
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [transcriptionResult, setTranscriptionResult] = useState<transcriptionResult | null>(null);
-    const [transcriptionSegments, setTranscriptionSegments] = useState<any[]>(
-        []
-    );
+    const [transcriptionSegments, setTranscriptionSegments] = useState<transcriptionResult['segments']>([]);
 
     //#region ---------- chart controls/updates
     const getSpeakerColors = (
@@ -565,9 +563,9 @@ export default function AudioWaveform() {
         // console.log("RTTMLegend data:", data); // Add this line
         // console.log("RTTMLegend colors:", colors); // Add this line
 
-        const speakers = Array.from(
+        const speakers = useMemo(() => Array.from(
             new Set(data.map((segment) => segment.speaker))
-        );
+        ), [data]);
 
         const debouncedUpdateSpeakerLabel = useCallback(
             debounce((oldLabel: string, newLabel: string) => {
@@ -599,20 +597,15 @@ export default function AudioWaveform() {
                                         <div
                                             className='w-6 h-6 mr-2 rounded-full cursor-pointer'
                                             style={{
-                                                backgroundColor:
-                                                    colors[speaker],
+                                                backgroundColor: colors[speaker],
                                             }}
                                         />
                                     </PopoverTrigger>
                                     <PopoverContent>
                                         <ChromePicker
-                                            color={colors[speaker]}
-                                            onChange={(color) =>
-                                                updateSpeakerColor(
-                                                    speaker,
-                                                    color.hex
-                                                )
-                                            }
+                                            color={colors[speaker] || '#000000'} // Provide a default color
+                                            onChange={(color) => updateSpeakerColor(speaker, color.hex)}
+                                            disableAlpha={true} // Disable alpha to simplify color selection
                                         />
                                     </PopoverContent>
                                 </Popover>
@@ -825,7 +818,7 @@ export default function AudioWaveform() {
         segments, 
         speakerColors 
     }: { 
-        segments: any[]; 
+        segments: transcriptionResult['segments']; 
         speakerColors: Record<string, string>;
     }) => {
         return (
@@ -851,7 +844,7 @@ export default function AudioWaveform() {
         testSimpleEndpoint();
     };
 
-    const downloadRTTM = () => {
+    const downloadRTTM = useCallback(() => {
         if (rttmData.length > 0 && transcriptionResult) {
             const rttmContent = rttmData
                 .map(
@@ -872,9 +865,9 @@ export default function AudioWaveform() {
         } else {
             console.error("No RTTM data or transcription result available");
         }
-    };
+    }, [rttmData, transcriptionResult]);
 
-    const downloadJSON = () => {
+    const downloadJSON = useCallback(() => {
         if (transcriptionResult) {
             const blob = new Blob(
                 [JSON.stringify(transcriptionResult, null, 4)],
@@ -882,7 +875,7 @@ export default function AudioWaveform() {
             );
             saveAs(blob, `${transcriptionResult.og_file_name}.json`);
         }
-    };
+    }, [transcriptionResult]);
 
     useEffect(() => {
         if (transcriptionResult) {
