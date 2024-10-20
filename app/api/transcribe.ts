@@ -22,10 +22,12 @@ export const transcribe_endpoint = async (transcriptionFile: File) => {
         const formData = new FormData();
         formData.append("file", transcriptionFile);
 
-        console.log("Sending request to: https://api.somnipro.io/transcribe/");
-        console.log("Request payload:", formData);
+        const TRANSCRIBE_ENDPOINT = "https://api.somnipro.io/transcribe/";
 
-        const response = await fetch("https://api.somnipro.io/transcribe/", {
+        console.log(`Sending request to: ${TRANSCRIBE_ENDPOINT}`);
+        // console.log("Request payload:", formData);
+
+        const response = await fetch(TRANSCRIBE_ENDPOINT, {
             method: "POST",
             body: formData,
         });

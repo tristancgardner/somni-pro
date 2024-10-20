@@ -7,6 +7,12 @@ sudo nginx -t
 sudo systemctl reload nginx
 sudo systemctl restart whisperx
 
+Follow the logs in real-time (similar to tail -f):
+sudo journalctl -u whisperx -f
+
+View only error messages:
+sudo journalctl -u whisperx -p err
+
 sudo nano /etc/nginx/sites-available/api.somnipro.io
 
 curl -v https://api.somnipro.io/transcribe/ -F "file=@/Users/tristangardner/Documents/Programming/02_Media/_TB_Diarization/otf-V40914AB1/trim_sm.mp3"

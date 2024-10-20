@@ -119,9 +119,6 @@ export default function AudioWaveform() {
         number
     > | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
-    const [predictionRTTMData, setPredictionRTTMData] = useState<
-        ImportedRTTMSegment[]
-    >([]);
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
@@ -134,7 +131,11 @@ export default function AudioWaveform() {
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
+    const [transcriptionSegments, setTranscriptionSegments] = useState<any[]>(
+        []
+    );
 
+    //#region ---------- chart controls/updates
     const getSpeakerColors = (
         rttmData: ImportedRTTMSegment[]
     ): Record<string, string> => {
@@ -212,7 +213,7 @@ export default function AudioWaveform() {
 
     // Update the colorMap useMemo
     const colorMap = useMemo(() => {
-        if (waveformData.length === 0 || predictionRTTMData.length === 0) {
+        if (waveformData.length === 0 || rttmData.length === 0) {
             return [];
         }
 
@@ -221,7 +222,7 @@ export default function AudioWaveform() {
         );
         const timeStep = duration / waveformData.length;
 
-        predictionRTTMData.forEach((segment) => {
+        rttmData.forEach((segment) => {
             const startIndex = Math.floor(segment.start / timeStep);
             const endIndex = Math.min(
                 Math.floor((segment.start + segment.duration) / timeStep),
@@ -234,9 +235,9 @@ export default function AudioWaveform() {
             }
         });
 
-        console.log("Color map updated:", colors);
+        // console.log("Color map updated:", colors);
         return colors;
-    }, [waveformData, predictionRTTMData, duration, speakerColors]);
+    }, [waveformData, rttmData, duration, speakerColors]);
 
     // Update the chartData
     const chartData = {
@@ -362,11 +363,11 @@ export default function AudioWaveform() {
     };
 
     useEffect(() => {
-        console.log("Color map updated:", colorMap);
+        console.log("Color map updated");
     }, [colorMap]);
 
     useEffect(() => {
-        console.log("Chart data updated:", chartData);
+        console.log("Chart data updated");
     }, [chartData]);
 
     const updateZoomRange = (currentTime: number) => {
@@ -484,13 +485,6 @@ export default function AudioWaveform() {
     // Update the updateSpeakerLabel function
     const updateSpeakerLabel = useCallback(
         (oldLabel: string, newLabel: string) => {
-            setPredictionRTTMData((prevData) =>
-                prevData.map((segment) =>
-                    segment.speaker === oldLabel
-                        ? { ...segment, speaker: newLabel }
-                        : segment
-                )
-            );
             setRttmData((prevData) =>
                 prevData.map((segment) =>
                     segment.speaker === oldLabel
@@ -511,7 +505,7 @@ export default function AudioWaveform() {
         if (chartRef.current) {
             chartRef.current.update();
         }
-    }, [predictionRTTMData, speakerColors]);
+    }, [rttmData, speakerColors]);
 
     // Update the RTTMLegend component
     const RTTMLegend = ({
@@ -529,8 +523,8 @@ export default function AudioWaveform() {
         onResetColors?: () => void;
         onUpdateSpeakerLabel: (oldLabel: string, newLabel: string) => void;
     }) => {
-        console.log("RTTMLegend data:", data); // Add this line
-        console.log("RTTMLegend colors:", colors); // Add this line
+        // console.log("RTTMLegend data:", data); // Add this line
+        // console.log("RTTMLegend colors:", colors); // Add this line
 
         const speakers = Array.from(
             new Set(data.map((segment) => segment.speaker))
@@ -657,6 +651,19 @@ export default function AudioWaveform() {
         setZoomRange([0, duration]);
     };
 
+    // Add this new function to reset RTTM data and speaker colors
+    const resetRTTMDataAndColors = () => {
+        setRttmData([]);
+        setSpeakerColors({});
+        setOriginalSpeakerColors({});
+        setShowPredictionLegend(false);
+        if (chartRef.current) {
+            chartRef.current.update();
+        }
+    };
+
+    //#endregion -- Chart controls/updates
+
     const handleTranscriptionFileUpload = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -675,6 +682,9 @@ export default function AudioWaveform() {
                 alert("Please select an audio file.");
                 return;
             }
+
+            // Reset RTTM data and speaker colors
+            resetRTTMDataAndColors();
 
             setTranscriptionFile(file);
 
@@ -703,108 +713,72 @@ export default function AudioWaveform() {
         }
     };
 
-    const performTranscription = async () => {
+    const handleTestTranscribeEndpoint = async () => {
+        console.log("handleTestTranscribeEndpoint called");
         if (!transcriptionFile) {
-            throw new Error("No file selected for transcription");
+            console.error("No transcription file selected");
+            alert("Please select a file first");
+            return;
         }
+        try {
+            console.log("Calling transcribe_endpoint");
+            setIsTranscribing(true);
+            const result = await transcribe_endpoint(transcriptionFile);
+            console.log("transcribe_endpoint completed", result);
+            setTranscriptionResult(result);
+            console.log("Transcription result: ", transcriptionResult);
+            // console.log("RTTM LINES ARE: ", result.rttm_lines);
 
-        const formData = new FormData();
-        formData.append("file", transcriptionFile);
+            const parsedRttm = parseRTTM(result.rttm_lines);
+            setRttmData(parsedRttm as ImportedRTTMSegment[]);
+            const colors = getSpeakerColors(
+                parsedRttm as ImportedRTTMSegment[]
+            );
+            setSpeakerColors(colors);
+            setOriginalSpeakerColors(colors);
+            setShowPredictionLegend(true);
 
-        const MAX_RETRIES = 0;
-        let retries = 0;
+            // Set the transcription segments
+            setTranscriptionSegments(result.segments || []);
 
-        while (retries < MAX_RETRIES) {
-            try {
-                console.log(`Attempt ${retries + 1} of ${MAX_RETRIES}`);
-                console.log(
-                    "Sending request to:",
-                    "https://api.somnipro.io/transcribe/"
-                );
-                console.log("Request payload AAAA:", formData);
-
-                const response = await fetch(
-                    "https://api.somnipro.io/transcribe/",
-                    {
-                        method: "POST",
-                        body: formData,
-                        // Add these headers
-                        headers: {
-                            Accept: "application/json",
-                        },
-                    }
-                );
-
-                console.log("Response received");
-                console.log("Response status:", response.status);
-                console.log("Response headers:", response.headers);
-
-                if (!response.ok) {
-                    let errorMessage = await response.text();
-                    console.error("Error response body:", errorMessage);
-                    throw new Error(
-                        `HTTP error! status: ${response.status}, message: ${errorMessage}`
-                    );
-                }
-
-                const result = await response.json();
-                console.log("Processing complete:", result.message);
-
-                // Process RTTM content
-                const parsedRttm = parseRTTM(result.rttm_content);
-                setPredictionRTTMData(parsedRttm as ImportedRTTMSegment[]);
-                const colors = getSpeakerColors(
-                    parsedRttm as ImportedRTTMSegment[]
-                );
-                setSpeakerColors(colors);
-                setOriginalSpeakerColors(colors);
-                setRttmData(parsedRttm as ImportedRTTMSegment[]);
-                setShowPredictionLegend(true);
-
-                // Process JSON content
-                setTranscriptionResult(result.json_content);
-
-                // Force chart update
-                if (chartRef.current) {
-                    chartRef.current.update();
-                }
-
-                break; // Success, exit the retry loop
-            } catch (error) {
-                console.error("Detailed error:", error);
-                console.error(`Error on attempt ${retries + 1}:`, error);
-                retries++;
-                if (retries >= MAX_RETRIES) {
-                    throw new Error(
-                        "Max retries reached. Transcription failed."
-                    );
-                } else {
-                    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds before retrying
-                }
+            // Force chart update
+            if (chartRef.current) {
+                chartRef.current.update();
             }
+        } catch (error) {
+            console.error("Error in handleTestTranscribeEndpoint:", error);
+            alert(
+                `Error: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+        } finally {
+            setIsTranscribing(false);
         }
     };
 
-    const sendForTranscription = useCallback(async () => {
-        if (!transcriptionFile) {
-            console.error("No file selected for transcription");
-            return;
-        }
+    const TranscriptionSegments = ({ segments }: { segments: any[] }) => {
+        return (
+            <div className='space-y-2'>
+                {segments.map((segment, index) => (
+                    <div key={index} className='border p-2 rounded'>
+                        <p>
+                            <strong>Speaker {segment.speaker}:</strong>{" "}
+                            {segment.text}
+                        </p>
+                        <p className='text-sm text-gray-500'>
+                            {formatTime(segment.start)} -{" "}
+                            {formatTime(segment.end)}
+                        </p>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
-        setIsTranscribing(true);
-
-        // Move the heavy lifting to a separate function
-        requestAnimationFrame(async () => {
-            try {
-                await performTranscription();
-            } catch (error) {
-                console.error("Transcription failed:", error);
-                // Handle error (e.g., show error message to user)
-            } finally {
-                setIsTranscribing(false);
-            }
-        });
-    }, [transcriptionFile]);
+    const handleTestSimpleEndpoint = () => {
+        testSimpleEndpoint();
+    };
 
     const downloadRTTM = () => {
         if (rttmData.length > 0) {
@@ -837,59 +811,11 @@ export default function AudioWaveform() {
         }
     };
 
-    const handleTestSimpleEndpoint = () => {
-        testSimpleEndpoint();
-    };
-
-    const handleTestTranscribeEndpoint = async () => {
-        console.log("handleTestTranscribeEndpoint called");
-        if (!transcriptionFile) {
-            console.error("No transcription file selected");
-            alert("Please select a file first");
-            return;
-        }
-        try {
-            console.log("Calling transcribe_endpoint");
-            setIsTranscribing(true);
-            const result = await transcribe_endpoint(transcriptionFile);
-            console.log("transcribe_endpoint completed", result);
-            // alert(`Transcription successful: ${JSON.stringify(result)}`);
-            console.log("RTTM LINES ARE: ", result.rttm_lines);
-
-            const parsedRttm = parseRTTM(result.rttm_lines);
-            setPredictionRTTMData(parsedRttm as ImportedRTTMSegment[]);
-            const colors = getSpeakerColors(
-                parsedRttm as ImportedRTTMSegment[]
-            );
-            setSpeakerColors(colors);
-            setOriginalSpeakerColors(colors);
-            setRttmData(parsedRttm as ImportedRTTMSegment[]);
-            setShowPredictionLegend(true);
-
-            // Process JSON content
-            // setTranscriptionResult(result.json_content);
-
-            // Force chart update
-            if (chartRef.current) {
-                chartRef.current.update();
-            }
-        } catch (error) {
-            console.error("Error in handleTestTranscribeEndpoint:", error);
-            alert(
-                `Error: ${
-                    error instanceof Error ? error.message : String(error)
-                }`
-            );
-        } finally {
-            setIsTranscribing(false);
-        }
-    };
-
     return (
         <div className='w-full max-w-full'>
-            <Card className='w-full max-w-full'>
+            <Card className='w-full max-w-full mb-4'>
                 <CardHeader>
-                    <CardTitle>API Tests</CardTitle>
+                    <CardTitle>Dev Utility</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className='flex items-center space-x-2'>
@@ -899,16 +825,16 @@ export default function AudioWaveform() {
                         >
                             Test API Connection
                         </Button>
-                        <Button
+                        {/* <Button
                             onClick={handleTestTranscribeEndpoint}
                             variant='secondary'
                         >
                             Test Transcribe Endpoint
-                        </Button>
+                        </Button> */}
                     </div>
                 </CardContent>
             </Card>
-            <Card className='w-full max-w-full'>
+            <Card className='w-full max-w-full mb-4'>
                 <CardHeader>
                     <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
                 </CardHeader>
@@ -926,7 +852,7 @@ export default function AudioWaveform() {
                                 disabled={isTranscribing}
                             />
                             <Button
-                                onClick={sendForTranscription}
+                                onClick={handleTestTranscribeEndpoint}
                                 disabled={!transcriptionFile || isTranscribing}
                             >
                                 {isTranscribing ? (
@@ -1067,7 +993,7 @@ export default function AudioWaveform() {
                             {showPredictionLegend && (
                                 <div className='mt-4'>
                                     <RTTMLegend
-                                        data={predictionRTTMData}
+                                        data={rttmData}
                                         title='Transcription RTTM Labels'
                                         colors={speakerColors}
                                         editable={true}
@@ -1096,6 +1022,14 @@ export default function AudioWaveform() {
                             )}
                         </>
                     )}
+                </CardContent>
+            </Card>
+            <Card className='w-full max-w-full'>
+                <CardHeader>
+                    <CardTitle>Transcription Segments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <TranscriptionSegments segments={transcriptionSegments} />
                 </CardContent>
             </Card>
         </div>
