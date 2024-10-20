@@ -40,7 +40,7 @@ export const transcribe_endpoint = async (transcriptionFile: File) => {
         }
 
         const result = await response.json();
-        console.log("Response received:", result);
+        console.log("Response received in transcribe.ts!");
         return result; // Make sure to return the result
     } catch (error) {
         console.error("Error testing transcribe endpoint:", error);

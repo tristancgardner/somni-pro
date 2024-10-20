@@ -362,13 +362,13 @@ export default function AudioWaveform() {
         return filteredData.map((v) => v / maxAmplitude);
     };
 
-    useEffect(() => {
-        console.log("Color map updated");
-    }, [colorMap]);
+    // useEffect(() => {
+    //     console.log("Color map updated");
+    // }, [colorMap]);
 
-    useEffect(() => {
-        console.log("Chart data updated");
-    }, [chartData]);
+    // useEffect(() => {
+    //     console.log("Chart data updated");
+    // }, [chartData]);
 
     const updateZoomRange = (currentTime: number) => {
         const zoomDuration = zoomRange[1] - zoomRange[0];
@@ -664,6 +664,24 @@ export default function AudioWaveform() {
 
     //#endregion -- Chart controls/updates
 
+    // Add this function near the top of your component
+    const resetAllState = () => {
+        setRttmData([]);
+        setSpeakerColors({});
+        setOriginalSpeakerColors({});
+        setShowPredictionLegend(false);
+        setWaveformData([]);
+        setCurrentTime(0);
+        setDuration(600); // Reset to default duration
+        setZoomRange([0, 600]); // Reset zoom range to default
+        setTranscriptionSegments([]);
+        setTranscriptionResult(null);
+        if (chartRef.current) {
+            chartRef.current.update();
+        }
+    };
+
+    // Update the handleTranscriptionFileUpload function
     const handleTranscriptionFileUpload = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -683,8 +701,8 @@ export default function AudioWaveform() {
                 return;
             }
 
-            // Reset RTTM data and speaker colors
-            resetRTTMDataAndColors();
+            // Reset all state
+            resetAllState();
 
             setTranscriptionFile(file);
 
@@ -724,10 +742,8 @@ export default function AudioWaveform() {
             console.log("Calling transcribe_endpoint");
             setIsTranscribing(true);
             const result = await transcribe_endpoint(transcriptionFile);
-            console.log("transcribe_endpoint completed", result);
+            console.log("transcribe() endpoint returned: ", result);
             setTranscriptionResult(result);
-            console.log("Transcription result: ", transcriptionResult);
-            // console.log("RTTM LINES ARE: ", result.rttm_lines);
 
             const parsedRttm = parseRTTM(result.rttm_lines);
             setRttmData(parsedRttm as ImportedRTTMSegment[]);
@@ -810,6 +826,19 @@ export default function AudioWaveform() {
             saveAs(blob, "transcription_result.json");
         }
     };
+
+    useEffect(() => {
+        if (transcriptionResult) {
+            console.log(
+                "Updated transcriptionResult state:",
+                transcriptionResult
+            );
+            console.log(
+                "transcriptionResult.num_speakers: ",
+                transcriptionResult.num_speakers
+            );
+        }
+    }, [transcriptionResult]);
 
     return (
         <div className='w-full max-w-full'>
