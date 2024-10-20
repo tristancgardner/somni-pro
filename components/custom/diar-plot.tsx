@@ -750,7 +750,6 @@ export default function AudioWaveform() {
                 splitIndex !== -1
                     ? session_filename.slice(splitIndex + 1)
                     : session_filename;
-            console.log("OG filename:", ogFilename);
             result.og_file_name = ogFilename;
 
             setTranscriptionResult(result);
@@ -843,10 +842,6 @@ export default function AudioWaveform() {
             console.log(
                 "Updated transcriptionResult state:",
                 transcriptionResult
-            );
-            console.log(
-                "transcriptionResult.num_speakers: ",
-                transcriptionResult.num_speakers
             );
         }
     }, [transcriptionResult]);
