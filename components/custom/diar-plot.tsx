@@ -833,7 +833,7 @@ export default function AudioWaveform() {
                 [JSON.stringify(transcriptionResult, null, 4)],
                 { type: "application/json" }
             );
-            saveAs(blob, "transcription_result.json");
+            saveAs(blob, `${transcriptionResult.og_file_name}.json`);
         }
     };
 
