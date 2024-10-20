@@ -33,7 +33,7 @@ import {
     parseRTTM,
     RTTMSegment as ImportedRTTMSegment,
 } from "@/utils/rttmParser";
-import { Input } from "@/components/ui";
+import { Input } from "@/components/ui/input"; // Make sure this import is present
 import { PlusIcon, MinusIcon } from "lucide-react";
 import {
     Popover,
@@ -969,13 +969,14 @@ export default function AudioWaveform() {
                         <div className='text-sm font-medium mb-1'>
                             Upload Audio File for Transcription
                         </div>
-                        <div className='flex items-center space-x-2'>
+                        <div className='flex items-center space-x-2 max-w-md'>
                             <Input
                                 id='transcription-upload'
                                 type='file'
                                 accept='audio/*'
                                 onChange={handleTranscriptionFileUpload}
                                 disabled={isTranscribing}
+                                className="text-white file:text-white file:bg-secondary hover:file:bg-secondary/80 file:mr-4 file:ml-2 pl-2" // Modified this line
                             />
                             <Button
                                 onClick={handleTestTranscribeEndpoint}
