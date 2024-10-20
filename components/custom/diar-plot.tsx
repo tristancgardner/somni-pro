@@ -92,7 +92,7 @@ ChartJS.register(
 // Add this debounce function after the imports
 function debounce<T extends (...args: any[]) => any>(
     func: T,
-    wait: number
+    wait: number = 1000
 ): (...args: Parameters<T>) => void {
     let timeout: NodeJS.Timeout | null = null;
     return (...args: Parameters<T>) => {
@@ -571,12 +571,34 @@ export default function AudioWaveform() {
             [data]
         );
 
+        const [localLabels, setLocalLabels] = useState<Record<string, string>>({});
+
         const debouncedUpdateSpeakerLabel = useCallback(
             debounce((oldLabel: string, newLabel: string) => {
                 onUpdateSpeakerLabel(oldLabel, newLabel);
-            }, 300),
+            }, 1000),
             [onUpdateSpeakerLabel]
         );
+
+        const handleInputChange = (speaker: string, value: string) => {
+            setLocalLabels((prev) => ({ ...prev, [speaker]: value }));
+        };
+
+        const handleInputBlur = (speaker: string, value: string) => {
+            if (value !== speaker) {
+                debouncedUpdateSpeakerLabel(speaker, value);
+            }
+        };
+
+        const handleKeyDown = (
+            e: React.KeyboardEvent<HTMLInputElement>,
+            speaker: string,
+            value: string
+        ) => {
+            if (e.key === 'Enter' && value !== speaker) {
+                debouncedUpdateSpeakerLabel(speaker, value);
+            }
+        };
 
         return (
             <div className='mt-4'>
@@ -601,8 +623,7 @@ export default function AudioWaveform() {
                                         <div
                                             className='w-6 h-6 mr-2 rounded-full cursor-pointer'
                                             style={{
-                                                backgroundColor:
-                                                    colors[speaker],
+                                                backgroundColor: colors[speaker],
                                             }}
                                         />
                                     </PopoverTrigger>
@@ -610,10 +631,7 @@ export default function AudioWaveform() {
                                         <ChromePicker
                                             color={colors[speaker] || "#000000"}
                                             onChange={(color) =>
-                                                updateSpeakerColor(
-                                                    speaker,
-                                                    color.hex
-                                                )
+                                                updateSpeakerColor(speaker, color.hex)
                                             }
                                             disableAlpha={true}
                                         />
@@ -627,17 +645,14 @@ export default function AudioWaveform() {
                             )}
                             {editable ? (
                                 <Input
-                                    defaultValue={speaker}
-                                    onChange={(e) =>
-                                        debouncedUpdateSpeakerLabel(
-                                            speaker,
-                                            e.target.value
-                                        )
-                                    }
-                                    className='w-24 text-xs' // Added text-xs class here
+                                    value={localLabels[speaker] ?? speaker}
+                                    onChange={(e) => handleInputChange(speaker, e.target.value)}
+                                    onBlur={(e) => handleInputBlur(speaker, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(e, speaker, e.currentTarget.value)}
+                                    className='w-24 text-xs'
                                 />
                             ) : (
-                                <span className='text-xs'>{speaker}</span> // Added text-xs class here for consistency
+                                <span className='text-xs'>{speaker}</span>
                             )}
                         </div>
                     ))}
