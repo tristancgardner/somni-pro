@@ -151,8 +151,11 @@ export default function AudioWaveform() {
         null
     );
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const [transcriptionResult, setTranscriptionResult] = useState<transcriptionResult | null>(null);
-    const [transcriptionSegments, setTranscriptionSegments] = useState<transcriptionResult['segments']>([]);
+    const [transcriptionResult, setTranscriptionResult] =
+        useState<transcriptionResult | null>(null);
+    const [transcriptionSegments, setTranscriptionSegments] = useState<
+        transcriptionResult["segments"]
+    >([]);
 
     //#region ---------- chart controls/updates
     const getSpeakerColors = (
@@ -527,8 +530,11 @@ export default function AudioWaveform() {
                         ...prevResult,
                         segments: prevResult.segments.map((segment) => ({
                             ...segment,
-                            speaker: segment.speaker === oldLabel ? newLabel : segment.speaker
-                        }))
+                            speaker:
+                                segment.speaker === oldLabel
+                                    ? newLabel
+                                    : segment.speaker,
+                        })),
                     };
                 }
                 return prevResult;
@@ -560,12 +566,10 @@ export default function AudioWaveform() {
         onResetColors?: () => void;
         onUpdateSpeakerLabel: (oldLabel: string, newLabel: string) => void;
     }) => {
-        // console.log("RTTMLegend data:", data); // Add this line
-        // console.log("RTTMLegend colors:", colors); // Add this line
-
-        const speakers = useMemo(() => Array.from(
-            new Set(data.map((segment) => segment.speaker))
-        ), [data]);
+        const speakers = useMemo(
+            () => Array.from(new Set(data.map((segment) => segment.speaker))),
+            [data]
+        );
 
         const debouncedUpdateSpeakerLabel = useCallback(
             debounce((oldLabel: string, newLabel: string) => {
@@ -597,15 +601,21 @@ export default function AudioWaveform() {
                                         <div
                                             className='w-6 h-6 mr-2 rounded-full cursor-pointer'
                                             style={{
-                                                backgroundColor: colors[speaker],
+                                                backgroundColor:
+                                                    colors[speaker],
                                             }}
                                         />
                                     </PopoverTrigger>
                                     <PopoverContent>
                                         <ChromePicker
-                                            color={colors[speaker] || '#000000'} // Provide a default color
-                                            onChange={(color) => updateSpeakerColor(speaker, color.hex)}
-                                            disableAlpha={true} // Disable alpha to simplify color selection
+                                            color={colors[speaker] || "#000000"}
+                                            onChange={(color) =>
+                                                updateSpeakerColor(
+                                                    speaker,
+                                                    color.hex
+                                                )
+                                            }
+                                            disableAlpha={true}
                                         />
                                     </PopoverContent>
                                 </Popover>
@@ -624,10 +634,10 @@ export default function AudioWaveform() {
                                             e.target.value
                                         )
                                     }
-                                    className='w-24'
+                                    className='w-24 text-xs' // Added text-xs class here
                                 />
                             ) : (
-                                <span>{speaker}</span>
+                                <span className='text-xs'>{speaker}</span> // Added text-xs class here for consistency
                             )}
                         </div>
                     ))}
@@ -814,11 +824,11 @@ export default function AudioWaveform() {
         }
     };
 
-    const TranscriptionSegments = ({ 
-        segments, 
-        speakerColors 
-    }: { 
-        segments: transcriptionResult['segments']; 
+    const TranscriptionSegments = ({
+        segments,
+        speakerColors,
+    }: {
+        segments: transcriptionResult["segments"];
         speakerColors: Record<string, string>;
     }) => {
         return (
@@ -826,12 +836,19 @@ export default function AudioWaveform() {
                 {segments.map((segment, index) => (
                     <div key={index} className='border p-2 rounded'>
                         <p className='text-sm text-gray-500'>
-                            {formatTime(segment.start)} - {formatTime(segment.end)}
+                            {formatTime(segment.start)} -{" "}
+                            {formatTime(segment.end)}
                         </p>
                         <p>
-                            <strong style={{ color: speakerColors[segment.speaker] || 'black' }}>
+                            <strong
+                                style={{
+                                    color:
+                                        speakerColors[segment.speaker] ||
+                                        "black",
+                                }}
+                            >
                                 {segment.speaker}:
-                            </strong>{' '}
+                            </strong>{" "}
                             {segment.text}
                         </p>
                     </div>
@@ -958,6 +975,36 @@ export default function AudioWaveform() {
                                 />
                             </div>
                             <div className='mt-4 space-y-2'>
+                                <div className='space-y-1'>
+                                    <label
+                                        htmlFor='full-file-slider'
+                                        className='text-sm font-medium'
+                                    >
+                                        Global Timeline
+                                    </label>
+                                    <div className='flex items-center space-x-2'>
+                                        <span className='text-sm'>
+                                            {formatTime(0)}
+                                        </span>
+                                        <Slider
+                                            id='full-file-slider'
+                                            value={[currentTime]}
+                                            min={0}
+                                            max={duration}
+                                            step={0.1}
+                                            onValueChange={handleSliderChange}
+                                            className='flex-grow'
+                                        />
+                                        <span className='text-sm'>
+                                            {formatTime(duration)}
+                                        </span>
+                                    </div>
+                                    <div className='text-center'>
+                                        <span className='text-sm font-medium'>
+                                            {formatTime(currentTime)}
+                                        </span>
+                                    </div>
+                                </div>
                                 <div className='flex justify-center items-center space-x-4'>
                                     {/* Zoom controls */}
                                     <div className='flex items-center space-x-2'>
@@ -1034,36 +1081,6 @@ export default function AudioWaveform() {
                                         </Button>
                                     </div>
                                 </div>
-                                <div className='space-y-1'>
-                                    <label
-                                        htmlFor='full-file-slider'
-                                        className='text-sm font-medium'
-                                    >
-                                        Global Timeline
-                                    </label>
-                                    <div className='flex items-center space-x-2'>
-                                        <span className='text-sm'>
-                                            {formatTime(0)}
-                                        </span>
-                                        <Slider
-                                            id='full-file-slider'
-                                            value={[currentTime]}
-                                            min={0}
-                                            max={duration}
-                                            step={0.1}
-                                            onValueChange={handleSliderChange}
-                                            className='flex-grow'
-                                        />
-                                        <span className='text-sm'>
-                                            {formatTime(duration)}
-                                        </span>
-                                    </div>
-                                    <div className='text-center'>
-                                        <span className='text-sm font-medium'>
-                                            {formatTime(currentTime)}
-                                        </span>
-                                    </div>
-                                </div>
                             </div>
                             {showPredictionLegend && (
                                 <div className='mt-4'>
@@ -1104,8 +1121,8 @@ export default function AudioWaveform() {
                     <CardTitle>Transcription Segments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <TranscriptionSegments 
-                        segments={transcriptionSegments} 
+                    <TranscriptionSegments
+                        segments={transcriptionSegments}
                         speakerColors={speakerColors}
                     />
                 </CardContent>
