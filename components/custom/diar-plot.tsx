@@ -571,7 +571,9 @@ export default function AudioWaveform() {
             [data]
         );
 
-        const [localLabels, setLocalLabels] = useState<Record<string, string>>({});
+        const [localLabels, setLocalLabels] = useState<Record<string, string>>(
+            {}
+        );
 
         const debouncedUpdateSpeakerLabel = useCallback(
             debounce((oldLabel: string, newLabel: string) => {
@@ -595,7 +597,7 @@ export default function AudioWaveform() {
             speaker: string,
             value: string
         ) => {
-            if (e.key === 'Enter' && value !== speaker) {
+            if (e.key === "Enter" && value !== speaker) {
                 debouncedUpdateSpeakerLabel(speaker, value);
             }
         };
@@ -623,7 +625,8 @@ export default function AudioWaveform() {
                                         <div
                                             className='w-6 h-6 mr-2 rounded-full cursor-pointer'
                                             style={{
-                                                backgroundColor: colors[speaker],
+                                                backgroundColor:
+                                                    colors[speaker],
                                             }}
                                         />
                                     </PopoverTrigger>
@@ -631,7 +634,10 @@ export default function AudioWaveform() {
                                         <ChromePicker
                                             color={colors[speaker] || "#000000"}
                                             onChange={(color) =>
-                                                updateSpeakerColor(speaker, color.hex)
+                                                updateSpeakerColor(
+                                                    speaker,
+                                                    color.hex
+                                                )
                                             }
                                             disableAlpha={true}
                                         />
@@ -646,9 +652,22 @@ export default function AudioWaveform() {
                             {editable ? (
                                 <Input
                                     value={localLabels[speaker] ?? speaker}
-                                    onChange={(e) => handleInputChange(speaker, e.target.value)}
-                                    onBlur={(e) => handleInputBlur(speaker, e.target.value)}
-                                    onKeyDown={(e) => handleKeyDown(e, speaker, e.currentTarget.value)}
+                                    onChange={(e) =>
+                                        handleInputChange(
+                                            speaker,
+                                            e.target.value
+                                        )
+                                    }
+                                    onBlur={(e) =>
+                                        handleInputBlur(speaker, e.target.value)
+                                    }
+                                    onKeyDown={(e) =>
+                                        handleKeyDown(
+                                            e,
+                                            speaker,
+                                            e.currentTarget.value
+                                        )
+                                    }
                                     className='w-24 text-xs'
                                 />
                             ) : (
