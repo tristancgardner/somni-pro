@@ -47,6 +47,7 @@ import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
+import { SegmentsBySpeaker } from './trans-filter';
 
 ChartJS.register(...registerables);
 
@@ -1273,6 +1274,26 @@ export default function AudioWaveform() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* New SegmentsBySpeaker card */}
+            <Card className='w-full mb-4'>
+                <CardHeader>
+                    <CardTitle>Segments by Speaker</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                        <SegmentsBySpeaker
+                            segments={transcriptionSegments}
+                            speakerColors={speakerColors}
+                            onSegmentClick={handleSegmentClick}
+                        />
+                    ) : (
+                        <div className='text-center text-gray-500'>
+                            No segments available. Please upload and transcribe an audio file.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
