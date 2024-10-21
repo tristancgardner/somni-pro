@@ -13,6 +13,7 @@ type SegmentTimelineProps = {
     segments: Segment[];
     speakerColors: Record<string, string>;
     onSegmentClick: (startTime: number) => void;
+    currentTime: number; // Add this new prop
 };
 
 const formatTime = (time: number): string => {
@@ -27,6 +28,7 @@ export function SegmentTimeline({
     segments,
     speakerColors,
     onSegmentClick,
+    currentTime, // Add this new prop
 }: SegmentTimelineProps) {
     const [totalDuration, setTotalDuration] = useState(0);
     const timelineRef = useRef<HTMLDivElement>(null);
@@ -124,6 +126,11 @@ export function SegmentTimeline({
 
     const maxHeight = Math.max(...segmentHeights, 100); // Ensure minimum timeline height
 
+    // Add this new function to calculate the playhead position
+    const getPlayheadPosition = () => {
+        return `${getScaledPosition(currentTime)}%`;
+    };
+
     return (
         <div className='w-full bg-gray-900 rounded-lg overflow-hidden' style={{ height: `${maxHeight + 40}px` }}>
             <ScrollArea className='h-full w-full'>
@@ -133,6 +140,11 @@ export function SegmentTimeline({
                 >
                     <div className='absolute top-0 left-0 w-full h-8'>
                         {timeMarkers}
+                        {/* Add the playhead above the segments */}
+                        <div
+                            className='absolute top-0 w-0.5 bg-red-500 h-full z-50'
+                            style={{ left: getPlayheadPosition() }}
+                        />
                     </div>
                     <div
                         className='absolute top-8 left-0 w-full'
@@ -152,7 +164,7 @@ export function SegmentTimeline({
                                         backgroundColor: speakerColors[segment.speaker] || "gray",
                                         top: '0px',
                                         height: `${segmentHeight}px`,
-                                        marginRight: '10px', // Add right margin for spacing
+                                        marginRight: '10px',
                                     }}
                                     onClick={() => onSegmentClick(segment.start)}
                                     onMouseEnter={() => setHoveredSegment(index)}

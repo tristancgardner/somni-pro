@@ -1310,6 +1310,7 @@ export default function AudioWaveform() {
                             segments={transcriptionSegments}
                             speakerColors={speakerColors}
                             onSegmentClick={handleSegmentClick}
+                            currentTime={currentTime} // Add this line
                         />
                     ) : (
                         <div className='text-center text-gray-500'>
