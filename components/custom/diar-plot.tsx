@@ -877,27 +877,38 @@ export default function AudioWaveform() {
         }
     };
 
+    const handleSegmentClick = (startTime: number) => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = startTime;
+            setCurrentTime(startTime);
+            updateZoomRange(startTime);
+        }
+    };
+
     const TranscriptionSegments = ({
         segments,
         speakerColors,
+        onSegmentClick,
     }: {
         segments: transcriptionResult["segments"];
         speakerColors: Record<string, string>;
+        onSegmentClick: (startTime: number) => void;
     }) => {
         return (
             <div className='space-y-2'>
                 {segments.map((segment, index) => (
-                    <div key={index} className='border p-2 rounded'>
+                    <div
+                        key={index}
+                        className='border p-2 rounded cursor-pointer hover:bg-gray-700 transition-colors'
+                        onClick={() => onSegmentClick(segment.start)}
+                    >
                         <p className='text-sm text-gray-500'>
-                            {formatTime(segment.start)} -{" "}
-                            {formatTime(segment.end)}
+                            {formatTime(segment.start)} - {formatTime(segment.end)}
                         </p>
                         <p>
                             <strong
                                 style={{
-                                    color:
-                                        speakerColors[segment.speaker] ||
-                                        "white",
+                                    color: speakerColors[segment.speaker] || "white",
                                 }}
                             >
                                 {segment.speaker}:
@@ -1244,11 +1255,12 @@ export default function AudioWaveform() {
                         <CardTitle>Transcription Segments</CardTitle>
                     </CardHeader>
                     <CardContent className='flex-grow p-0 overflow-hidden'>
-                        <div className='h-full px-4 overflow-y-auto'> {/* Changed pr-4 to px-4 */}
+                        <div className='h-full px-4 overflow-y-auto'>
                             {isAudioUploaded ? (
                                 <TranscriptionSegments
                                     segments={transcriptionSegments}
                                     speakerColors={speakerColors}
+                                    onSegmentClick={handleSegmentClick}
                                 />
                             ) : (
                                 <div className='h-full flex items-center justify-center'>
