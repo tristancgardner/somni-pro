@@ -1243,8 +1243,8 @@ export default function AudioWaveform() {
                     <CardHeader>
                         <CardTitle>Transcription Segments</CardTitle>
                     </CardHeader>
-                    <CardContent className='flex-grow p-0 overflow-hidden'> {/* Updated classes */}
-                        <div className='h-full pr-4 overflow-y-auto'> {/* Updated classes */}
+                    <CardContent className='flex-grow p-0 overflow-hidden'>
+                        <div className='h-full px-4 overflow-y-auto'> {/* Changed pr-4 to px-4 */}
                             {isAudioUploaded ? (
                                 <TranscriptionSegments
                                     segments={transcriptionSegments}
