@@ -47,7 +47,8 @@ import { saveAs } from "file-saver";
 import JSZip from "jszip";
 
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
-import { SegmentsBySpeaker } from './trans-filter';
+import { SegmentsBySpeaker } from "@/components/custom/segbyspeaker";
+import { SegmentTimeline } from "./segbytime";
 
 ChartJS.register(...registerables);
 
@@ -904,12 +905,15 @@ export default function AudioWaveform() {
                         onClick={() => onSegmentClick(segment.start)}
                     >
                         <p className='text-sm text-gray-500'>
-                            {formatTime(segment.start)} - {formatTime(segment.end)}
+                            {formatTime(segment.start)} -{" "}
+                            {formatTime(segment.end)}
                         </p>
                         <p>
                             <strong
                                 style={{
-                                    color: speakerColors[segment.speaker] || "white",
+                                    color:
+                                        speakerColors[segment.speaker] ||
+                                        "white",
                                 }}
                             >
                                 {segment.speaker}:
@@ -971,32 +975,34 @@ export default function AudioWaveform() {
     const loadDevFiles = async () => {
         try {
             // Load JSON file
-            const jsonResponse = await fetch('/dev_files/trim_2000.json');
+            const jsonResponse = await fetch("/dev_files/trim_2000.json");
             const jsonData = await jsonResponse.json();
             setTranscriptionResult(jsonData);
             setTranscriptionSegments(jsonData.segments);
-            
+
             // Parse RTTM data
             const parsedRttm = parseRTTM(jsonData.rttm_lines);
             setRttmData(parsedRttm as ImportedRTTMSegment[]);
-            
+
             // Set speaker colors
-            const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
+            const colors = getSpeakerColors(
+                parsedRttm as ImportedRTTMSegment[]
+            );
             setSpeakerColors(colors);
             setOriginalSpeakerColors(colors);
-            
+
             // Load audio file
-            const audio = new Audio('/dev_files/trim_2000.mp3');
+            const audio = new Audio("/dev_files/trim_2000.mp3");
             audioRef.current = audio;
-            
-            audio.addEventListener('loadedmetadata', () => {
+
+            audio.addEventListener("loadedmetadata", () => {
                 setDuration(audio.duration);
                 setZoomRange([0, audio.duration]);
                 setIsAudioUploaded(true);
             });
 
             // Generate waveform data (you might need to adjust this part)
-            const response = await fetch('/dev_files/trim_2000.mp3');
+            const response = await fetch("/dev_files/trim_2000.mp3");
             const arrayBuffer = await response.arrayBuffer();
             const audioContext = new AudioContext();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -1023,10 +1029,7 @@ export default function AudioWaveform() {
                         >
                             Test API Connection
                         </Button>
-                        <Button
-                            onClick={loadDevFiles}
-                            variant='secondary'
-                        >
+                        <Button onClick={loadDevFiles} variant='secondary'>
                             Load Dev Files
                         </Button>
                     </div>
@@ -1289,7 +1292,50 @@ export default function AudioWaveform() {
                         />
                     ) : (
                         <div className='text-center text-gray-500'>
-                            No segments available. Please upload and transcribe an audio file.
+                            No segments available. Please upload and transcribe
+                            an audio file.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* New SegmentsByTime card */}
+            <Card className='w-full mb-4'>
+                <CardHeader>
+                    <CardTitle>Segments by Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                        <SegmentsByTime
+                            segments={transcriptionSegments}
+                            speakerColors={speakerColors}
+                            onSegmentClick={handleSegmentClick}
+                        />
+                    ) : (
+                        <div className='text-center text-gray-500'>
+                            No segments available. Please upload and transcribe
+                            an audio file.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* New SegmentTimeline card */}
+            <Card className='w-full mb-4'>
+                <CardHeader>
+                    <CardTitle>Segment Timeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                        <SegmentTimeline
+                            segments={transcriptionSegments}
+                            speakerColors={speakerColors}
+                            onSegmentClick={handleSegmentClick}
+                        />
+                    ) : (
+                        <div className='text-center text-gray-500'>
+                            No segments available. Please upload and transcribe
+                            an audio file.
                         </div>
                     )}
                 </CardContent>
