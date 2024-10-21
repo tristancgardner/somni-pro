@@ -157,6 +157,25 @@ export default function AudioWaveform() {
         transcriptionResult["segments"]
     >([]);
 
+    const audioWaveformRef = useRef<HTMLDivElement>(null);
+    const transcriptionSegmentsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const resizeObserver = new ResizeObserver(() => {
+            if (audioWaveformRef.current && transcriptionSegmentsRef.current) {
+                transcriptionSegmentsRef.current.style.height = `${audioWaveformRef.current.offsetHeight}px`;
+            }
+        });
+
+        if (audioWaveformRef.current) {
+            resizeObserver.observe(audioWaveformRef.current);
+        }
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, []);
+
     //#region ---------- chart controls/updates
     const getSpeakerColors = (
         rttmData: ImportedRTTMSegment[]
@@ -623,7 +642,7 @@ export default function AudioWaveform() {
                                 <Popover>
                                     <PopoverTrigger>
                                         <div
-                                            className='w-6 h-6 mr-2 rounded-full cursor-pointer'
+                                            className='w-8 h-8 mr-2 rounded-full cursor-pointer' // Increased size from w-6 h-6 to w-8 h-8
                                             style={{
                                                 backgroundColor:
                                                     colors[speaker],
@@ -645,7 +664,7 @@ export default function AudioWaveform() {
                                 </Popover>
                             ) : (
                                 <div
-                                    className='w-4 h-4 mr-2 rounded-full'
+                                    className='w-6 h-6 mr-2 rounded-full' // Increased size from w-4 h-4 to w-6 h-6
                                     style={{ backgroundColor: colors[speaker] }}
                                 />
                             )}
@@ -668,10 +687,10 @@ export default function AudioWaveform() {
                                             e.currentTarget.value
                                         )
                                     }
-                                    className='w-24 text-xs'
+                                    className='w-32 text-sm p-2' // Increased width from w-24 to w-32, increased text size, and added padding
                                 />
                             ) : (
-                                <span className='text-xs'>{speaker}</span>
+                                <span className='text-sm'>{speaker}</span> // Increased text size from text-xs to text-sm
                             )}
                         </div>
                     ))}
@@ -878,7 +897,7 @@ export default function AudioWaveform() {
                                 style={{
                                     color:
                                         speakerColors[segment.speaker] ||
-                                        "black",
+                                        "white",
                                 }}
                             >
                                 {segment.speaker}:
@@ -937,6 +956,47 @@ export default function AudioWaveform() {
         }
     }, [transcriptionResult]);
 
+    const loadDevFiles = async () => {
+        try {
+            // Load JSON file
+            const jsonResponse = await fetch('/dev_files/trim_2000.json');
+            const jsonData = await jsonResponse.json();
+            setTranscriptionResult(jsonData);
+            setTranscriptionSegments(jsonData.segments);
+            
+            // Parse RTTM data
+            const parsedRttm = parseRTTM(jsonData.rttm_lines);
+            setRttmData(parsedRttm as ImportedRTTMSegment[]);
+            
+            // Set speaker colors
+            const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
+            setSpeakerColors(colors);
+            setOriginalSpeakerColors(colors);
+            
+            // Load audio file
+            const audio = new Audio('/dev_files/trim_2000.mp3');
+            audioRef.current = audio;
+            
+            audio.addEventListener('loadedmetadata', () => {
+                setDuration(audio.duration);
+                setZoomRange([0, audio.duration]);
+                setIsAudioUploaded(true);
+            });
+
+            // Generate waveform data (you might need to adjust this part)
+            const response = await fetch('/dev_files/trim_2000.mp3');
+            const arrayBuffer = await response.arrayBuffer();
+            const audioContext = new AudioContext();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const waveform = generateWaveformData(audioBuffer, 10000);
+            setWaveformData(waveform);
+
+            setShowPredictionLegend(true);
+        } catch (error) {
+            console.error("Error loading dev files:", error);
+        }
+    };
+
     return (
         <div className='w-full max-w-full'>
             <Card className='w-full max-w-full mb-4'>
@@ -951,217 +1011,256 @@ export default function AudioWaveform() {
                         >
                             Test API Connection
                         </Button>
-                        {/* <Button
-                            onClick={handleTestTranscribeEndpoint}
+                        <Button
+                            onClick={loadDevFiles}
                             variant='secondary'
                         >
-                            Test Transcribe Endpoint
-                        </Button> */}
+                            Load Dev Files
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
-            <Card className='w-full max-w-full mb-4'>
-                <CardHeader>
-                    <CardTitle>Audio Waveform with Speaker Labels</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className='mb-4'>
-                        <div className='text-sm font-medium mb-1'>
-                            Upload Audio File for Transcription
+            <div className='flex space-x-4'>
+                <Card className='w-2/3 mb-4' ref={audioWaveformRef}>
+                    <CardHeader>
+                        <CardTitle>
+                            Audio Waveform with Speaker Labels
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className='flex flex-col space-y-4'>
+                        <div>
+                            <div className='text-sm font-medium mb-1'>
+                                Upload Audio File for Transcription
+                            </div>
+                            <div className='flex items-center space-x-2 max-w-md'>
+                                <Input
+                                    id='transcription-upload'
+                                    type='file'
+                                    accept='audio/*'
+                                    onChange={handleTranscriptionFileUpload}
+                                    disabled={isTranscribing}
+                                    className='text-white file:text-white file:bg-secondary hover:file:bg-secondary/80 file:mr-4 file:ml-2 pl-2'
+                                />
+                                <Button
+                                    onClick={handleTestTranscribeEndpoint}
+                                    disabled={
+                                        !transcriptionFile || isTranscribing
+                                    }
+                                >
+                                    {isTranscribing ? (
+                                        <>
+                                            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                            Transcribing...
+                                        </>
+                                    ) : (
+                                        "Send"
+                                    )}
+                                </Button>
+                            </div>
                         </div>
-                        <div className='flex items-center space-x-2 max-w-md'>
-                            <Input
-                                id='transcription-upload'
-                                type='file'
-                                accept='audio/*'
-                                onChange={handleTranscriptionFileUpload}
-                                disabled={isTranscribing}
-                                className="text-white file:text-white file:bg-secondary hover:file:bg-secondary/80 file:mr-4 file:ml-2 pl-2" // Modified this line
-                            />
-                            <Button
-                                onClick={handleTestTranscribeEndpoint}
-                                disabled={!transcriptionFile || isTranscribing}
-                            >
-                                {isTranscribing ? (
-                                    <>
-                                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                        Transcribing...
-                                    </>
-                                ) : (
-                                    "Send"
-                                )}
-                            </Button>
-                        </div>
-                    </div>
 
-                    {isAudioUploaded && (
-                        <>
-                            <div className='flex justify-end mb-2'>
-                                <WaveformSizeControl
-                                    value={verticalScale}
-                                    onChange={setVerticalScale}
-                                />
-                            </div>
-                            <div className='relative h-64'>
-                                <Line
-                                    data={chartData}
-                                    options={chartOptions}
-                                    ref={chartRef}
-                                />
-                            </div>
-                            <div className='mt-4 space-y-2'>
-                                <div className='space-y-1'>
-                                    <label
-                                        htmlFor='full-file-slider'
-                                        className='text-sm font-medium'
-                                    >
-                                        Global Timeline
-                                    </label>
-                                    <div className='flex items-center space-x-2'>
-                                        <span className='text-sm'>
-                                            {formatTime(0)}
-                                        </span>
-                                        <Slider
-                                            id='full-file-slider'
-                                            value={[currentTime]}
-                                            min={0}
-                                            max={duration}
-                                            step={0.1}
-                                            onValueChange={handleSliderChange}
-                                            className='flex-grow'
+                        <div className='h-[300px] flex flex-col'>
+                            {" "}
+                            {/* Reduced height */}
+                            {isAudioUploaded ? (
+                                <>
+                                    <div className='flex justify-end mb-2'>
+                                        <WaveformSizeControl
+                                            value={verticalScale}
+                                            onChange={setVerticalScale}
                                         />
-                                        <span className='text-sm'>
-                                            {formatTime(duration)}
-                                        </span>
                                     </div>
-                                    <div className='text-center'>
-                                        <span className='text-sm font-medium'>
-                                            {formatTime(currentTime)}
-                                        </span>
+                                    <div className='flex-grow relative'>
+                                        <Line
+                                            data={chartData}
+                                            options={chartOptions}
+                                            ref={chartRef}
+                                        />
                                     </div>
-                                </div>
-                                <div className='flex justify-center items-center space-x-4'>
-                                    {/* Zoom controls */}
-                                    <div className='flex items-center space-x-2'>
-                                        <Button
-                                            onClick={zoomIn}
-                                            variant='outline'
-                                            size='sm'
-                                        >
-                                            <PlusIcon className='h-4 w-4' />
-                                        </Button>
-                                        <Button
-                                            onClick={zoomOut}
-                                            variant='outline'
-                                            size='sm'
-                                        >
-                                            <MinusIcon className='h-4 w-4' />
-                                        </Button>
-                                        <Button
-                                            onClick={resetZoom}
-                                            variant='outline'
-                                            size='sm'
-                                        >
-                                            Reset Zoom
-                                        </Button>
-                                    </div>
-
-                                    {/* Playback controls */}
-                                    <div className='flex items-center space-x-4'>
-                                        <Button
-                                            onClick={jumpToBeginning}
-                                            variant='outline'
-                                            size='icon'
-                                            aria-label='Jump to beginning'
-                                        >
-                                            <SkipBack className='h-4 w-4' />
-                                        </Button>
-                                        <Button
-                                            onClick={togglePlayPause}
-                                            aria-label={
-                                                isPlaying ? "Pause" : "Play"
-                                            }
-                                        >
-                                            {isPlaying ? "Pause" : "Play"}
-                                        </Button>
-                                        <Button
-                                            onClick={jumpToEnd}
-                                            variant='outline'
-                                            size='icon'
-                                            aria-label='Jump to end'
-                                        >
-                                            <SkipForward className='h-4 w-4' />
-                                        </Button>
-                                        <Button
-                                            onClick={cyclePlaybackSpeed}
-                                            variant='outline'
-                                            size='sm'
-                                            aria-label={`Playback speed: ${playbackRate}x`}
-                                        >
-                                            {playbackRate}x
-                                        </Button>
-                                        <Button
-                                            variant='ghost'
-                                            size='icon'
-                                            onClick={toggleMute}
-                                            aria-label={
-                                                volume === 0 ? "Unmute" : "Mute"
-                                            }
-                                        >
-                                            {volume === 0 ? (
-                                                <VolumeX className='h-4 w-4' />
-                                            ) : (
-                                                <Volume2 className='h-4 w-4' />
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                            {showPredictionLegend && (
-                                <div className='mt-4'>
-                                    <RTTMLegend
-                                        data={rttmData}
-                                        title='Transcription RTTM Labels'
-                                        colors={speakerColors}
-                                        editable={true}
-                                        onResetColors={resetColors}
-                                        onUpdateSpeakerLabel={
-                                            updateSpeakerLabel
-                                        }
-                                    />
-                                    <div className='mt-2 flex justify-end space-x-2'>
-                                        <Button
-                                            onClick={downloadRTTM}
-                                            variant='outline'
-                                            size='lg'
-                                        >
-                                            Download RTTM
-                                        </Button>
-                                        <Button
-                                            onClick={downloadJSON}
-                                            variant='outline'
-                                            size='lg'
-                                        >
-                                            Download JSON
-                                        </Button>
-                                    </div>
+                                </>
+                            ) : (
+                                <div className='flex-grow flex items-center justify-center'>
+                                    <p className='text-gray-500'>
+                                        No audio file uploaded yet
+                                    </p>
                                 </div>
                             )}
-                        </>
-                    )}
-                </CardContent>
-            </Card>
-            <Card className='w-full max-w-full'>
-                <CardHeader>
-                    <CardTitle>Transcription Segments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <TranscriptionSegments
-                        segments={transcriptionSegments}
-                        speakerColors={speakerColors}
-                    />
-                </CardContent>
-            </Card>
+                        </div>
+
+                        {isAudioUploaded && (
+                            <>
+                                <div className='space-y-2'>
+                                    <div className='space-y-1'>
+                                        <label
+                                            htmlFor='full-file-slider'
+                                            className='text-sm font-medium'
+                                        >
+                                            Global Timeline
+                                        </label>
+                                        <div className='flex items-center space-x-2'>
+                                            <span className='text-sm'>
+                                                {formatTime(0)}
+                                            </span>
+                                            <Slider
+                                                id='full-file-slider'
+                                                value={[currentTime]}
+                                                min={0}
+                                                max={duration}
+                                                step={0.1}
+                                                onValueChange={
+                                                    handleSliderChange
+                                                }
+                                                className='flex-grow'
+                                            />
+                                            <span className='text-sm'>
+                                                {formatTime(duration)}
+                                            </span>
+                                        </div>
+                                        <div className='text-center'>
+                                            <span className='text-sm font-medium'>
+                                                {formatTime(currentTime)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className='flex justify-center items-center space-x-4'>
+                                        {/* Zoom controls */}
+                                        <div className='flex items-center space-x-2'>
+                                            <Button
+                                                onClick={zoomIn}
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                <PlusIcon className='h-4 w-4' />
+                                            </Button>
+                                            <Button
+                                                onClick={zoomOut}
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                <MinusIcon className='h-4 w-4' />
+                                            </Button>
+                                            <Button
+                                                onClick={resetZoom}
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                Reset Zoom
+                                            </Button>
+                                        </div>
+
+                                        {/* Playback controls */}
+                                        <div className='flex items-center space-x-4'>
+                                            <Button
+                                                onClick={jumpToBeginning}
+                                                variant='outline'
+                                                size='icon'
+                                                aria-label='Jump to beginning'
+                                            >
+                                                <SkipBack className='h-4 w-4' />
+                                            </Button>
+                                            <Button
+                                                onClick={togglePlayPause}
+                                                aria-label={
+                                                    isPlaying ? "Pause" : "Play"
+                                                }
+                                            >
+                                                {isPlaying ? "Pause" : "Play"}
+                                            </Button>
+                                            <Button
+                                                onClick={jumpToEnd}
+                                                variant='outline'
+                                                size='icon'
+                                                aria-label='Jump to end'
+                                            >
+                                                <SkipForward className='h-4 w-4' />
+                                            </Button>
+                                            <Button
+                                                onClick={cyclePlaybackSpeed}
+                                                variant='outline'
+                                                size='sm'
+                                                aria-label={`Playback speed: ${playbackRate}x`}
+                                            >
+                                                {playbackRate}x
+                                            </Button>
+                                            <Button
+                                                variant='ghost'
+                                                size='icon'
+                                                onClick={toggleMute}
+                                                aria-label={
+                                                    volume === 0
+                                                        ? "Unmute"
+                                                        : "Mute"
+                                                }
+                                            >
+                                                {volume === 0 ? (
+                                                    <VolumeX className='h-4 w-4' />
+                                                ) : (
+                                                    <Volume2 className='h-4 w-4' />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {showPredictionLegend && (
+                                    <div>
+                                        <RTTMLegend
+                                            data={rttmData}
+                                            title='Transcription RTTM Labels'
+                                            colors={speakerColors}
+                                            editable={true}
+                                            onResetColors={resetColors}
+                                            onUpdateSpeakerLabel={
+                                                updateSpeakerLabel
+                                            }
+                                        />
+                                        <div className='mt-3 flex justify-end space-x-2'>
+                                            <Button
+                                                onClick={downloadRTTM}
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                Download RTTM
+                                            </Button>
+                                            <Button
+                                                onClick={downloadJSON}
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                Download JSON
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card
+                    className='w-1/3 mb-4 flex flex-col'
+                    ref={transcriptionSegmentsRef}
+                >
+                    <CardHeader>
+                        <CardTitle>Transcription Segments</CardTitle>
+                    </CardHeader>
+                    <CardContent className='p-0'> {/* Remove default padding */}
+                        <div className='pr-4 h-full overflow-y-auto'> {/* Add padding and scrolling here */}
+                            {isAudioUploaded ? (
+                                <TranscriptionSegments
+                                    segments={transcriptionSegments}
+                                    speakerColors={speakerColors}
+                                />
+                            ) : (
+                                <div className='h-full flex items-center justify-center'>
+                                    <p className='text-gray-500'>
+                                        No transcription available
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
