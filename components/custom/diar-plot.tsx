@@ -1302,27 +1302,6 @@ export default function AudioWaveform() {
             {/* New SegmentsByTime card */}
             <Card className='w-full mb-4'>
                 <CardHeader>
-                    <CardTitle>Segments by Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
-                        <SegmentsByTime
-                            segments={transcriptionSegments}
-                            speakerColors={speakerColors}
-                            onSegmentClick={handleSegmentClick}
-                        />
-                    ) : (
-                        <div className='text-center text-gray-500'>
-                            No segments available. Please upload and transcribe
-                            an audio file.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* New SegmentTimeline card */}
-            <Card className='w-full mb-4'>
-                <CardHeader>
                     <CardTitle>Segment Timeline</CardTitle>
                 </CardHeader>
                 <CardContent>
