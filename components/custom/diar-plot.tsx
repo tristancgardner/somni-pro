@@ -1278,28 +1278,7 @@ export default function AudioWaveform() {
                 </Card>
             </div>
 
-            {/* New SegmentsBySpeaker card */}
-            <Card className='w-full mb-4'>
-                <CardHeader>
-                    <CardTitle>Segments by Speaker</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
-                        <SegmentsBySpeaker
-                            segments={transcriptionSegments}
-                            speakerColors={speakerColors}
-                            onSegmentClick={handleSegmentClick}
-                        />
-                    ) : (
-                        <div className='text-center text-gray-500'>
-                            No segments available. Please upload and transcribe
-                            an audio file.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* New SegmentsByTime card */}
+            {/* Moved SegmentTimeline card above SegmentsBySpeaker */}
             <Card className='w-full mb-4'>
                 <CardHeader>
                     <CardTitle>Segment Timeline</CardTitle>
@@ -1310,7 +1289,28 @@ export default function AudioWaveform() {
                             segments={transcriptionSegments}
                             speakerColors={speakerColors}
                             onSegmentClick={handleSegmentClick}
-                            currentTime={currentTime} // Add this line
+                            currentTime={currentTime}
+                        />
+                    ) : (
+                        <div className='text-center text-gray-500'>
+                            No segments available. Please upload and transcribe
+                            an audio file.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* SegmentsBySpeaker card now comes after SegmentTimeline */}
+            <Card className='w-full mb-4'>
+                <CardHeader>
+                    <CardTitle>Segments by Speaker</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                        <SegmentsBySpeaker
+                            segments={transcriptionSegments}
+                            speakerColors={speakerColors}
+                            onSegmentClick={handleSegmentClick}
                         />
                     ) : (
                         <div className='text-center text-gray-500'>
