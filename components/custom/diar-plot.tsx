@@ -49,6 +49,7 @@ import JSZip from "jszip";
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
 import { SegmentsBySpeaker } from "@/components/custom/segbyspeaker";
 import { SegmentTimeline } from "./segbytime";
+import { DraggableSegmentTimeline } from './dragndrop';
 
 ChartJS.register(...registerables);
 
@@ -1316,6 +1317,28 @@ export default function AudioWaveform() {
                         <div className='text-center text-gray-500'>
                             No segments available. Please upload and transcribe
                             an audio file.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Add the new DraggableSegmentTimeline component */}
+            <Card className='w-full mb-4'>
+                <CardHeader>
+                    <CardTitle>Reorderable Segment Timeline</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                        <DraggableSegmentTimeline
+                            segments={transcriptionSegments.map((segment, index) => ({
+                                ...segment,
+                                id: `segment-${index}` // Add a unique id for each segment
+                            }))}
+                            speakerColors={speakerColors}
+                        />
+                    ) : (
+                        <div className='text-center text-gray-500'>
+                            No segments available. Please upload and transcribe an audio file.
                         </div>
                     )}
                 </CardContent>

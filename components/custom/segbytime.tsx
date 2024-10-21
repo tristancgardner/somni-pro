@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { motion } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 
 type Segment = {
     speaker: string;
@@ -13,7 +13,7 @@ type SegmentTimelineProps = {
     segments: Segment[];
     speakerColors: Record<string, string>;
     onSegmentClick: (startTime: number) => void;
-    currentTime: number; // Add this new prop
+    currentTime: number;
 };
 
 const formatTime = (time: number): string => {
@@ -28,11 +28,16 @@ export function SegmentTimeline({
     segments,
     speakerColors,
     onSegmentClick,
-    currentTime, // Add this new prop
+    currentTime,
 }: SegmentTimelineProps) {
     const [totalDuration, setTotalDuration] = useState(0);
     const timelineRef = useRef<HTMLDivElement>(null);
     const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const controls = useAnimation();
+    const [visibleTimeRange, setVisibleTimeRange] = useState<[number, number]>([
+        0, 0,
+    ]);
 
     useEffect(() => {
         if (segments.length > 0) {
@@ -79,7 +84,8 @@ export function SegmentTimeline({
         return { positions, timeScaling, totalWidth: currentPosition };
     };
 
-    const { positions, timeScaling, totalWidth } = calculateSegmentPositions(segments);
+    const { positions, timeScaling, totalWidth } =
+        calculateSegmentPositions(segments);
 
     const getScaledPosition = (time: number) => {
         let scaledPosition = 0;
@@ -115,7 +121,7 @@ export function SegmentTimeline({
 
     useEffect(() => {
         // Calculate heights based on text length
-        const heights = segments.map(segment => {
+        const heights = segments.map((segment) => {
             const baseHeight = 80; // Minimum height
             const textLength = segment.text.length;
             const additionalHeight = Math.floor(textLength / 50) * 20; // Add 20px for every 50 characters
@@ -126,24 +132,51 @@ export function SegmentTimeline({
 
     const maxHeight = Math.max(...segmentHeights, 100); // Ensure minimum timeline height
 
-    // Add this new function to calculate the playhead position
-    const getPlayheadPosition = () => {
-        return `${getScaledPosition(currentTime)}%`;
-    };
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            const scrollArea = scrollAreaRef.current;
+            const scrollWidth = scrollArea.scrollWidth;
+            const clientWidth = scrollArea.clientWidth;
+            const scrollLeft = scrollArea.scrollLeft;
+
+            const visibleStartTime = (scrollLeft / scrollWidth) * totalDuration;
+            const visibleEndTime =
+                ((scrollLeft + clientWidth) / scrollWidth) * totalDuration;
+            setVisibleTimeRange([visibleStartTime, visibleEndTime]);
+
+            if (
+                currentTime < visibleStartTime ||
+                currentTime > visibleEndTime
+            ) {
+                const newScrollLeft =
+                    (currentTime / totalDuration) * scrollWidth -
+                    clientWidth / 2;
+                controls.start({
+                    x: -newScrollLeft,
+                    transition: { type: "spring", stiffness: 300, damping: 30 },
+                });
+            }
+        }
+    }, [currentTime, totalDuration, controls]);
 
     return (
-        <div className='w-full bg-gray-900 rounded-lg overflow-hidden' style={{ height: `${maxHeight + 40}px` }}>
-            <ScrollArea className='h-full w-full'>
-                <div
+        <div
+            className='w-full bg-gray-900 rounded-lg overflow-hidden'
+            style={{ height: `${maxHeight + 40}px` }}
+        >
+            <ScrollArea className='h-full w-full' ref={scrollAreaRef}>
+                <motion.div
                     className='relative h-full'
                     style={{ width: `${Math.max(totalWidth, 1000)}px` }}
+                    animate={controls}
                 >
                     <div className='absolute top-0 left-0 w-full h-8'>
                         {timeMarkers}
-                        {/* Add the playhead above the segments */}
                         <div
-                            className='absolute top-0 w-0.5 bg-red-500 h-full z-50'
-                            style={{ left: getPlayheadPosition() }}
+                            className='absolute top-0 w-0.5 bg-red-500 h-full z-50 pointer-events-none'
+                            style={{
+                                left: `${getScaledPosition(currentTime)}%`,
+                            }}
                         />
                     </div>
                     <div
@@ -161,22 +194,31 @@ export function SegmentTimeline({
                                     style={{
                                         width: `${(width / totalWidth) * 100}%`,
                                         left: `${(left / totalWidth) * 100}%`,
-                                        backgroundColor: speakerColors[segment.speaker] || "gray",
-                                        top: '0px',
+                                        backgroundColor:
+                                            speakerColors[segment.speaker] ||
+                                            "gray",
+                                        top: "0px",
                                         height: `${segmentHeight}px`,
-                                        marginRight: '10px',
+                                        marginRight: "10px",
                                     }}
-                                    onClick={() => onSegmentClick(segment.start)}
-                                    onMouseEnter={() => setHoveredSegment(index)}
+                                    onClick={() =>
+                                        onSegmentClick(segment.start)
+                                    }
+                                    onMouseEnter={() =>
+                                        setHoveredSegment(index)
+                                    }
                                     onMouseLeave={() => setHoveredSegment(null)}
                                     animate={{
-                                        zIndex: hoveredSegment === index ? 10 : 1,
+                                        zIndex:
+                                            hoveredSegment === index ? 10 : 1,
                                     }}
                                     transition={{ duration: 0.3 }}
                                 >
                                     <ScrollArea className='h-full'>
                                         <div className='p-3 text-sm text-white'>
-                                            <span className='font-bold'>{segment.speaker}: </span>
+                                            <span className='font-bold'>
+                                                {segment.speaker}:{" "}
+                                            </span>
                                             {segment.text}
                                         </div>
                                     </ScrollArea>
@@ -184,8 +226,8 @@ export function SegmentTimeline({
                             );
                         })}
                     </div>
-                </div>
-                <ScrollBar orientation="horizontal" />
+                </motion.div>
+                <ScrollBar orientation='horizontal' />
             </ScrollArea>
         </div>
     );
