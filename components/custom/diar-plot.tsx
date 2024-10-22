@@ -44,12 +44,12 @@ import { SkipBack, SkipForward, FastForward } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
-import { Check } from 'lucide-react'; // Add this import
+import { Check } from "lucide-react"; // Add this import
 
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
 import { SegmentsBySpeaker } from "@/components/custom/segbyspeaker";
 import { SegmentTimeline } from "./segbytime";
-import { DraggableSegmentTimeline } from './dragndrop';
+import { DraggableSegmentTimeline } from "./dragndrop";
 
 ChartJS.register(...registerables);
 
@@ -152,7 +152,7 @@ export default function AudioWaveform() {
     const audioWaveformRef = useRef<HTMLDivElement>(null);
     const transcriptionSegmentsRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => { 
+    useEffect(() => {
         const resizeObserver = new ResizeObserver(() => {
             if (audioWaveformRef.current && transcriptionSegmentsRef.current) {
                 transcriptionSegmentsRef.current.style.height = `${audioWaveformRef.current.offsetHeight}px`;
@@ -179,7 +179,8 @@ export default function AudioWaveform() {
         return Object.fromEntries(
             speakers.map((speaker, index) => [
                 speaker,
-                existingColors?.[speaker] || SPEAKER_COLORS[index % SPEAKER_COLORS.length],
+                existingColors?.[speaker] ||
+                    SPEAKER_COLORS[index % SPEAKER_COLORS.length],
             ])
         );
     };
@@ -550,7 +551,8 @@ export default function AudioWaveform() {
                         speaker_colors: prevResult.speaker_colors
                             ? {
                                   ...prevResult.speaker_colors,
-                                  [newLabel]: prevResult.speaker_colors[oldLabel],
+                                  [newLabel]:
+                                      prevResult.speaker_colors[oldLabel],
                               }
                             : undefined,
                     };
@@ -589,10 +591,14 @@ export default function AudioWaveform() {
             [data]
         );
 
-        const [localLabels, setLocalLabels] = useState<Record<string, string>>(() => {
-            // Initialize with the existing speaker labels from the data
-            return Object.fromEntries(speakers.map(speaker => [speaker, speaker]));
-        });
+        const [localLabels, setLocalLabels] = useState<Record<string, string>>(
+            () => {
+                // Initialize with the existing speaker labels from the data
+                return Object.fromEntries(
+                    speakers.map((speaker) => [speaker, speaker])
+                );
+            }
+        );
 
         const debouncedUpdateSpeakerLabel = useCallback(
             debounce((oldLabel: string, newLabel: string) => {
@@ -630,7 +636,11 @@ export default function AudioWaveform() {
                 <div className='flex justify-between items-center mb-2'>
                     <h3 className='text-sm font-semibold'>{title}</h3>
                     {editable && onResetColors && (
-                        <Button onClick={onResetColors} variant='outline' size='sm'>
+                        <Button
+                            onClick={onResetColors}
+                            variant='outline'
+                            size='sm'
+                        >
                             Reset Colors
                         </Button>
                     )}
@@ -642,22 +652,36 @@ export default function AudioWaveform() {
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button
-                                            variant="outline"
-                                            className="w-8 h-8 p-0 rounded-full"
-                                            style={{ backgroundColor: colors[speaker] }}
+                                            variant='outline'
+                                            className='w-8 h-8 p-0 rounded-full'
+                                            style={{
+                                                backgroundColor:
+                                                    colors[speaker],
+                                            }}
                                         />
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-64">
-                                        <div className="grid grid-cols-4 gap-2">
+                                    <PopoverContent className='w-64'>
+                                        <div className='grid grid-cols-4 gap-2'>
                                             {SPEAKER_COLORS.map((color) => (
                                                 <Button
                                                     key={color}
-                                                    className="w-8 h-8 p-0 rounded-full relative"
-                                                    style={{ backgroundColor: color }}
-                                                    onClick={() => handleColorChange(speaker, color)}
+                                                    className='w-8 h-8 p-0 rounded-full relative'
+                                                    style={{
+                                                        backgroundColor: color,
+                                                    }}
+                                                    onClick={() =>
+                                                        handleColorChange(
+                                                            speaker,
+                                                            color
+                                                        )
+                                                    }
                                                 >
-                                                    {color === colors[speaker] && (
-                                                        <Check className="absolute inset-0 m-auto text-white" size={16} />
+                                                    {color ===
+                                                        colors[speaker] && (
+                                                        <Check
+                                                            className='absolute inset-0 m-auto text-white'
+                                                            size={16}
+                                                        />
                                                     )}
                                                 </Button>
                                             ))}
@@ -674,7 +698,10 @@ export default function AudioWaveform() {
                                 <Input
                                     value={localLabels[speaker]}
                                     onChange={(e) =>
-                                        handleInputChange(speaker, e.target.value)
+                                        handleInputChange(
+                                            speaker,
+                                            e.target.value
+                                        )
                                     }
                                     onBlur={(e) =>
                                         handleInputBlur(speaker, e.target.value)
@@ -689,7 +716,9 @@ export default function AudioWaveform() {
                                     className='w-32 text-sm p-2'
                                 />
                             ) : (
-                                <span className='text-sm'>{localLabels[speaker]}</span>
+                                <span className='text-sm'>
+                                    {localLabels[speaker]}
+                                </span>
                             )}
                         </div>
                     ))}
@@ -955,13 +984,12 @@ export default function AudioWaveform() {
             // Create a copy of the transcriptionResult and add speaker_colors
             const resultWithColors = {
                 ...transcriptionResult,
-                speaker_colors: speakerColors
+                speaker_colors: speakerColors,
             };
 
-            const blob = new Blob(
-                [JSON.stringify(resultWithColors, null, 4)],
-                { type: "application/json" }
-            );
+            const blob = new Blob([JSON.stringify(resultWithColors, null, 4)], {
+                type: "application/json",
+            });
             saveAs(blob, `${transcriptionResult.og_file_name}.json`);
         }
     }, [transcriptionResult, speakerColors]);
@@ -985,13 +1013,17 @@ export default function AudioWaveform() {
 
             // Parse RTTM data
             const parsedRttm = parseRTTM(jsonData.rttm_lines);
-            
+
             // Update RTTM data with correct speaker labels from segments
-            const updatedRttm = parsedRttm.map(segment => {
-                const matchingSegment = jsonData.segments.find((s: transcriptionResult['segments'][0]) => 
-                    s.start <= segment.start && s.start + s.end >= segment.start + segment.duration
+            const updatedRttm = parsedRttm.map((segment) => {
+                const matchingSegment = jsonData.segments.find(
+                    (s: transcriptionResult["segments"][0]) =>
+                        s.start <= segment.start &&
+                        s.start + s.end >= segment.start + segment.duration
                 );
-                return matchingSegment ? { ...segment, speaker: matchingSegment.speaker } : segment;
+                return matchingSegment
+                    ? { ...segment, speaker: matchingSegment.speaker }
+                    : segment;
             });
 
             setRttmData(updatedRttm as ImportedRTTMSegment[]);
@@ -1337,7 +1369,7 @@ export default function AudioWaveform() {
             </Card>
 
             {/* Add the new DraggableSegmentTimeline component */}
-            <Card className='w-full mb-4'>
+            {/* <Card className='w-full mb-4'>
                 <CardHeader>
                     <CardTitle>Reorderable Segment Timeline</CardTitle>
                 </CardHeader>
@@ -1346,7 +1378,7 @@ export default function AudioWaveform() {
                         <DraggableSegmentTimeline
                             segments={transcriptionSegments.map((segment, index) => ({
                                 ...segment,
-                                id: `segment-${index}` // Add a unique id for each segment
+                                id: `segment-${index}`
                             }))}
                             speakerColors={speakerColors}
                         />
@@ -1356,7 +1388,7 @@ export default function AudioWaveform() {
                         </div>
                     )}
                 </CardContent>
-            </Card>
+            </Card> */}
         </div>
     );
 }
