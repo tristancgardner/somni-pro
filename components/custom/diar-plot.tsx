@@ -574,7 +574,7 @@ export default function AudioWaveform() {
             };
             setTranscriptionResult(transcriptionResultRef.current);
         }
-    }, []);
+    }, [setRttmData, setSpeakerColors, setTranscriptionSegments, setSpeakerLegend, setTranscriptionResult]);
 
     // Add this useEffect to update the chart when predictionRTTMData or speakerColors change
     useEffect(() => {
