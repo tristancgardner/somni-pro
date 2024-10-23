@@ -92,12 +92,10 @@ function debounce<T extends (...args: any[]) => any>(
     };
 }
 
-type TranscriptionResult = {
-    segments: Array<{
-        speaker: string;
-        // Add other properties of the segment here
-    }>;
-    // Add other properties of the transcription result here
+
+type Speaker = {
+    originalLabel: string;
+    currentLabel: string;
 };
 
 type transcriptionResult = {
@@ -111,6 +109,8 @@ type transcriptionResult = {
     file_name: string;
     rttm_lines: string[];
     speaker_colors?: Record<string, string>; // Add this new property
+    transcript: string;
+    speakerLegend?: Record<string, Speaker>;
     // Add other properties as needed
 };
 
@@ -151,6 +151,10 @@ export default function AudioWaveform() {
 
     const audioWaveformRef = useRef<HTMLDivElement>(null);
     const transcriptionSegmentsRef = useRef<HTMLDivElement>(null);
+    const transcriptionResultRef = useRef<transcriptionResult | null>(null);
+
+    // Add this state declaration
+    const [speakerLegend, setSpeakerLegend] = useState<Record<string, Speaker>>({});
 
     useEffect(() => {
         const resizeObserver = new ResizeObserver(() => {
@@ -517,51 +521,59 @@ export default function AudioWaveform() {
         });
     };
 
-    const updateSpeakerLabel = useCallback(
-        (oldLabel: string, newLabel: string) => {
-            setRttmData((prevData) =>
-                prevData.map((segment) =>
+    const updateSpeakerLabel = useCallback((oldLabel: string, newLabel: string) => {
+        setRttmData((prevData) =>
+            prevData.map((segment) =>
+                segment.speaker === oldLabel
+                    ? { ...segment, speaker: newLabel }
+                    : segment
+            )
+        );
+        setSpeakerColors((prevColors) => {
+            const newColors = { ...prevColors };
+            if (oldLabel !== newLabel) {
+                newColors[newLabel] = newColors[oldLabel];
+                delete newColors[oldLabel];
+            }
+            return newColors;
+        });
+        setTranscriptionSegments((prevSegments) =>
+            prevSegments.map((segment) =>
+                segment.speaker === oldLabel
+                    ? { ...segment, speaker: newLabel }
+                    : segment
+            )
+        );
+        setSpeakerLegend((prevLegend) => {
+            const newLegend = { ...prevLegend };
+            if (oldLabel !== newLabel) {
+                newLegend[newLabel] = {
+                    originalLabel: prevLegend[oldLabel]?.originalLabel || oldLabel,
+                    currentLabel: newLabel
+                };
+                delete newLegend[oldLabel];
+            }
+            return newLegend;
+        });
+
+        // Update the transcript in transcriptionResult
+        if (transcriptionResultRef.current) {
+            const updatedTranscript = transcriptionResultRef.current.transcript.replace(
+                new RegExp(`\\b${oldLabel}\\b`, 'g'),
+                newLabel
+            );
+            transcriptionResultRef.current = {
+                ...transcriptionResultRef.current,
+                transcript: updatedTranscript,
+                segments: transcriptionResultRef.current.segments.map(segment =>
                     segment.speaker === oldLabel
                         ? { ...segment, speaker: newLabel }
                         : segment
                 )
-            );
-            setSpeakerColors((prevColors) => {
-                const { [oldLabel]: color, ...rest } = prevColors;
-                return { ...rest, [newLabel]: color };
-            });
-            setTranscriptionSegments((prevSegments) =>
-                prevSegments.map((segment) =>
-                    segment.speaker === oldLabel
-                        ? { ...segment, speaker: newLabel }
-                        : segment
-                )
-            );
-            setTranscriptionResult((prevResult) => {
-                if (prevResult) {
-                    return {
-                        ...prevResult,
-                        segments: prevResult.segments.map((segment) => ({
-                            ...segment,
-                            speaker:
-                                segment.speaker === oldLabel
-                                    ? newLabel
-                                    : segment.speaker,
-                        })),
-                        speaker_colors: prevResult.speaker_colors
-                            ? {
-                                  ...prevResult.speaker_colors,
-                                  [newLabel]:
-                                      prevResult.speaker_colors[oldLabel],
-                              }
-                            : undefined,
-                    };
-                }
-                return prevResult;
-            });
-        },
-        []
-    );
+            };
+            setTranscriptionResult(transcriptionResultRef.current);
+        }
+    }, []);
 
     // Add this useEffect to update the chart when predictionRTTMData or speakerColors change
     useEffect(() => {
@@ -875,6 +887,20 @@ export default function AudioWaveform() {
                     : session_filename;
             result.og_file_name = ogFilename;
 
+            // Initialize speakerLegend
+            const initialSpeakerLegend: Record<string, Speaker> = {};
+            result.segments.forEach((segment: { speaker: string }) => {
+                if (!initialSpeakerLegend[segment.speaker]) {
+                    initialSpeakerLegend[segment.speaker] = {
+                        originalLabel: segment.speaker,
+                        currentLabel: segment.speaker
+                    };
+                }
+            });
+            setSpeakerLegend(initialSpeakerLegend);
+
+            // Store the result in the ref
+            transcriptionResultRef.current = result;
             setTranscriptionResult(result);
 
             const parsedRttm = parseRTTM(result.rttm_lines);
@@ -985,6 +1011,7 @@ export default function AudioWaveform() {
             const resultWithColors = {
                 ...transcriptionResult,
                 speaker_colors: speakerColors,
+                file_name: transcriptionResult.og_file_name // Update file_name to og_file_name
             };
 
             const blob = new Blob([JSON.stringify(resultWithColors, null, 4)], {
@@ -994,24 +1021,23 @@ export default function AudioWaveform() {
         }
     }, [transcriptionResult, speakerColors]);
 
-    // Add this new function to download the transcript
+    // Modify the downloadTranscript function
     const downloadTranscript = useCallback(() => {
-        if (transcriptionResult) {
-            // Create a copy of the transcriptionResult and update the segments with current speaker labels
-            const updatedSegments = transcriptionResult.segments.map(segment => ({
-                ...segment,
-                speaker: speakerColors[segment.speaker] ? segment.speaker : `Unknown Speaker`
-            }));
+        if (transcriptionResultRef.current) {
+            // Add the file name at the top of the transcript
+            const headerText = `Transcript for file: ${transcriptionResultRef.current.og_file_name}\n\n`;
+            
+            // Add an extra newline after each line in the transcript
+            const formattedTranscript = transcriptionResultRef.current.transcript
+                .split('\n')
+                .join('\n\n');
 
-            // Generate the transcript text
-            const transcriptText = updatedSegments.map(segment => 
-                `${segment.speaker}: ${segment.text}`
-            ).join('\n\n');
+            const fullTranscript = headerText + formattedTranscript;
 
-            const blob = new Blob([transcriptText], { type: "text/plain;charset=utf-8" });
-            saveAs(blob, `${transcriptionResult.og_file_name}_transcript.txt`);
+            const blob = new Blob([fullTranscript], { type: "text/plain;charset=utf-8" });
+            saveAs(blob, `${transcriptionResultRef.current.og_file_name}_transcript.txt`);
         }
-    }, [transcriptionResult, speakerColors]);
+    }, []);
 
     useEffect(() => {
         if (transcriptionResult) {
