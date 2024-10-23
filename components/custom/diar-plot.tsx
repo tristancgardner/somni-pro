@@ -604,14 +604,19 @@ export default function AudioWaveform() {
             [data]
         );
 
-        const [localLabels, setLocalLabels] = useState<Record<string, string>>(
-            () => {
-                // Initialize with the existing speaker labels from the data
-                return Object.fromEntries(
-                    speakers.map((speaker) => [speaker, speaker])
-                );
-            }
-        );
+        const [localLabels, setLocalLabels] = useState<Record<string, string>>(() => {
+            return Object.fromEntries(
+                speakers.map((speaker) => [speaker, speakerLegend[speaker]?.currentLabel || speaker])
+            );
+        });
+
+        useEffect(() => {
+            setLocalLabels(
+                Object.fromEntries(
+                    speakers.map((speaker) => [speaker, speakerLegend[speaker]?.currentLabel || speaker])
+                )
+            );
+        }, [speakers, speakerLegend]);
 
         const debouncedUpdateSpeakerLabel = useCallback(
             debounce((oldLabel: string, newLabel: string) => {
