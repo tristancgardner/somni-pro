@@ -1113,7 +1113,7 @@ export default function AudioWaveform() {
 
     return (
         <div className='w-full max-w-full'>
-            <Card className='w-full max-w-full mb-4'>
+            {/* <Card className='w-full max-w-full mb-4'>
                 <CardHeader>
                     <CardTitle>Dev Utility</CardTitle>
                 </CardHeader>
@@ -1130,7 +1130,7 @@ export default function AudioWaveform() {
                         </Button>
                     </div>
                 </CardContent>
-            </Card>
+            </Card> */}
             <div className='flex space-x-4'>
                 <Card className='w-2/3 mb-4' ref={audioWaveformRef}>
                     <CardHeader>
