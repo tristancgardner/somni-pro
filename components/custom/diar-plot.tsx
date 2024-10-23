@@ -409,33 +409,17 @@ export default function AudioWaveform() {
     //     console.log("Chart data updated");
     // }, [chartData]);
 
-    const updateZoomRange = (currentTime: number) => {
+    // First, let's move the updateZoomRange function outside of the useEffect
+    const updateZoomRange = useCallback((currentTime: number) => {
         const zoomDuration = zoomRange[1] - zoomRange[0];
         if (currentTime < zoomRange[0] || currentTime > zoomRange[1]) {
             const newStart = Math.max(currentTime - zoomDuration / 2, 0);
             const newEnd = Math.min(newStart + zoomDuration, duration);
             setZoomRange([newStart, newEnd]);
         }
-    };
+    }, [zoomRange, duration]);
 
-    // Add this useEffect hook to update the chart when zoomRange changes
-    useEffect(() => {
-        if (chartRef.current) {
-            const chart = chartRef.current;
-            if (chart.options && chart.options.scales) {
-                if (chart.options.scales.x) {
-                    chart.options.scales.x.min = zoomRange[0];
-                    chart.options.scales.x.max = zoomRange[1];
-                }
-                if (chart.options.scales.y) {
-                    chart.options.scales.y.min = -1 / verticalScale;
-                    chart.options.scales.y.max = 1 / verticalScale;
-                }
-                chart.update();
-            }
-        }
-    }, [zoomRange, verticalScale]);
-
+    // Now, update the useEffect that was causing the warning
     useEffect(() => {
         const handleTimeUpdate = () => {
             if (audioRef.current) {
@@ -457,7 +441,24 @@ export default function AudioWaveform() {
                 );
             }
         };
-    }, [zoomRange, duration, verticalScale]); // Add verticalScale to the dependency array
+    }, [updateZoomRange]); // Add updateZoomRange to the dependency array
+
+    useEffect(() => {
+        if (chartRef.current) {
+            const chart = chartRef.current;
+            if (chart.options && chart.options.scales) {
+                if (chart.options.scales.x) {
+                    chart.options.scales.x.min = zoomRange[0];
+                    chart.options.scales.x.max = zoomRange[1];
+                }
+                if (chart.options.scales.y) {
+                    chart.options.scales.y.min = -1 / verticalScale;
+                    chart.options.scales.y.max = 1 / verticalScale;
+                }
+                chart.update();
+            }
+        }
+    }, [zoomRange, verticalScale]);
 
     const WaveformSizeControl = ({
         value,
@@ -1024,10 +1025,8 @@ export default function AudioWaveform() {
     // Modify the downloadTranscript function
     const downloadTranscript = useCallback(() => {
         if (transcriptionResultRef.current) {
-            // Add the file name at the top of the transcript
             const headerText = `Transcript for file: ${transcriptionResultRef.current.og_file_name}\n\n`;
             
-            // Add an extra newline after each line in the transcript
             const formattedTranscript = transcriptionResultRef.current.transcript
                 .split('\n')
                 .join('\n\n');
