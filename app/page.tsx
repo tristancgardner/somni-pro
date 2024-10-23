@@ -13,7 +13,10 @@ export default function Home() {
     }, []);
 
     return (
-        <div
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
             style={{
                 backgroundImage: 'url("images/electric_timeline.png")',
                 backgroundSize: "cover",
@@ -25,7 +28,10 @@ export default function Home() {
                 overflow: "auto",
             }}
         >
-            <div
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0, duration: 0.25 }}
                 style={{
                     position: "fixed",
                     top: 0,
@@ -45,7 +51,7 @@ export default function Home() {
                             className='absolute top-0 left-0 flex items-center space-x-4'
                             initial={{ y: -30, opacity: 0 }}
                             animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
-                            transition={{ delay: 0.15, duration: 0.6 }}
+                            transition={{ delay: 0.6, duration: 0.6 }}
                         >
                             {/* Company Logo */}
                             <Image
@@ -68,6 +74,6 @@ export default function Home() {
                     <AudioWaveform />
                 </div>
             </main>
-        </div>
+        </motion.div>
     );
 }

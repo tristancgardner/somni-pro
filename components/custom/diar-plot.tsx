@@ -45,6 +45,7 @@ import { Loader2 } from "lucide-react";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import { Check } from "lucide-react"; // Add this import
+import { motion } from "framer-motion";
 
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
 import { SegmentsBySpeaker } from "@/components/custom/segbyspeaker";
@@ -91,7 +92,6 @@ function debounce<T extends (...args: any[]) => any>(
         timeout = setTimeout(() => func(...args), wait);
     };
 }
-
 
 type Speaker = {
     originalLabel: string;
@@ -154,7 +154,15 @@ export default function AudioWaveform() {
     const transcriptionResultRef = useRef<transcriptionResult | null>(null);
 
     // Add this state declaration
-    const [speakerLegend, setSpeakerLegend] = useState<Record<string, Speaker>>({});
+    const [speakerLegend, setSpeakerLegend] = useState<Record<string, Speaker>>(
+        {}
+    );
+
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        setIsLoaded(true);
+    }, []);
 
     useEffect(() => {
         const resizeObserver = new ResizeObserver(() => {
@@ -410,14 +418,17 @@ export default function AudioWaveform() {
     // }, [chartData]);
 
     // First, let's move the updateZoomRange function outside of the useEffect
-    const updateZoomRange = useCallback((currentTime: number) => {
-        const zoomDuration = zoomRange[1] - zoomRange[0];
-        if (currentTime < zoomRange[0] || currentTime > zoomRange[1]) {
-            const newStart = Math.max(currentTime - zoomDuration / 2, 0);
-            const newEnd = Math.min(newStart + zoomDuration, duration);
-            setZoomRange([newStart, newEnd]);
-        }
-    }, [zoomRange, duration]);
+    const updateZoomRange = useCallback(
+        (currentTime: number) => {
+            const zoomDuration = zoomRange[1] - zoomRange[0];
+            if (currentTime < zoomRange[0] || currentTime > zoomRange[1]) {
+                const newStart = Math.max(currentTime - zoomDuration / 2, 0);
+                const newEnd = Math.min(newStart + zoomDuration, duration);
+                setZoomRange([newStart, newEnd]);
+            }
+        },
+        [zoomRange, duration]
+    );
 
     // Now, update the useEffect that was causing the warning
     useEffect(() => {
@@ -522,59 +533,71 @@ export default function AudioWaveform() {
         });
     };
 
-    const updateSpeakerLabel = useCallback((oldLabel: string, newLabel: string) => {
-        setRttmData((prevData) =>
-            prevData.map((segment) =>
-                segment.speaker === oldLabel
-                    ? { ...segment, speaker: newLabel }
-                    : segment
-            )
-        );
-        setSpeakerColors((prevColors) => {
-            const newColors = { ...prevColors };
-            if (oldLabel !== newLabel) {
-                newColors[newLabel] = newColors[oldLabel];
-                delete newColors[oldLabel];
-            }
-            return newColors;
-        });
-        setTranscriptionSegments((prevSegments) =>
-            prevSegments.map((segment) =>
-                segment.speaker === oldLabel
-                    ? { ...segment, speaker: newLabel }
-                    : segment
-            )
-        );
-        setSpeakerLegend((prevLegend) => {
-            const newLegend = { ...prevLegend };
-            if (oldLabel !== newLabel) {
-                newLegend[newLabel] = {
-                    originalLabel: prevLegend[oldLabel]?.originalLabel || oldLabel,
-                    currentLabel: newLabel
-                };
-                delete newLegend[oldLabel];
-            }
-            return newLegend;
-        });
-
-        // Update the transcript in transcriptionResult
-        if (transcriptionResultRef.current) {
-            const updatedTranscript = transcriptionResultRef.current.transcript.replace(
-                new RegExp(`\\b${oldLabel}\\b`, 'g'),
-                newLabel
-            );
-            transcriptionResultRef.current = {
-                ...transcriptionResultRef.current,
-                transcript: updatedTranscript,
-                segments: transcriptionResultRef.current.segments.map(segment =>
+    const updateSpeakerLabel = useCallback(
+        (oldLabel: string, newLabel: string) => {
+            setRttmData((prevData) =>
+                prevData.map((segment) =>
                     segment.speaker === oldLabel
                         ? { ...segment, speaker: newLabel }
                         : segment
                 )
-            };
-            setTranscriptionResult(transcriptionResultRef.current);
-        }
-    }, [setRttmData, setSpeakerColors, setTranscriptionSegments, setSpeakerLegend, setTranscriptionResult]);
+            );
+            setSpeakerColors((prevColors) => {
+                const newColors = { ...prevColors };
+                if (oldLabel !== newLabel) {
+                    newColors[newLabel] = newColors[oldLabel];
+                    delete newColors[oldLabel];
+                }
+                return newColors;
+            });
+            setTranscriptionSegments((prevSegments) =>
+                prevSegments.map((segment) =>
+                    segment.speaker === oldLabel
+                        ? { ...segment, speaker: newLabel }
+                        : segment
+                )
+            );
+            setSpeakerLegend((prevLegend) => {
+                const newLegend = { ...prevLegend };
+                if (oldLabel !== newLabel) {
+                    newLegend[newLabel] = {
+                        originalLabel:
+                            prevLegend[oldLabel]?.originalLabel || oldLabel,
+                        currentLabel: newLabel,
+                    };
+                    delete newLegend[oldLabel];
+                }
+                return newLegend;
+            });
+
+            // Update the transcript in transcriptionResult
+            if (transcriptionResultRef.current) {
+                const updatedTranscript =
+                    transcriptionResultRef.current.transcript.replace(
+                        new RegExp(`\\b${oldLabel}\\b`, "g"),
+                        newLabel
+                    );
+                transcriptionResultRef.current = {
+                    ...transcriptionResultRef.current,
+                    transcript: updatedTranscript,
+                    segments: transcriptionResultRef.current.segments.map(
+                        (segment) =>
+                            segment.speaker === oldLabel
+                                ? { ...segment, speaker: newLabel }
+                                : segment
+                    ),
+                };
+                setTranscriptionResult(transcriptionResultRef.current);
+            }
+        },
+        [
+            setRttmData,
+            setSpeakerColors,
+            setTranscriptionSegments,
+            setSpeakerLegend,
+            setTranscriptionResult,
+        ]
+    );
 
     // Add this useEffect to update the chart when predictionRTTMData or speakerColors change
     useEffect(() => {
@@ -604,16 +627,24 @@ export default function AudioWaveform() {
             [data]
         );
 
-        const [localLabels, setLocalLabels] = useState<Record<string, string>>(() => {
-            return Object.fromEntries(
-                speakers.map((speaker) => [speaker, speakerLegend[speaker]?.currentLabel || speaker])
-            );
-        });
+        const [localLabels, setLocalLabels] = useState<Record<string, string>>(
+            () => {
+                return Object.fromEntries(
+                    speakers.map((speaker) => [
+                        speaker,
+                        speakerLegend[speaker]?.currentLabel || speaker,
+                    ])
+                );
+            }
+        );
 
         useEffect(() => {
             setLocalLabels(
                 Object.fromEntries(
-                    speakers.map((speaker) => [speaker, speakerLegend[speaker]?.currentLabel || speaker])
+                    speakers.map((speaker) => [
+                        speaker,
+                        speakerLegend[speaker]?.currentLabel || speaker,
+                    ])
                 )
             );
         }, [speakers, speakerLegend]);
@@ -899,7 +930,7 @@ export default function AudioWaveform() {
                 if (!initialSpeakerLegend[segment.speaker]) {
                     initialSpeakerLegend[segment.speaker] = {
                         originalLabel: segment.speaker,
-                        currentLabel: segment.speaker
+                        currentLabel: segment.speaker,
                     };
                 }
             });
@@ -1017,7 +1048,7 @@ export default function AudioWaveform() {
             const resultWithColors = {
                 ...transcriptionResult,
                 speaker_colors: speakerColors,
-                file_name: transcriptionResult.og_file_name // Update file_name to og_file_name
+                file_name: transcriptionResult.og_file_name, // Update file_name to og_file_name
             };
 
             const blob = new Blob([JSON.stringify(resultWithColors, null, 4)], {
@@ -1031,15 +1062,21 @@ export default function AudioWaveform() {
     const downloadTranscript = useCallback(() => {
         if (transcriptionResultRef.current) {
             const headerText = `Transcript for file: ${transcriptionResultRef.current.og_file_name}\n\n`;
-            
-            const formattedTranscript = transcriptionResultRef.current.transcript
-                .split('\n')
-                .join('\n\n');
+
+            const formattedTranscript =
+                transcriptionResultRef.current.transcript
+                    .split("\n")
+                    .join("\n\n");
 
             const fullTranscript = headerText + formattedTranscript;
 
-            const blob = new Blob([fullTranscript], { type: "text/plain;charset=utf-8" });
-            saveAs(blob, `${transcriptionResultRef.current.og_file_name}_transcript.txt`);
+            const blob = new Blob([fullTranscript], {
+                type: "text/plain;charset=utf-8",
+            });
+            saveAs(
+                blob,
+                `${transcriptionResultRef.current.og_file_name}_transcript.txt`
+            );
         }
     }, []);
 
@@ -1112,7 +1149,7 @@ export default function AudioWaveform() {
     };
 
     return (
-        <div className="w-full">
+        <div className='w-full'>
             {/* <Card className='w-full max-w-full mb-4'>
                 <CardHeader>
                     <CardTitle>Dev Utility</CardTitle>
@@ -1132,297 +1169,323 @@ export default function AudioWaveform() {
                 </CardContent>
             </Card> */}
             <div className='flex space-x-4'>
-                <Card className='w-2/3 mb-4' ref={audioWaveformRef}>
-                    <CardHeader>
-                        <CardTitle>
-                            Audio Viewer
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className='flex flex-col space-y-4'>
-                        <div>
-                            <div className='text-sm font-medium mb-1'>
-                                Upload Audio File for Transcription
-                            </div>
-                            <div className='flex items-center space-x-2 max-w-md'>
-                                <Input
-                                    id='transcription-upload'
-                                    type='file'
-                                    accept='audio/*'
-                                    onChange={handleTranscriptionFileUpload}
-                                    disabled={isTranscribing}
-                                    className='text-white file:text-white file:bg-secondary hover:file:bg-secondary/80 file:mr-4 file:ml-2 pl-2'
-                                />
-                                <Button
-                                    onClick={handleTestTranscribeEndpoint}
-                                    disabled={
-                                        !transcriptionFile || isTranscribing
-                                    }
-                                >
-                                    {isTranscribing ? (
-                                        <>
-                                            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                            Transcribing...
-                                        </>
-                                    ) : (
-                                        "Send"
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className='h-[300px] flex flex-col'>
-                            {" "}
-                            {/* Reduced height */}
-                            {isAudioUploaded ? (
-                                <>
-                                    <div className='flex justify-end mb-2'>
-                                        <WaveformSizeControl
-                                            value={verticalScale}
-                                            onChange={setVerticalScale}
-                                        />
-                                    </div>
-                                    <div className='flex-grow relative'>
-                                        <Line
-                                            data={chartData}
-                                            options={chartOptions}
-                                            ref={chartRef}
-                                        />
-                                    </div>
-                                </>
-                            ) : (
-                                <div className='flex-grow flex items-center justify-center'>
-                                    <p className='text-gray-500'>
-                                        No audio file uploaded yet
-                                    </p>
+                <motion.div
+                    className='w-2/3'
+                    initial={{ y: -30, opacity: 0 }}
+                    animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
+                    transition={{ delay: 0.75, duration: 0.6 }}
+                >
+                    <Card className='mb-4' ref={audioWaveformRef}>
+                        <CardHeader>
+                            <CardTitle>Audio Viewer</CardTitle>
+                        </CardHeader>
+                        <CardContent className='flex flex-col space-y-4'>
+                            <div>
+                                <div className='text-sm font-medium mb-1'>
+                                    Upload Audio File for Transcription
                                 </div>
-                            )}
-                        </div>
+                                <div className='flex items-center space-x-2 max-w-md'>
+                                    <Input
+                                        id='transcription-upload'
+                                        type='file'
+                                        accept='audio/*'
+                                        onChange={handleTranscriptionFileUpload}
+                                        disabled={isTranscribing}
+                                        className='text-white file:text-white file:bg-secondary hover:file:bg-secondary/80 file:mr-4 file:ml-2 pl-2'
+                                    />
+                                    <Button
+                                        onClick={handleTestTranscribeEndpoint}
+                                        disabled={
+                                            !transcriptionFile || isTranscribing
+                                        }
+                                    >
+                                        {isTranscribing ? (
+                                            <>
+                                                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                                Transcribing...
+                                            </>
+                                        ) : (
+                                            "Send"
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
 
-                        {isAudioUploaded && (
-                            <>
-                                <div className='space-y-2'>
-                                    <div className='space-y-1'>
-                                        <label
-                                            htmlFor='full-file-slider'
-                                            className='text-sm font-medium'
-                                        >
-                                            Global Timeline
-                                        </label>
-                                        <div className='flex items-center space-x-2'>
-                                            <span className='text-sm'>
-                                                {formatTime(0)}
-                                            </span>
-                                            <Slider
-                                                id='full-file-slider'
-                                                value={[currentTime]}
-                                                min={0}
-                                                max={duration}
-                                                step={0.1}
-                                                onValueChange={
-                                                    handleSliderChange
-                                                }
-                                                className='flex-grow'
+                            <div className='h-[300px] flex flex-col'>
+                                {" "}
+                                {/* Reduced height */}
+                                {isAudioUploaded ? (
+                                    <>
+                                        <div className='flex justify-end mb-2'>
+                                            <WaveformSizeControl
+                                                value={verticalScale}
+                                                onChange={setVerticalScale}
                                             />
-                                            <span className='text-sm'>
-                                                {formatTime(duration)}
-                                            </span>
                                         </div>
-                                        <div className='text-center'>
-                                            <span className='text-sm font-medium'>
-                                                {formatTime(currentTime)}
-                                            </span>
+                                        <div className='flex-grow relative'>
+                                            <Line
+                                                data={chartData}
+                                                options={chartOptions}
+                                                ref={chartRef}
+                                            />
                                         </div>
-                                    </div>
-                                    <div className='flex justify-center items-center space-x-4'>
-                                        {/* Zoom controls */}
-                                        <div className='flex items-center space-x-2'>
-                                            <Button
-                                                onClick={zoomIn}
-                                                variant='outline'
-                                                size='sm'
-                                            >
-                                                <PlusIcon className='h-4 w-4' />
-                                            </Button>
-                                            <Button
-                                                onClick={zoomOut}
-                                                variant='outline'
-                                                size='sm'
-                                            >
-                                                <MinusIcon className='h-4 w-4' />
-                                            </Button>
-                                            <Button
-                                                onClick={resetZoom}
-                                                variant='outline'
-                                                size='sm'
-                                            >
-                                                Reset Zoom
-                                            </Button>
-                                        </div>
-
-                                        {/* Playback controls */}
-                                        <div className='flex items-center space-x-4'>
-                                            <Button
-                                                onClick={jumpToBeginning}
-                                                variant='outline'
-                                                size='icon'
-                                                aria-label='Jump to beginning'
-                                            >
-                                                <SkipBack className='h-4 w-4' />
-                                            </Button>
-                                            <Button
-                                                onClick={togglePlayPause}
-                                                aria-label={
-                                                    isPlaying ? "Pause" : "Play"
-                                                }
-                                            >
-                                                {isPlaying ? "Pause" : "Play"}
-                                            </Button>
-                                            <Button
-                                                onClick={jumpToEnd}
-                                                variant='outline'
-                                                size='icon'
-                                                aria-label='Jump to end'
-                                            >
-                                                <SkipForward className='h-4 w-4' />
-                                            </Button>
-                                            <Button
-                                                onClick={cyclePlaybackSpeed}
-                                                variant='outline'
-                                                size='sm'
-                                                aria-label={`Playback speed: ${playbackRate}x`}
-                                            >
-                                                {playbackRate}x
-                                            </Button>
-                                            <Button
-                                                variant='ghost'
-                                                size='icon'
-                                                onClick={toggleMute}
-                                                aria-label={
-                                                    volume === 0
-                                                        ? "Unmute"
-                                                        : "Mute"
-                                                }
-                                            >
-                                                {volume === 0 ? (
-                                                    <VolumeX className='h-4 w-4' />
-                                                ) : (
-                                                    <Volume2 className='h-4 w-4' />
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {showPredictionLegend && (
-                                    <div>
-                                        <RTTMLegend
-                                            data={rttmData}
-                                            title='Transcription RTTM Labels'
-                                            colors={speakerColors}
-                                            editable={true}
-                                            onResetColors={resetColors}
-                                            onUpdateSpeakerLabel={
-                                                updateSpeakerLabel
-                                            }
-                                        />
-                                        <div className='mt-3 flex justify-end space-x-2'>
-                                            <Button
-                                                onClick={downloadRTTM}
-                                                variant='outline'
-                                                size='sm'
-                                            >
-                                                Download RTTM
-                                            </Button>
-                                            <Button
-                                                onClick={downloadJSON}
-                                                variant='outline'
-                                                size='sm'
-                                            >
-                                                Download JSON
-                                            </Button>
-                                            <Button
-                                                onClick={downloadTranscript}
-                                                variant='outline'
-                                                size='sm'
-                                            >
-                                                Download Transcript
-                                            </Button>
-                                        </div>
+                                    </>
+                                ) : (
+                                    <div className='flex-grow flex items-center justify-center'>
+                                        <p className='text-gray-500'>
+                                            No audio file uploaded yet
+                                        </p>
                                     </div>
                                 )}
-                            </>
+                            </div>
+
+                            {isAudioUploaded && (
+                                <>
+                                    <div className='space-y-2'>
+                                        <div className='space-y-1'>
+                                            <label
+                                                htmlFor='full-file-slider'
+                                                className='text-sm font-medium'
+                                            >
+                                                Global Timeline
+                                            </label>
+                                            <div className='flex items-center space-x-2'>
+                                                <span className='text-sm'>
+                                                    {formatTime(0)}
+                                                </span>
+                                                <Slider
+                                                    id='full-file-slider'
+                                                    value={[currentTime]}
+                                                    min={0}
+                                                    max={duration}
+                                                    step={0.1}
+                                                    onValueChange={
+                                                        handleSliderChange
+                                                    }
+                                                    className='flex-grow'
+                                                />
+                                                <span className='text-sm'>
+                                                    {formatTime(duration)}
+                                                </span>
+                                            </div>
+                                            <div className='text-center'>
+                                                <span className='text-sm font-medium'>
+                                                    {formatTime(currentTime)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className='flex justify-center items-center space-x-4'>
+                                            {/* Zoom controls */}
+                                            <div className='flex items-center space-x-2'>
+                                                <Button
+                                                    onClick={zoomIn}
+                                                    variant='outline'
+                                                    size='sm'
+                                                >
+                                                    <PlusIcon className='h-4 w-4' />
+                                                </Button>
+                                                <Button
+                                                    onClick={zoomOut}
+                                                    variant='outline'
+                                                    size='sm'
+                                                >
+                                                    <MinusIcon className='h-4 w-4' />
+                                                </Button>
+                                                <Button
+                                                    onClick={resetZoom}
+                                                    variant='outline'
+                                                    size='sm'
+                                                >
+                                                    Reset Zoom
+                                                </Button>
+                                            </div>
+
+                                            {/* Playback controls */}
+                                            <div className='flex items-center space-x-4'>
+                                                <Button
+                                                    onClick={jumpToBeginning}
+                                                    variant='outline'
+                                                    size='icon'
+                                                    aria-label='Jump to beginning'
+                                                >
+                                                    <SkipBack className='h-4 w-4' />
+                                                </Button>
+                                                <Button
+                                                    onClick={togglePlayPause}
+                                                    aria-label={
+                                                        isPlaying
+                                                            ? "Pause"
+                                                            : "Play"
+                                                    }
+                                                >
+                                                    {isPlaying
+                                                        ? "Pause"
+                                                        : "Play"}
+                                                </Button>
+                                                <Button
+                                                    onClick={jumpToEnd}
+                                                    variant='outline'
+                                                    size='icon'
+                                                    aria-label='Jump to end'
+                                                >
+                                                    <SkipForward className='h-4 w-4' />
+                                                </Button>
+                                                <Button
+                                                    onClick={cyclePlaybackSpeed}
+                                                    variant='outline'
+                                                    size='sm'
+                                                    aria-label={`Playback speed: ${playbackRate}x`}
+                                                >
+                                                    {playbackRate}x
+                                                </Button>
+                                                <Button
+                                                    variant='ghost'
+                                                    size='icon'
+                                                    onClick={toggleMute}
+                                                    aria-label={
+                                                        volume === 0
+                                                            ? "Unmute"
+                                                            : "Mute"
+                                                    }
+                                                >
+                                                    {volume === 0 ? (
+                                                        <VolumeX className='h-4 w-4' />
+                                                    ) : (
+                                                        <Volume2 className='h-4 w-4' />
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {showPredictionLegend && (
+                                        <div>
+                                            <RTTMLegend
+                                                data={rttmData}
+                                                title='Transcription RTTM Labels'
+                                                colors={speakerColors}
+                                                editable={true}
+                                                onResetColors={resetColors}
+                                                onUpdateSpeakerLabel={
+                                                    updateSpeakerLabel
+                                                }
+                                            />
+                                            <div className='mt-3 flex justify-end space-x-2'>
+                                                <Button
+                                                    onClick={downloadRTTM}
+                                                    variant='outline'
+                                                    size='sm'
+                                                >
+                                                    Download RTTM
+                                                </Button>
+                                                <Button
+                                                    onClick={downloadJSON}
+                                                    variant='outline'
+                                                    size='sm'
+                                                >
+                                                    Download JSON
+                                                </Button>
+                                                <Button
+                                                    onClick={downloadTranscript}
+                                                    variant='outline'
+                                                    size='sm'
+                                                >
+                                                    Download Transcript
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
+                </motion.div>
+
+                <motion.div
+                    className='w-1/3'
+                    initial={{ y: -30, opacity: 0 }}
+                    animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
+                    transition={{ delay: 0.85, duration: 0.6 }}
+                >
+                    <Card
+                        className='mb-4 flex flex-col'
+                        ref={transcriptionSegmentsRef}
+                    >
+                        <CardHeader>
+                            <CardTitle>Transcription Segments</CardTitle>
+                        </CardHeader>
+                        <CardContent className='flex-grow p-0 overflow-hidden'>
+                            <div className='h-full px-4 overflow-y-auto'>
+                                {isAudioUploaded ? (
+                                    <TranscriptionSegments
+                                        segments={transcriptionSegments}
+                                        speakerColors={speakerColors}
+                                        onSegmentClick={handleSegmentClick}
+                                    />
+                                ) : (
+                                    <div className='h-full flex items-center justify-center'>
+                                        <p className='text-gray-500'>
+                                            No transcription available
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+            </div>
+
+            <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
+                transition={{ delay: 0.95, duration: 0.6 }}
+            >
+                <Card className='w-full mb-4'>
+                    <CardHeader>
+                        <CardTitle>Segment Timeline</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                            <SegmentTimeline
+                                segments={transcriptionSegments}
+                                speakerColors={speakerColors}
+                                onSegmentClick={handleSegmentClick}
+                                currentTime={currentTime}
+                            />
+                        ) : (
+                            <div className='text-center text-gray-500'>
+                                No segments available. Please upload and
+                                transcribe an audio file.
+                            </div>
                         )}
                     </CardContent>
                 </Card>
+            </motion.div>
 
-                <Card
-                    className='w-1/3 mb-4 flex flex-col'
-                    ref={transcriptionSegmentsRef}
-                >
+            <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
+                transition={{ delay: 1.05, duration: 0.6 }}
+            >
+                <Card className='w-full mb-4'>
                     <CardHeader>
-                        <CardTitle>Transcription Segments</CardTitle>
+                        <CardTitle>Segments by Speaker</CardTitle>
                     </CardHeader>
-                    <CardContent className='flex-grow p-0 overflow-hidden'>
-                        <div className='h-full px-4 overflow-y-auto'>
-                            {isAudioUploaded ? (
-                                <TranscriptionSegments
-                                    segments={transcriptionSegments}
-                                    speakerColors={speakerColors}
-                                    onSegmentClick={handleSegmentClick}
-                                />
-                            ) : (
-                                <div className='h-full flex items-center justify-center'>
-                                    <p className='text-gray-500'>
-                                        No transcription available
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                    <CardContent>
+                        {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                            <SegmentsBySpeaker
+                                segments={transcriptionSegments}
+                                speakerColors={speakerColors}
+                                onSegmentClick={handleSegmentClick}
+                            />
+                        ) : (
+                            <div className='text-center text-gray-500'>
+                                No segments available. Please upload and
+                                transcribe an audio file.
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            </div>
-
-            {/* Moved SegmentTimeline card above SegmentsBySpeaker */}
-            <Card className='w-full mb-4'>
-                <CardHeader>
-                    <CardTitle>Segment Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
-                        <SegmentTimeline
-                            segments={transcriptionSegments}
-                            speakerColors={speakerColors}
-                            onSegmentClick={handleSegmentClick}
-                            currentTime={currentTime}
-                        />
-                    ) : (
-                        <div className='text-center text-gray-500'>
-                            No segments available. Please upload and transcribe
-                            an audio file.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* SegmentsBySpeaker card now comes after SegmentTimeline */}
-            <Card className='w-full mb-4'>
-                <CardHeader>
-                    <CardTitle>Segments by Speaker</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
-                        <SegmentsBySpeaker
-                            segments={transcriptionSegments}
-                            speakerColors={speakerColors}
-                            onSegmentClick={handleSegmentClick}
-                        />
-                    ) : (
-                        <div className='text-center text-gray-500'>
-                            No segments available. Please upload and transcribe
-                            an audio file.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            </motion.div>
 
             {/* Add the new DraggableSegmentTimeline component */}
             {/* <Card className='w-full mb-4'>
