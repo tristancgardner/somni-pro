@@ -994,6 +994,25 @@ export default function AudioWaveform() {
         }
     }, [transcriptionResult, speakerColors]);
 
+    // Add this new function to download the transcript
+    const downloadTranscript = useCallback(() => {
+        if (transcriptionResult) {
+            // Create a copy of the transcriptionResult and update the segments with current speaker labels
+            const updatedSegments = transcriptionResult.segments.map(segment => ({
+                ...segment,
+                speaker: speakerColors[segment.speaker] ? segment.speaker : `Unknown Speaker`
+            }));
+
+            // Generate the transcript text
+            const transcriptText = updatedSegments.map(segment => 
+                `${segment.speaker}: ${segment.text}`
+            ).join('\n\n');
+
+            const blob = new Blob([transcriptText], { type: "text/plain;charset=utf-8" });
+            saveAs(blob, `${transcriptionResult.og_file_name}_transcript.txt`);
+        }
+    }, [transcriptionResult, speakerColors]);
+
     useEffect(() => {
         if (transcriptionResult) {
             console.log(
@@ -1289,6 +1308,13 @@ export default function AudioWaveform() {
                                                 size='sm'
                                             >
                                                 Download JSON
+                                            </Button>
+                                            <Button
+                                                onClick={downloadTranscript}
+                                                variant='outline'
+                                                size='sm'
+                                            >
+                                                Download Transcript
                                             </Button>
                                         </div>
                                     </div>
