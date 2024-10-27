@@ -11,13 +11,25 @@ const Navigation = () => {
             <ul className='flex space-x-4'>
                 <li
                     className={
-                        pathname === "/transcribe"
+                        pathname === "/" ? "text-[#45b7aa]" : "text-white"
+                    }
+                >
+                    <Link
+                        href='/'
+                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
+                    >
+                        home
+                    </Link>
+                </li>
+                <li
+                    className={
+                        pathname === "/pages/transcribe"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/transcribe'
+                        href='/pages/transcribe'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         transcribe
@@ -25,13 +37,13 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/websocket"
+                        pathname === "/pages/websocket"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/websocket'
+                        href='/pages/websocket'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         websocket
@@ -39,13 +51,13 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/features"
+                        pathname === "/pages/features"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/features'
+                        href='/pages/features'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         features
@@ -53,23 +65,21 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/procull"
+                        pathname === "/pages/forge"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/procull'
+                        href='/pages/forge'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
-                        assemble
+                        forge
                     </Link>
                 </li>
                 <li
                     className={
-                        pathname === "/pulse"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
+                        pathname === "/pulse" ? "text-[#45b7aa]" : "text-white"
                     }
                 >
                     <Link
@@ -77,20 +87,6 @@ const Navigation = () => {
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         pulse
-                    </Link>
-                </li>
-                <li
-                    className={
-                        pathname === "/deeplens"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/deeplens'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        DeepLens
                     </Link>
                 </li>
                 <li
