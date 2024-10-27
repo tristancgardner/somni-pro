@@ -4,7 +4,11 @@
 
 body {
     font-family: Arial, Helvetica, sans-serif;
-    background: linear-gradient(to bottom right, hsl(215, 28%, 12%), hsl(215, 28%, 17%));
+    background: linear-gradient(
+        to bottom right,
+        hsl(215, 28%, 12%),
+        hsl(215, 28%, 17%)
+    );
     min-height: 100vh;
 }
 
@@ -63,7 +67,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #4ECDC4;
+    background-color: #4ecdc4;
     border-radius: 5px;
 }
 
@@ -74,5 +78,5 @@ body {
 /* For Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: #4ECDC4 transparent;
+    scrollbar-color: #4ecdc4 transparent;
 }

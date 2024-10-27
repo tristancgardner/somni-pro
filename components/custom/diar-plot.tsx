@@ -51,6 +51,8 @@ import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
 import { SegmentsBySpeaker } from "@/components/custom/segbyspeaker";
 import { SegmentTimeline } from "./segbytime";
 import { DraggableSegmentTimeline } from "./dragndrop";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 ChartJS.register(...registerables);
 
@@ -159,6 +161,9 @@ export default function AudioWaveform() {
     );
 
     const [isLoaded, setIsLoaded] = useState(false);
+
+    const [isCompressing, setIsCompressing] = useState(false);
+    const [fileSize, setFileSize] = useState<number | null>(null);
 
     useEffect(() => {
         setIsLoaded(true);
@@ -853,16 +858,53 @@ export default function AudioWaveform() {
         }
     };
 
+    // Add this function to compress the audio file
+    const compressAudio = async (file: File): Promise<File> => {
+        setIsCompressing(true);
+        const ffmpeg = new FFmpeg();
+        const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd";
+        await ffmpeg.load({
+            coreURL: await toBlobURL(
+                `${baseURL}/ffmpeg-core.js`,
+                "text/javascript"
+            ),
+            wasmURL: await toBlobURL(
+                `${baseURL}/ffmpeg-core.wasm`,
+                "application/wasm"
+            ),
+        });
+
+        await ffmpeg.writeFile("input", await fetchFile(file));
+        await ffmpeg.exec([
+            "-i",
+            "input",
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "64k",
+            "output.mp3",
+        ]);
+        const data = await ffmpeg.readFile("output.mp3");
+        setIsCompressing(false);
+        return new File([data], file.name.replace(/\.[^/.]+$/, ".mp3"), {
+            type: "audio/mpeg",
+        });
+    };
+
     // Update the handleTranscriptionFileUpload function
     const handleTranscriptionFileUpload = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
         const file = event.target.files?.[0];
         if (file) {
-            // Check file size (e.g., max 100MB)
-            if (file.size > 100 * 1024 * 1024) {
+            // Check file size (e.g., max 1GB)
+            if (file.size > 1.5 * 1024 * 1024 * 1024) {
                 alert(
-                    "File is too large. Please select a file smaller than 100MB."
+                    "File is too large. Please select a file smaller than 1GB."
                 );
                 return;
             }
@@ -877,6 +919,7 @@ export default function AudioWaveform() {
             resetAllState();
 
             setTranscriptionFile(file);
+            setFileSize(file.size);
 
             // Handle audio file
             const audio = new Audio(URL.createObjectURL(file));
@@ -903,6 +946,7 @@ export default function AudioWaveform() {
         }
     };
 
+    // Update the handleTestTranscribeEndpoint function
     const handleTestTranscribeEndpoint = async () => {
         console.log("handleTestTranscribeEndpoint called");
         if (!transcriptionFile) {
@@ -913,7 +957,15 @@ export default function AudioWaveform() {
         try {
             console.log("Calling transcribe_endpoint");
             setIsTranscribing(true);
-            const result = await transcribe_endpoint(transcriptionFile);
+
+            let fileToSend = transcriptionFile;
+            if (fileSize && fileSize > 250 * 1024 * 1024) {
+                setIsCompressing(true);
+                fileToSend = await compressAudio(transcriptionFile);
+                setIsCompressing(false);
+            }
+
+            const result = await transcribe_endpoint(fileToSend);
             console.log("transcribe() endpoint returned: ", result);
 
             const session_filename = result.file_name;
@@ -965,6 +1017,7 @@ export default function AudioWaveform() {
             );
         } finally {
             setIsTranscribing(false);
+            setIsCompressing(false);
         }
     };
 
@@ -1190,13 +1243,17 @@ export default function AudioWaveform() {
                                         type='file'
                                         accept='audio/*'
                                         onChange={handleTranscriptionFileUpload}
-                                        disabled={isTranscribing}
+                                        disabled={
+                                            isTranscribing || isCompressing
+                                        }
                                         className='text-white file:text-white file:bg-secondary hover:file:bg-secondary/80 file:mr-4 file:ml-2 pl-2'
                                     />
                                     <Button
                                         onClick={handleTestTranscribeEndpoint}
                                         disabled={
-                                            !transcriptionFile || isTranscribing
+                                            !transcriptionFile ||
+                                            isTranscribing ||
+                                            isCompressing
                                         }
                                     >
                                         {isTranscribing ? (
@@ -1204,11 +1261,23 @@ export default function AudioWaveform() {
                                                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                                                 Transcribing...
                                             </>
+                                        ) : isCompressing ? (
+                                            <>
+                                                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                                Compressing...
+                                            </>
                                         ) : (
                                             "Send"
                                         )}
                                     </Button>
                                 </div>
+                                {fileSize && (
+                                    <div className='text-sm mt-2'>
+                                        File size:{" "}
+                                        {(fileSize / (1024 * 1024)).toFixed(2)}{" "}
+                                        MB
+                                    </div>
+                                )}
                             </div>
 
                             <div className='h-[300px] flex flex-col'>
