@@ -1,12 +1,12 @@
 "use client";
 
+import AudioWaveform from "@/components/custom/diar-plot";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import Login from '@/components/login';
 
-export default function Home() {
+export default function TranscribePage() {
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
@@ -55,11 +55,11 @@ export default function Home() {
                             transition={{ delay: 0.6, duration: 0.6 }}
                         >
                             {/* Gradient background with blurred edges */}
-                            <div
-                                className='absolute top-0 right-0 w-full h-full bg-gradient-to-l from-black/60 via-black/0 to-transparent filter blur-xl '
-                                style={{ backgroundPosition: "66.67% 0" }}
+                            <div 
+                                className="absolute top-0 right-0 w-full h-full bg-gradient-to-l from-black/60 via-black/0 to-transparent filter blur-xl "
+                                style={{ backgroundPosition: '66.67% 0' }}
                             ></div>
-
+                            
                             {/* Logo Container */}
                             <div className='flex items-center space-x-4 relative z-10'>
                                 {/* Company Logo */}
@@ -79,14 +79,12 @@ export default function Home() {
                                     </span>
                                 </div>
                             </div>
-
+                            
                             {/* Navigation */}
                             <Navigation />
                         </motion.div>
                     </div>
-                    <main className='flex min-h-screen flex-col items-center justify-center'>
-                        <Login />
-                    </main>
+                    <AudioWaveform />
                 </div>
             </main>
         </motion.div>

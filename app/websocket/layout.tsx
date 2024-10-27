@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
-import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Home Page",
+    title: "Websocket",
     description: "Somni Pro brings you advanced speaker diarization...",
     icons: {
         icon: "/branding/Icon_White.svg",
     },
 };
 
-export default function RootLayout({
+export default function TranscribeLayout({
     children,
-}: Readonly<{
+}: {
     children: React.ReactNode;
-}>) {
-    return (
-        <html lang='en'>
-            <body className="antialiased">
-                {children}
-            </body>
-        </html>
-    );
+}) {
+    return <div>{children}</div>;
 }
