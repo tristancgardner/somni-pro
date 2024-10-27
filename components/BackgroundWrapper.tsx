@@ -7,9 +7,9 @@ interface BackgroundWrapperProps {
     imagePath?: string;
 }
 
-export default function BackgroundWrapper({ 
-    children, 
-    imagePath = "/images/electric_timeline.png" 
+export default function BackgroundWrapper({
+    children,
+    imagePath = "/images/electric_timeline.png",
 }: BackgroundWrapperProps) {
     return (
         <motion.div
@@ -43,10 +43,23 @@ export default function BackgroundWrapper({
                     zIndex: 1,
                 }}
             />
+            {/* Additional Black Overlay */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.8 }}
+                transition={{ delay: 0, duration: 0.25 }}
+                style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "#000",
+                    zIndex: 2,
+                }}
+            />
             {/* Content */}
-            <div className="relative z-10">
-                {children}
-            </div>
+            <div className='relative z-10'>{children}</div>
         </motion.div>
     );
 }
