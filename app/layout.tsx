@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Home Page",
+    title: "Home",
     description: "Somni Pro brings you advanced speaker diarization...",
     icons: {
         icon: "/branding/Icon_White.svg",
@@ -16,9 +16,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang='en'>
-            <body className="antialiased">
-                {children}
-            </body>
+            <body className='antialiased'>{children}</body>
         </html>
     );
 }
