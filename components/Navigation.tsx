@@ -7,8 +7,8 @@ const Navigation = () => {
     const pathname = usePathname();
 
     return (
-        <nav className='flex items-center'>
-            <ul className='flex space-x-4'>
+        <nav className='flex items-center z-50 relative'>
+            <ul className='flex flex-wrap gap-4 items-center'>
                 <li
                     className={
                         pathname === "/" ? "text-[#45b7aa]" : "text-white"
