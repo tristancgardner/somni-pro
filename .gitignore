@@ -39,3 +39,56 @@ next-env.d.ts
 
 public/dev_files/
 temp/
+
+.env.local
+
+# IDE and Editor folders
+.idea/
+.vscode/
+*.swp
+*.swo
+.vs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Cache directories
+.cache/
+.npm/
+
+# Optional
+# Build artifacts
+dist/
+build/
+
+# Audio/Video files (if you're testing locally)
+*.mp3
+*.wav
+*.mp4
+*.m4a
+
+# Large media files
+*.mov
+*.avi
+*.flv
+*.wmv
+
+# If you're using package managers other than npm
+yarn.lock
+package-lock.json
+# (only ignore these if you specifically want to)
+
+# Temporary files
+tmp/
+temp/
+*.tmp
