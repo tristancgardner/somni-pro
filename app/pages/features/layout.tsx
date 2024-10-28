@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Transcribe",
+    title: "Features",
     description: "Somni Pro brings you advanced speaker diarization...",
     icons: {
         icon: "/branding/Icon_White.svg",

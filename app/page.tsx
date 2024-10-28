@@ -18,7 +18,7 @@ export default function Home() {
             <main className='flex min-h-screen flex-col items-center p-24 pt-9'>
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
-                    <div className='flex items-center justify-center mt-20'>
+                    <div className='flex items-center justify-center mt-[200px]'>
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
