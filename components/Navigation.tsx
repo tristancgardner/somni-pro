@@ -35,7 +35,7 @@ const Navigation = () => {
                         transcribe
                     </Link>
                 </li>
-                <li
+                {/* <li
                     className={
                         pathname === "/pages/websocket"
                             ? "text-[#45b7aa]"
@@ -48,7 +48,7 @@ const Navigation = () => {
                     >
                         websocket
                     </Link>
-                </li>
+                </li> */}
                 <li
                     className={
                         pathname === "/pages/features"
@@ -63,7 +63,7 @@ const Navigation = () => {
                         features
                     </Link>
                 </li>
-                <li
+                {/* <li
                     className={
                         pathname === "/pages/forge"
                             ? "text-[#45b7aa]"
@@ -86,23 +86,9 @@ const Navigation = () => {
                         href='/pulse'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
-                        pulse
+                        helix
                     </Link>
-                </li>
-                <li
-                    className={
-                        pathname === "/quicksight"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/quicksight'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        QuickSight
-                    </Link>
-                </li>
+                </li> */}
             </ul>
         </nav>
     );
