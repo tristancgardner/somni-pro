@@ -1203,7 +1203,7 @@ export default function AudioWaveform() {
 
     return (
         <div className='w-full'>
-            {/* <Card className='w-full max-w-full mb-4'>
+            {/* <Card className='w-full max-w-full mb-4 card'>
                 <CardHeader>
                     <CardTitle>Dev Utility</CardTitle>
                 </CardHeader>
@@ -1228,7 +1228,7 @@ export default function AudioWaveform() {
                     animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                     transition={{ delay: 0.75, duration: 0.6 }}
                 >
-                    <Card className='mb-4' ref={audioWaveformRef}>
+                    <Card className='mb-4 card' ref={audioWaveformRef}>
                         <CardHeader>
                             <CardTitle>Audio Viewer</CardTitle>
                         </CardHeader>
@@ -1475,10 +1475,7 @@ export default function AudioWaveform() {
                     animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                     transition={{ delay: 0.85, duration: 0.6 }}
                 >
-                    <Card
-                        className='mb-4 flex flex-col'
-                        ref={transcriptionSegmentsRef}
-                    >
+                    <Card className='mb-4 flex flex-col card' ref={transcriptionSegmentsRef}>
                         <CardHeader>
                             <CardTitle>Transcription Segments</CardTitle>
                         </CardHeader>
@@ -1508,7 +1505,7 @@ export default function AudioWaveform() {
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 0.95, duration: 0.6 }}
             >
-                <Card className='w-full mb-4'>
+                <Card className='w-full mb-4 card'>
                     <CardHeader>
                         <CardTitle>Segment Timeline</CardTitle>
                     </CardHeader>
@@ -1535,7 +1532,7 @@ export default function AudioWaveform() {
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 1.05, duration: 0.6 }}
             >
-                <Card className='w-full mb-4'>
+                <Card className='w-full mb-4 card'>
                     <CardHeader>
                         <CardTitle>Segments by Speaker</CardTitle>
                     </CardHeader>
@@ -1557,7 +1554,7 @@ export default function AudioWaveform() {
             </motion.div>
 
             {/* Add the new DraggableSegmentTimeline component */}
-            {/* <Card className='w-full mb-4'>
+            {/* <Card className='w-full mb-4 card'>
                 <CardHeader>
                     <CardTitle>Reorderable Segment Timeline</CardTitle>
                 </CardHeader>

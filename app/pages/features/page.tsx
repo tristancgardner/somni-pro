@@ -33,7 +33,7 @@ export default function FeaturesPage() {
                         </h2>
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             {/* Interactive Features Card */}
-                            <Card className='bg-black/50 border-gray-800 backdrop-blur-sm'>
+                            <Card className='card'>
                                 <CardHeader>
                                     <CardTitle className='text-white'>
                                         Interactive Features
@@ -84,7 +84,7 @@ export default function FeaturesPage() {
                             </Card>
 
                             {/* Progress Tracking Card */}
-                            <Card className='bg-black/50 border-gray-800 backdrop-blur-sm'>
+                            <Card className='card'>
                                 <CardHeader>
                                     <CardTitle className='text-white'>
                                         Tracking & Usability
@@ -134,7 +134,7 @@ export default function FeaturesPage() {
                             </Card>
 
                             {/* Interview Analysis Card */}
-                            <Card className='bg-black/50 border-gray-800 backdrop-blur-sm'>
+                            <Card className='card'>
                                 <CardHeader>
                                     <CardTitle className='text-white'>
                                         Interview Analysis
@@ -188,7 +188,7 @@ export default function FeaturesPage() {
                             </Card>
 
                             {/* Production Tools Card */}
-                            <Card className='bg-black/50 border-gray-800 backdrop-blur-sm'>
+                            <Card className='card'>
                                 <CardHeader>
                                     <CardTitle className='text-white'>
                                         Production Tools
