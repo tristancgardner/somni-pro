@@ -1203,7 +1203,7 @@ export default function AudioWaveform() {
 
     return (
         <div className='w-full'>
-            {/* <Card className='w-full max-w-full mb-4'>
+            {/* <Card className='card'>
                 <CardHeader>
                     <CardTitle>Dev Utility</CardTitle>
                 </CardHeader>
@@ -1228,7 +1228,7 @@ export default function AudioWaveform() {
                     animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                     transition={{ delay: 0.75, duration: 0.6 }}
                 >
-                    <Card className='mb-4' ref={audioWaveformRef}>
+                    <Card className='card' ref={audioWaveformRef}>
                         <CardHeader>
                             <CardTitle>Audio Viewer</CardTitle>
                         </CardHeader>
@@ -1476,7 +1476,7 @@ export default function AudioWaveform() {
                     transition={{ delay: 0.85, duration: 0.6 }}
                 >
                     <Card
-                        className='mb-4 flex flex-col'
+                        className='card flex-col'
                         ref={transcriptionSegmentsRef}
                     >
                         <CardHeader>
@@ -1508,7 +1508,7 @@ export default function AudioWaveform() {
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 0.95, duration: 0.6 }}
             >
-                <Card className='w-full mb-4'>
+                <Card className='card'>
                     <CardHeader>
                         <CardTitle>Segment Timeline</CardTitle>
                     </CardHeader>
@@ -1535,7 +1535,7 @@ export default function AudioWaveform() {
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 1.05, duration: 0.6 }}
             >
-                <Card className='w-full mb-4'>
+                <Card className='card'>
                     <CardHeader>
                         <CardTitle>Segments by Speaker</CardTitle>
                     </CardHeader>

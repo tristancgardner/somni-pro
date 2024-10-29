@@ -57,17 +57,17 @@ body {
 
 @layer components {
     .card {
-        @apply bg-black/50 border-gray-800 backdrop-blur-sm !important;
+        @apply bg-black/50 border-gray-800 backdrop-blur-sm mb-4 !important;
     }
 
-    .card[data-v0-t="card"] {
-        @apply bg-black/50 border-gray-800 backdrop-blur-sm;
-    }
+    /* .card[data-v0-t="card"] {
+        @apply bg-black/50 border-gray-800 backdrop-blur-sm mb-4;
+    } */
 
     /* More specific selector for shadcn Card */
-    div[role="none"].card {
-        @apply bg-black/50 border-gray-800 backdrop-blur-sm !important;
-    }
+    /* div[role="none"].card {
+        @apply bg-black/50 border-gray-800 backdrop-blur-sm mb-4 !important;
+    } */
 }
 
 /* Custom scrollbar styles */

@@ -60,7 +60,7 @@ export default function Login() {
 
     return (
         <div className='flex items-center justify-center'>
-            <Card className='w-full max-w-md'>
+            <Card className='card max-w-md'>
                 <CardHeader className='space-y-1'>
                     <CardTitle className='text-3xl font-bold tracking-tight'>
                         Welcome to Somni Pro
