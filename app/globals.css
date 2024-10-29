@@ -46,14 +46,27 @@ body {
         --chart-5: 340 75% 55%;
         --radius: 0.5rem;
     }
-}
 
-@layer base {
     * {
         @apply border-border;
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer components {
+    .card {
+        @apply bg-black/50 border-gray-800 backdrop-blur-sm !important;
+    }
+
+    .card[data-v0-t="card"] {
+        @apply bg-black/50 border-gray-800 backdrop-blur-sm;
+    }
+
+    /* More specific selector for shadcn Card */
+    div[role="none"].card {
+        @apply bg-black/50 border-gray-800 backdrop-blur-sm !important;
     }
 }
 
