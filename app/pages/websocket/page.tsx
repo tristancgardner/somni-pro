@@ -18,7 +18,7 @@ export default function WebSocketPage() {
 
     useEffect(() => {
         if (!isClient) return; // Don't run WebSocket logic until client-side
-        
+
         console.log("Effect triggered, isProcessStarted:", isProcessStarted);
         if (isProcessStarted) {
             console.log("Attempting to connect to WebSocket");
@@ -73,18 +73,22 @@ export default function WebSocketPage() {
 
     // Modify the return statement to handle server-side rendering
     if (!isClient) {
-        return <div className="p-4">Loading...</div>;
+        return <div className='p-4'>Loading...</div>;
     }
 
     return (
-        <BackgroundWrapper imagePath="/images/electric_timeline.png">
+        <BackgroundWrapper imagePath='/images/electric_timeline.png'>
             <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
                     <div className='p-4'>
-                        <h1 className='text-2xl font-bold mb-4'>WebSocket Progress</h1>
+                        <h1 className='text-2xl font-bold mb-4'>
+                            WebSocket Progress
+                        </h1>
                         {!isProcessStarted ? (
-                            <Button onClick={handleStartProcess}>Start Process</Button>
+                            <Button onClick={handleStartProcess}>
+                                Start Process
+                            </Button>
                         ) : (
                             <div className='mb-4'>
                                 <div className='w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700'>
