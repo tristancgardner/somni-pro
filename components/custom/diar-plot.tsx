@@ -95,7 +95,8 @@ function debounce<T extends (...args: any[]) => any>(
     };
 }
 
-type Speaker = {
+// Export the Speaker type
+export type Speaker = {
     originalLabel: string;
     currentLabel: string;
 };
@@ -116,7 +117,12 @@ type transcriptionResult = {
     // Add other properties as needed
 };
 
-export default function AudioWaveform() {
+// Add this to your existing props interface
+interface AudioWaveformProps {
+    onTranscriptionResult: (result: transcriptionResult) => void;
+}
+
+export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(600);
@@ -575,14 +581,14 @@ export default function AudioWaveform() {
                 return newLegend;
             });
 
-            // Update the transcript in transcriptionResult
+            // Update the transcript in transcriptionResult and notify parent
             if (transcriptionResultRef.current) {
                 const updatedTranscript =
                     transcriptionResultRef.current.transcript.replace(
                         new RegExp(`\\b${oldLabel}\\b`, "g"),
                         newLabel
                     );
-                transcriptionResultRef.current = {
+                const updatedResult = {
                     ...transcriptionResultRef.current,
                     transcript: updatedTranscript,
                     segments: transcriptionResultRef.current.segments.map(
@@ -590,9 +596,12 @@ export default function AudioWaveform() {
                             segment.speaker === oldLabel
                                 ? { ...segment, speaker: newLabel }
                                 : segment
-                    ),
+                    )
                 };
-                setTranscriptionResult(transcriptionResultRef.current);
+                transcriptionResultRef.current = updatedResult;
+                setTranscriptionResult(updatedResult);
+                // Notify parent component of the update
+                onTranscriptionResult(updatedResult);
             }
         },
         [
@@ -601,6 +610,7 @@ export default function AudioWaveform() {
             setTranscriptionSegments,
             setSpeakerLegend,
             setTranscriptionResult,
+            onTranscriptionResult  // Add this to dependencies
         ]
     );
 
@@ -946,7 +956,7 @@ export default function AudioWaveform() {
         }
     };
 
-    // Update the handleTestTranscribeEndpoint function
+    // Modify the handleTestTranscribeEndpoint function
     const handleTestTranscribeEndpoint = async () => {
         console.log("handleTestTranscribeEndpoint called");
         if (!transcriptionFile) {
@@ -988,33 +998,27 @@ export default function AudioWaveform() {
             });
             setSpeakerLegend(initialSpeakerLegend);
 
-            // Store the result in the ref
+            // Store the result in the ref and local state
             transcriptionResultRef.current = result;
             setTranscriptionResult(result);
+            // Notify parent component
+            onTranscriptionResult(result);
 
             const parsedRttm = parseRTTM(result.rttm_lines);
             setRttmData(parsedRttm as ImportedRTTMSegment[]);
-            const colors = getSpeakerColors(
-                parsedRttm as ImportedRTTMSegment[]
-            );
+            const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
             setSpeakerColors(colors);
             setOriginalSpeakerColors(colors);
             setShowPredictionLegend(true);
 
-            // Set the transcription segments
             setTranscriptionSegments(result.segments || []);
 
-            // Force chart update
             if (chartRef.current) {
                 chartRef.current.update();
             }
         } catch (error) {
             console.error("Error in handleTestTranscribeEndpoint:", error);
-            alert(
-                `Error: ${
-                    error instanceof Error ? error.message : String(error)
-                }`
-            );
+            alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setIsTranscribing(false);
             setIsCompressing(false);

@@ -42,7 +42,7 @@ export async function summarize(transcript: string) {
             ws.onopen = () => {
                 ws.send(
                     JSON.stringify({
-                        transcript: transcript
+                        transcript: transcript,
                     })
                 );
             };
