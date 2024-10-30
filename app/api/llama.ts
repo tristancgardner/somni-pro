@@ -33,3 +33,36 @@ export async function promptLlama(systemPrompt: string, userPrompt: string) {
         throw error;
     }
 }
+
+export async function summarize(transcript: string) {
+    try {
+        const ws = new WebSocket(`${API_URL}/ws/summarize`);
+
+        return new Promise((resolve, reject) => {
+            ws.onopen = () => {
+                ws.send(
+                    JSON.stringify({
+                        transcript: transcript
+                    })
+                );
+            };
+
+            ws.onmessage = (event) => {
+                const response = JSON.parse(event.data);
+                if (response.type === "error") {
+                    reject(new Error(response.text));
+                } else {
+                    resolve(response.text);
+                }
+                ws.close();
+            };
+
+            ws.onerror = (error) => {
+                reject(error);
+            };
+        });
+    } catch (error) {
+        console.error("WebSocket connection error:", error);
+        throw error;
+    }
+}

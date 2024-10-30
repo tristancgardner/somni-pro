@@ -5,6 +5,7 @@ import PromptLlama from "@/components/custom/prompt-llama";
 import { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
+import Summarize from "@/components/custom/summarize";
 
 export default function TranscribePage() {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -23,6 +24,9 @@ export default function TranscribePage() {
                     <PageHeader />
                     <div className='p-4'>
                         <AudioWaveform />
+                    </div>
+                    <div className='p-4'>
+                        <Summarize transcript={transcription} />
                     </div>
                     <div className='p-4'>
                         <PromptLlama />
