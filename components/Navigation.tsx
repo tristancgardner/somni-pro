@@ -63,7 +63,7 @@ const Navigation = () => {
                         websocket
                     </Link>
                 </li>
-                <li
+                {/* <li
                     className={
                         pathname === "/pages/forge"
                             ? "text-[#45b7aa]"
@@ -88,7 +88,7 @@ const Navigation = () => {
                     >
                         pulse
                     </Link>
-                </li>
+                </li> */}
             </ul>
         </nav>
     );

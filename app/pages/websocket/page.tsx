@@ -23,7 +23,7 @@ export default function WebSocketPage() {
         if (isProcessStarted) {
             console.log("Attempting to connect to WebSocket");
             // Connect to the WebSocket server
-            socketRef.current = new WebSocket("ws://localhost:62397/ws"); // Make sure this matches your FastAPI server address and port
+            socketRef.current = new WebSocket("ws://localhost:62398/ws"); // Make sure this matches your FastAPI server address and port
 
             socketRef.current.onopen = () => {
                 console.log("WebSocket connection opened");
