@@ -1043,31 +1043,33 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
         onSegmentClick: (startTime: number) => void;
     }) => {
         return (
-            <div className='space-y-2'>
-                {segments.map((segment, index) => (
-                    <div
-                        key={index}
-                        className='border p-2 rounded cursor-pointer hover:bg-gray-700 transition-colors'
-                        onClick={() => onSegmentClick(segment.start)}
-                    >
-                        <p className='text-sm text-gray-500'>
-                            {formatTime(segment.start)} -{" "}
-                            {formatTime(segment.end)}
-                        </p>
-                        <p>
-                            <strong
-                                style={{
-                                    color:
-                                        speakerColors[segment.speaker] ||
-                                        "white",
-                                }}
-                            >
-                                {segment.speaker}:
-                            </strong>{" "}
-                            {segment.text}
-                        </p>
-                    </div>
-                ))}
+            <div className='h-[calc(100vh-300px)] overflow-y-auto pr-2'>
+                <div className='space-y-2'>
+                    {segments.map((segment, index) => (
+                        <div
+                            key={index}
+                            className='border p-2 rounded cursor-pointer hover:bg-gray-700 transition-colors'
+                            onClick={() => onSegmentClick(segment.start)}
+                        >
+                            <p className='text-sm text-gray-500'>
+                                {formatTime(segment.start)} -{" "}
+                                {formatTime(segment.end)}
+                            </p>
+                            <p>
+                                <strong
+                                    style={{
+                                        color:
+                                            speakerColors[segment.speaker] ||
+                                            "white",
+                                    }}
+                                >
+                                    {segment.speaker}:
+                                </strong>{" "}
+                                {segment.text}
+                            </p>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     };
@@ -1486,22 +1488,20 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
                         <CardHeader>
                             <CardTitle>Transcription Segments</CardTitle>
                         </CardHeader>
-                        <CardContent className='flex-grow p-0 overflow-hidden'>
-                            <div className='h-full px-4 overflow-y-auto'>
-                                {isAudioUploaded ? (
-                                    <TranscriptionSegments
-                                        segments={transcriptionSegments}
-                                        speakerColors={speakerColors}
-                                        onSegmentClick={handleSegmentClick}
-                                    />
-                                ) : (
-                                    <div className='h-full flex items-center justify-center'>
-                                        <p className='text-gray-500'>
-                                            No transcription available
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
+                        <CardContent className='p-4'>
+                            {isAudioUploaded ? (
+                                <TranscriptionSegments
+                                    segments={transcriptionSegments}
+                                    speakerColors={speakerColors}
+                                    onSegmentClick={handleSegmentClick}
+                                />
+                            ) : (
+                                <div className='flex items-center justify-center h-[calc(100vh-300px)]'>
+                                    <p className='text-gray-500'>
+                                        No transcription available
+                                    </p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </motion.div>
