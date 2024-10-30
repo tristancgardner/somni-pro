@@ -1,8 +1,16 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import PromptLlama from "@/components/custom/prompt-llama";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+} from "@/components/ui/card";
 
 export default function WebSocketPage() {
     const [isClient, setIsClient] = useState(false);
@@ -81,26 +89,44 @@ export default function WebSocketPage() {
             <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
-                    <div className='p-4'>
-                        <h1 className='text-2xl font-bold mb-4'>
-                            WebSocket Progress
-                        </h1>
-                        {!isProcessStarted ? (
-                            <Button onClick={handleStartProcess}>
-                                Start Process
-                            </Button>
-                        ) : (
-                            <div className='mb-4'>
-                                <div className='w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700'>
-                                    <div
-                                        className='bg-blue-600 h-2.5 rounded-full'
-                                        style={{ width: `${progress}%` }}
-                                    ></div>
-                                </div>
-                                <p className='mt-2'>Progress: {progress}%</p>
+                    <Card className='card mb-4'>
+                        <CardHeader>
+                            <CardTitle>WebSocket Progress</CardTitle>
+                            <CardDescription>
+                                Testing websockets...
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className='space-y-4'>
+                            <div className='p-4'>
+                                {!isProcessStarted ? (
+                                    <Button
+                                        className='mb-4'
+                                        onClick={handleStartProcess}
+                                    >
+                                        Start Process
+                                    </Button>
+                                ) : (
+                                    <div className='mb-4'>
+                                        <div className='w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700'>
+                                            <div
+                                                className='bg-blue-600 h-2.5 rounded-full'
+                                                style={{
+                                                    width: `${progress}%`,
+                                                }}
+                                            ></div>
+                                        </div>
+                                        <p className='mt-2'>
+                                            Progress: {progress}%
+                                        </p>
+                                    </div>
+                                )}
+                                <p>Status: {status}</p>
                             </div>
-                        )}
-                        <p>Status: {status}</p>
+                        </CardContent>
+                    </Card>
+
+                    <div className='p-4'>
+                        <PromptLlama />
                     </div>
                 </div>
             </main>
