@@ -7,7 +7,7 @@ node_modules/
 .yarn/install-state.gz
 
 # fastAPI
-main.py
+app/main.py
 
 # testing
 /coverage
