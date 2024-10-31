@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Card,
     CardContent,
@@ -76,6 +76,18 @@ export default function Summarize({
         }
     };
 
+    const copyTranscriptToClipboard = useCallback(() => {
+        if (transcript) {
+            navigator.clipboard.writeText(transcript)
+                .then(() => {
+                    console.log('Transcript copied to clipboard');
+                })
+                .catch(err => {
+                    console.error('Failed to copy transcript:', err);
+                });
+        }
+    }, [transcript]);
+
     const markdownComponents = {
         p: ({ node, className, children, ...props }: MarkdownProps) => {
             return (
@@ -111,20 +123,29 @@ export default function Summarize({
                 </CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
-                <div className='flex justify-end space-x-2'>
+                <div className='flex justify-between w-full'>
                     <Button
-                        onClick={handleSummarize}
-                        disabled={isLoading || !transcript}
+                        onClick={copyTranscriptToClipboard}
+                        variant='outline'
+                        size='sm'
                     >
-                        {isLoading
-                            ? "Generating Summary..."
-                            : "Generate Summary"}
+                        Copy Transcript
                     </Button>
-                    {summary && (
-                        <Button onClick={handleDownload} variant='outline'>
-                            Download Transcript with Summary
+                    <div className='space-x-2'>
+                        <Button
+                            onClick={handleSummarize}
+                            disabled={isLoading || !transcript}
+                        >
+                            {isLoading
+                                ? "Generating Summary..."
+                                : "Generate Summary"}
                         </Button>
-                    )}
+                        {summary && (
+                            <Button onClick={handleDownload} variant='outline'>
+                                Download Transcript with Summary
+                            </Button>
+                        )}
+                    </div>
                 </div>
                 {summary && (
                     <div className='mt-4'>

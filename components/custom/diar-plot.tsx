@@ -122,7 +122,9 @@ interface AudioWaveformProps {
     onTranscriptionResult: (result: transcriptionResult) => void;
 }
 
-export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformProps) {
+export default function AudioWaveform({
+    onTranscriptionResult,
+}: AudioWaveformProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(600);
@@ -596,7 +598,7 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
                             segment.speaker === oldLabel
                                 ? { ...segment, speaker: newLabel }
                                 : segment
-                    )
+                    ),
                 };
                 transcriptionResultRef.current = updatedResult;
                 setTranscriptionResult(updatedResult);
@@ -610,7 +612,7 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
             setTranscriptionSegments,
             setSpeakerLegend,
             setTranscriptionResult,
-            onTranscriptionResult  // Add this to dependencies
+            onTranscriptionResult, // Add this to dependencies
         ]
     );
 
@@ -1006,7 +1008,9 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
 
             const parsedRttm = parseRTTM(result.rttm_lines);
             setRttmData(parsedRttm as ImportedRTTMSegment[]);
-            const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
+            const colors = getSpeakerColors(
+                parsedRttm as ImportedRTTMSegment[]
+            );
             setSpeakerColors(colors);
             setOriginalSpeakerColors(colors);
             setShowPredictionLegend(true);
@@ -1018,7 +1022,11 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
             }
         } catch (error) {
             console.error("Error in handleTestTranscribeEndpoint:", error);
-            alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+            alert(
+                `Error: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
         } finally {
             setIsTranscribing(false);
             setIsCompressing(false);
@@ -1136,6 +1144,21 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
                 blob,
                 `${transcriptionResultRef.current.og_file_name}_transcript.txt`
             );
+        }
+    }, []);
+
+    // Add this new function after the downloadTranscript function
+    const copyTranscriptToClipboard = useCallback(() => {
+        if (transcriptionResultRef.current?.transcript) {
+            navigator.clipboard
+                .writeText(transcriptionResultRef.current.transcript)
+                .then(() => {
+                    // You could add a toast notification here if you want
+                    console.log("Transcript copied to clipboard");
+                })
+                .catch((err) => {
+                    console.error("Failed to copy transcript:", err);
+                });
         }
     }, []);
 
@@ -1444,28 +1467,41 @@ export default function AudioWaveform({ onTranscriptionResult }: AudioWaveformPr
                                                     updateSpeakerLabel
                                                 }
                                             />
-                                            <div className='mt-3 flex justify-end space-x-2'>
+                                            <div className='mt-3 flex justify-between w-full'>
                                                 <Button
-                                                    onClick={downloadRTTM}
+                                                    onClick={
+                                                        copyTranscriptToClipboard
+                                                    }
                                                     variant='outline'
                                                     size='sm'
                                                 >
-                                                    Download RTTM
+                                                    Copy Transcript
                                                 </Button>
-                                                <Button
-                                                    onClick={downloadJSON}
-                                                    variant='outline'
-                                                    size='sm'
-                                                >
-                                                    Download JSON
-                                                </Button>
-                                                <Button
-                                                    onClick={downloadTranscript}
-                                                    variant='outline'
-                                                    size='sm'
-                                                >
-                                                    Download Transcript
-                                                </Button>
+                                                <div className='space-x-2'>
+                                                    <Button
+                                                        onClick={downloadRTTM}
+                                                        variant='outline'
+                                                        size='sm'
+                                                    >
+                                                        Download RTTM
+                                                    </Button>
+                                                    <Button
+                                                        onClick={downloadJSON}
+                                                        variant='outline'
+                                                        size='sm'
+                                                    >
+                                                        Download JSON
+                                                    </Button>
+                                                    <Button
+                                                        onClick={
+                                                            downloadTranscript
+                                                        }
+                                                        variant='outline'
+                                                        size='sm'
+                                                    >
+                                                        Download Transcript
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
