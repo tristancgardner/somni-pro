@@ -313,6 +313,7 @@ export default function AudioWaveform({
                 ]),
                 borderWidth: 1,
                 pointRadius: 0,
+                pointHoverRadius: 0,
                 fill: false,
                 tension: 0,
                 segment: {
@@ -365,7 +366,38 @@ export default function AudioWaveform({
                 display: false,
             },
             tooltip: {
-                enabled: false,
+                enabled: true,
+                mode: "nearest",
+                intersect: false,
+                position: "nearest",
+                yAlign: "bottom",
+                callbacks: {
+                    label: function (context) {
+                        const dataIndex = Math.floor(context.dataIndex / 2);
+                        const timeValue = context.parsed.x;
+
+                        // Find the corresponding RTTM segment
+                        const segment = rttmData.find(
+                            (seg) =>
+                                timeValue >= seg.start &&
+                                timeValue <= seg.start + seg.duration
+                        );
+
+                        if (segment) {
+                            return `${segment.speaker}`;
+                        }
+                        return "";
+                    },
+                    title: function () {
+                        return "";
+                    },
+                },
+                displayColors: false,
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                padding: 8,
+                bodyFont: {
+                    size: 14,
+                },
             },
             annotation: {
                 annotations: {
@@ -378,6 +410,10 @@ export default function AudioWaveform({
                     },
                 },
             },
+        },
+        hover: {
+            mode: "nearest",
+            intersect: false,
         },
         animation: {
             duration: 0,
@@ -1060,12 +1096,15 @@ export default function AudioWaveform({
                             onClick={() => onSegmentClick(segment.start)}
                         >
                             <p className='text-sm text-gray-500'>
-                                {formatTime(segment.start)} - {formatTime(segment.end)}
+                                {formatTime(segment.start)} -{" "}
+                                {formatTime(segment.end)}
                             </p>
                             <p>
                                 <strong
                                     style={{
-                                        color: speakerColors[segment.speaker] || "white",
+                                        color:
+                                            speakerColors[segment.speaker] ||
+                                            "white",
                                     }}
                                 >
                                     {segment.speaker}:
@@ -1522,9 +1561,12 @@ export default function AudioWaveform({
                             <CardTitle>Transcription Segments</CardTitle>
                         </CardHeader>
                         <CardContent className='p-4 flex-1 overflow-hidden'>
-                            {!isAudioUploaded || transcriptionSegments.length === 0 ? (
+                            {!isAudioUploaded ||
+                            transcriptionSegments.length === 0 ? (
                                 <div className='flex items-center justify-center h-full'>
-                                    <p className='text-gray-500'>No transcription available</p>
+                                    <p className='text-gray-500'>
+                                        No transcription available
+                                    </p>
                                 </div>
                             ) : (
                                 <TranscriptionSegments
