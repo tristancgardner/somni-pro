@@ -60,7 +60,7 @@ const Navigation = () => {
                         href='/pages/websocket'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
-                        websocket
+                        generate
                     </Link>
                 </li>
                 {/* <li

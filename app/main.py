@@ -2,6 +2,47 @@ from fastapi import WebSocket, WebSocketDisconnect
 import json
 from llama.ollama import manage_ollama, generate
 
+@app.websocket("/ws/transcribe")
+async def transcribe_websocket(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        # Receive the file from the WebSocket
+        file_data = await websocket.receive_bytes()
+        
+        # Process the file (similar to the /transcribe/ endpoint)
+        file_size = len(file_data)
+        file_size_mb = file_size / (1024 * 1024)
+        await websocket.send_json({"status": "received", "file_size": f"{file_size_mb:.2f} MB"})
+
+        # Save the file temporarily
+        timestamp = int(time.time())
+        session_filename = f"{timestamp}_uploaded_file"
+        file_path = os.path.join(UPLOAD_FOLDER, session_filename)
+
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_data)
+
+        # Define a progress callback
+        async def progress_callback(message):
+            await websocket.send_json({"status": "progress", "message": message})
+
+        # Process the file using your TranscriptionPipeline
+        pipeline = TranscriptionPipeline(output_folder=OUTPUT_FOLDER, progress_callback=progress_callback)
+        results = await pipeline.process(file_path)
+
+        # Clean up
+        os.remove(file_path)
+
+        # Send the final results
+        await websocket.send_json({"status": "complete", "Results": results})
+
+    except Exception as e:
+        logger.error(f"Error processing file: {str(e)}", exc_info=True)
+        await websocket.send_json({"status": "error", "message": str(e)})
+    finally:
+        await websocket.close()
+
+
 @app.websocket("/ws/llama")
 async def llama_websocket(websocket: WebSocket):
     try:

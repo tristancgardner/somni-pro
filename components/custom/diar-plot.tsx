@@ -1051,7 +1051,7 @@ export default function AudioWaveform({
         onSegmentClick: (startTime: number) => void;
     }) => {
         return (
-            <div className='h-[calc(100vh-300px)] overflow-y-auto pr-2'>
+            <div className='overflow-y-auto h-full'>
                 <div className='space-y-2'>
                     {segments.map((segment, index) => (
                         <div
@@ -1060,15 +1060,12 @@ export default function AudioWaveform({
                             onClick={() => onSegmentClick(segment.start)}
                         >
                             <p className='text-sm text-gray-500'>
-                                {formatTime(segment.start)} -{" "}
-                                {formatTime(segment.end)}
+                                {formatTime(segment.start)} - {formatTime(segment.end)}
                             </p>
                             <p>
                                 <strong
                                     style={{
-                                        color:
-                                            speakerColors[segment.speaker] ||
-                                            "white",
+                                        color: speakerColors[segment.speaker] || "white",
                                     }}
                                 >
                                     {segment.speaker}:
@@ -1518,25 +1515,23 @@ export default function AudioWaveform({
                     transition={{ delay: 0.85, duration: 0.6 }}
                 >
                     <Card
-                        className='card flex-col'
+                        className='card h-[calc(100vh-200px)] flex flex-col'
                         ref={transcriptionSegmentsRef}
                     >
                         <CardHeader>
                             <CardTitle>Transcription Segments</CardTitle>
                         </CardHeader>
-                        <CardContent className='p-4'>
-                            {isAudioUploaded ? (
+                        <CardContent className='p-4 flex-1 overflow-hidden'>
+                            {!isAudioUploaded || transcriptionSegments.length === 0 ? (
+                                <div className='flex items-center justify-center h-full'>
+                                    <p className='text-gray-500'>No transcription available</p>
+                                </div>
+                            ) : (
                                 <TranscriptionSegments
                                     segments={transcriptionSegments}
                                     speakerColors={speakerColors}
                                     onSegmentClick={handleSegmentClick}
                                 />
-                            ) : (
-                                <div className='flex items-center justify-center h-[calc(100vh-300px)]'>
-                                    <p className='text-gray-500'>
-                                        No transcription available
-                                    </p>
-                                </div>
                             )}
                         </CardContent>
                     </Card>
