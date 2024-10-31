@@ -56,20 +56,15 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 ChartJS.register(...registerables);
 
-// Replace the existing SPEAKER_COLORS array with this new palette
 const SPEAKER_COLORS = [
-    "#FF6B6B", // Red
-    "#4ECDC4", // Teal
-    "#45B7D1", // Sky Blue
-    "#FFA07A", // Light Salmon
-    "#98D8C8", // Mint
-    "#F06292", // Pink
-    "#AED581", // Light Green
-    "#7986CB", // Indigo
-    "#FFD54F", // Yellow
-    "#4DB6AC", // Turquoise
-    "#9575CD", // Purple
-    "#FF8A65", // Light Orange
+    "#D66B65", // Deep Coral (brightened)
+    "#7B5DAE", // Royal Purple (brightened)
+    "#3D7B54", // Forest Green (brightened)
+    "#C86D33", // Burnt Orange (brightened)
+    "#327676", // Deep Teal (brightened)
+    "#9B3645", // Wine Red (brightened)
+    "#6B7B3D", // Dark Olive (brightened)
+    "#3D3D7B", // Deep Indigo (brightened)
 ];
 
 ChartJS.register(
@@ -172,6 +167,9 @@ export default function AudioWaveform({
 
     const [isCompressing, setIsCompressing] = useState(false);
     const [fileSize, setFileSize] = useState<number | null>(null);
+
+    const [showSegmentTimeline, setShowSegmentTimeline] = useState(false);
+    const [showSegmentsBySpeaker, setShowSegmentsBySpeaker] = useState(false);
 
     useEffect(() => {
         setIsLoaded(true);
@@ -1580,56 +1578,96 @@ export default function AudioWaveform({
                 </motion.div>
             </div>
 
+            {/* Segment Timeline Card */}
             <motion.div
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 0.95, duration: 0.6 }}
+                className="mb-4"
             >
                 <Card className='card'>
-                    <CardHeader>
-                        <CardTitle>Segment Timeline</CardTitle>
+                    <CardHeader 
+                        className='cursor-pointer hover:bg-accent/50 transition-colors'
+                        onClick={() => setShowSegmentTimeline(!showSegmentTimeline)}
+                    >
+                        <div className='flex justify-between items-center'>
+                            <CardTitle>Segment Timeline</CardTitle>
+                            <Button variant="ghost" size="sm">
+                                {showSegmentTimeline ? '▼' : '▶'}
+                            </Button>
+                        </div>
                     </CardHeader>
-                    <CardContent>
-                        {isAudioUploaded && transcriptionSegments.length > 0 ? (
-                            <SegmentTimeline
-                                segments={transcriptionSegments}
-                                speakerColors={speakerColors}
-                                onSegmentClick={handleSegmentClick}
-                                currentTime={currentTime}
-                            />
-                        ) : (
-                            <div className='text-center text-gray-500'>
-                                No segments available. Please upload and
-                                transcribe an audio file.
-                            </div>
-                        )}
-                    </CardContent>
+                    <motion.div
+                        initial={false}
+                        animate={{ 
+                            height: showSegmentTimeline ? 'auto' : 0,
+                            opacity: showSegmentTimeline ? 1 : 0
+                        }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden' }}
+                    >
+                        <CardContent>
+                            {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                                <SegmentTimeline
+                                    segments={transcriptionSegments}
+                                    speakerColors={speakerColors}
+                                    onSegmentClick={handleSegmentClick}
+                                    currentTime={currentTime}
+                                />
+                            ) : (
+                                <div className='text-center text-gray-500'>
+                                    No segments available. Please upload and
+                                    transcribe an audio file.
+                                </div>
+                            )}
+                        </CardContent>
+                    </motion.div>
                 </Card>
             </motion.div>
 
+            {/* Segments by Speaker Card */}
             <motion.div
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 1.05, duration: 0.6 }}
+                className="mb-4"
             >
                 <Card className='card'>
-                    <CardHeader>
-                        <CardTitle>Segments by Speaker</CardTitle>
+                    <CardHeader 
+                        className='cursor-pointer hover:bg-accent/50 transition-colors'
+                        onClick={() => setShowSegmentsBySpeaker(!showSegmentsBySpeaker)}
+                    >
+                        <div className='flex justify-between items-center'>
+                            <CardTitle>Segments by Speaker</CardTitle>
+                            <Button variant="ghost" size="sm">
+                                {showSegmentsBySpeaker ? '▼' : '▶'}
+                            </Button>
+                        </div>
                     </CardHeader>
-                    <CardContent>
-                        {isAudioUploaded && transcriptionSegments.length > 0 ? (
-                            <SegmentsBySpeaker
-                                segments={transcriptionSegments}
-                                speakerColors={speakerColors}
-                                onSegmentClick={handleSegmentClick}
-                            />
-                        ) : (
-                            <div className='text-center text-gray-500'>
-                                No segments available. Please upload and
-                                transcribe an audio file.
-                            </div>
-                        )}
-                    </CardContent>
+                    <motion.div
+                        initial={false}
+                        animate={{ 
+                            height: showSegmentsBySpeaker ? 'auto' : 0,
+                            opacity: showSegmentsBySpeaker ? 1 : 0
+                        }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden' }}
+                    >
+                        <CardContent>
+                            {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                                <SegmentsBySpeaker
+                                    segments={transcriptionSegments}
+                                    speakerColors={speakerColors}
+                                    onSegmentClick={handleSegmentClick}
+                                />
+                            ) : (
+                                <div className='text-center text-gray-500'>
+                                    No segments available. Please upload and
+                                    transcribe an audio file.
+                                </div>
+                            )}
+                        </CardContent>
+                    </motion.div>
                 </Card>
             </motion.div>
 
