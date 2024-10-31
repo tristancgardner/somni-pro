@@ -53,6 +53,7 @@ import { SegmentTimeline } from "./segbytime";
 import { DraggableSegmentTimeline } from "./dragndrop";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import Summarize from "./summarize";
 
 ChartJS.register(...registerables);
 
@@ -1075,22 +1076,80 @@ export default function AudioWaveform({
         }
     };
 
+    // Add this helper function to find the current segment
+    const getCurrentSegment = (
+        segments: transcriptionResult["segments"],
+        currentTime: number
+    ) => {
+        return segments.findIndex(
+            (segment) =>
+                currentTime >= segment.start && currentTime <= segment.end
+        );
+    };
+
+    // Update the TranscriptionSegments component
     const TranscriptionSegments = ({
         segments,
         speakerColors,
         onSegmentClick,
+        currentTime,
     }: {
         segments: transcriptionResult["segments"];
         speakerColors: Record<string, string>;
         onSegmentClick: (startTime: number) => void;
+        currentTime: number;
     }) => {
+        const containerRef = useRef<HTMLDivElement>(null);
+        const lastValidSegmentIndex = useRef<number>(-1);
+        const currentSegmentIndex = getCurrentSegment(segments, currentTime);
+
+        useEffect(() => {
+            // Only update lastValidSegmentIndex if we have a valid segment
+            if (currentSegmentIndex !== -1) {
+                lastValidSegmentIndex.current = currentSegmentIndex;
+            }
+
+            // Only scroll if we have a valid segment
+            if (currentSegmentIndex !== -1 && containerRef.current) {
+                const container = containerRef.current;
+                const segmentElement = container.children[0].children[currentSegmentIndex] as HTMLElement;
+                
+                if (segmentElement) {
+                    const viewportTop = container.scrollTop;
+                    const viewportBottom = viewportTop + container.clientHeight;
+                    const elementTop = segmentElement.offsetTop;
+                    
+                    if (elementTop < viewportTop || elementTop > viewportBottom) {
+                        // Increased padding from 50px to 80px to move segments down more
+                        const newScrollTop = elementTop - 80;
+                        const scrollBehavior = Math.abs(viewportTop - newScrollTop) > 500 ? "auto" : "smooth";
+                        
+                        container.scrollTo({
+                            top: newScrollTop,
+                            behavior: scrollBehavior
+                        });
+                    }
+                }
+            }
+        }, [currentSegmentIndex]);
+
+        // Use lastValidSegmentIndex for highlighting if current segment is invalid
+        const highlightIndex =
+            currentSegmentIndex !== -1
+                ? currentSegmentIndex
+                : lastValidSegmentIndex.current;
+
         return (
-            <div className='overflow-y-auto h-full'>
+            <div ref={containerRef} className='overflow-y-auto h-full'>
                 <div className='space-y-2'>
                     {segments.map((segment, index) => (
                         <div
                             key={index}
-                            className='border p-2 rounded cursor-pointer hover:bg-gray-700 transition-colors'
+                            className={`border p-2 rounded cursor-pointer transition-colors ${
+                                index === highlightIndex
+                                    ? "bg-accent/50 border-accent"
+                                    : "hover:bg-gray-700"
+                            }`}
                             onClick={() => onSegmentClick(segment.start)}
                         >
                             <p className='text-sm text-gray-500'>
@@ -1266,24 +1325,24 @@ export default function AudioWaveform({
 
     return (
         <div className='w-full'>
-            {/* <Card className='card'>
+            <Card className='card'>
                 <CardHeader>
                     <CardTitle>Dev Utility</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className='flex items-center space-x-2'>
-                        <Button
+                        {/* <Button
                             onClick={handleTestSimpleEndpoint}
                             variant='secondary'
                         >
                             Test API Connection
-                        </Button>
+                        </Button> */}
                         <Button onClick={loadDevFiles} variant='secondary'>
                             Load Example
                         </Button>
                     </div>
                 </CardContent>
-            </Card> */}
+            </Card>
             <div className='flex space-x-4'>
                 <motion.div
                     className='w-2/3'
@@ -1555,10 +1614,10 @@ export default function AudioWaveform({
                         className='card h-[calc(100vh-200px)] flex flex-col'
                         ref={transcriptionSegmentsRef}
                     >
-                        <CardHeader>
+                        <CardHeader className="pb-2">
                             <CardTitle>Transcription Segments</CardTitle>
                         </CardHeader>
-                        <CardContent className='p-4 flex-1 overflow-hidden'>
+                        <CardContent className='pt-2 px-4 pb-4 flex-1 overflow-hidden'>
                             {!isAudioUploaded ||
                             transcriptionSegments.length === 0 ? (
                                 <div className='flex items-center justify-center h-full'>
@@ -1571,6 +1630,7 @@ export default function AudioWaveform({
                                     segments={transcriptionSegments}
                                     speakerColors={speakerColors}
                                     onSegmentClick={handleSegmentClick}
+                                    currentTime={currentTime}
                                 />
                             )}
                         </CardContent>
@@ -1578,36 +1638,64 @@ export default function AudioWaveform({
                 </motion.div>
             </div>
 
+            {/* Interview Summary Card */}
+            <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
+                transition={{ delay: 0.9, duration: 0.6 }}
+                className='mb-4'
+            >
+                <Summarize
+                    transcript={transcriptionResult?.transcript || ""}
+                    onSummaryGenerated={(summary) => {
+                        // Handle the generated summary if needed
+                        console.log("Summary generated:", summary);
+                        if (transcriptionResult) {
+                            const updatedResult = {
+                                ...transcriptionResult,
+                                summary,
+                            };
+                            transcriptionResultRef.current = updatedResult;
+                            onTranscriptionResult(updatedResult);
+                        }
+                    }}
+                    fileName={transcriptionResult?.og_file_name}
+                />
+            </motion.div>
+
             {/* Segment Timeline Card */}
             <motion.div
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 0.95, duration: 0.6 }}
-                className="mb-4"
+                className='mb-4'
             >
                 <Card className='card'>
-                    <CardHeader 
+                    <CardHeader
                         className='cursor-pointer hover:bg-accent/50 transition-colors'
-                        onClick={() => setShowSegmentTimeline(!showSegmentTimeline)}
+                        onClick={() =>
+                            setShowSegmentTimeline(!showSegmentTimeline)
+                        }
                     >
                         <div className='flex justify-between items-center'>
                             <CardTitle>Segment Timeline</CardTitle>
-                            <Button variant="ghost" size="sm">
-                                {showSegmentTimeline ? '▼' : '▶'}
+                            <Button variant='ghost' size='sm'>
+                                {showSegmentTimeline ? "▼" : "▶"}
                             </Button>
                         </div>
                     </CardHeader>
                     <motion.div
                         initial={false}
-                        animate={{ 
-                            height: showSegmentTimeline ? 'auto' : 0,
-                            opacity: showSegmentTimeline ? 1 : 0
+                        animate={{
+                            height: showSegmentTimeline ? "auto" : 0,
+                            opacity: showSegmentTimeline ? 1 : 0,
                         }}
                         transition={{ duration: 0.3 }}
-                        style={{ overflow: 'hidden' }}
+                        style={{ overflow: "hidden" }}
                     >
                         <CardContent>
-                            {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                            {isAudioUploaded &&
+                            transcriptionSegments.length > 0 ? (
                                 <SegmentTimeline
                                     segments={transcriptionSegments}
                                     speakerColors={speakerColors}
@@ -1630,31 +1718,34 @@ export default function AudioWaveform({
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
                 transition={{ delay: 1.05, duration: 0.6 }}
-                className="mb-4"
+                className='mb-4'
             >
                 <Card className='card'>
-                    <CardHeader 
+                    <CardHeader
                         className='cursor-pointer hover:bg-accent/50 transition-colors'
-                        onClick={() => setShowSegmentsBySpeaker(!showSegmentsBySpeaker)}
+                        onClick={() =>
+                            setShowSegmentsBySpeaker(!showSegmentsBySpeaker)
+                        }
                     >
                         <div className='flex justify-between items-center'>
                             <CardTitle>Segments by Speaker</CardTitle>
-                            <Button variant="ghost" size="sm">
-                                {showSegmentsBySpeaker ? '▼' : '▶'}
+                            <Button variant='ghost' size='sm'>
+                                {showSegmentsBySpeaker ? "▼" : "▶"}
                             </Button>
                         </div>
                     </CardHeader>
                     <motion.div
                         initial={false}
-                        animate={{ 
-                            height: showSegmentsBySpeaker ? 'auto' : 0,
-                            opacity: showSegmentsBySpeaker ? 1 : 0
+                        animate={{
+                            height: showSegmentsBySpeaker ? "auto" : 0,
+                            opacity: showSegmentsBySpeaker ? 1 : 0,
                         }}
                         transition={{ duration: 0.3 }}
-                        style={{ overflow: 'hidden' }}
+                        style={{ overflow: "hidden" }}
                     >
                         <CardContent>
-                            {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                            {isAudioUploaded &&
+                            transcriptionSegments.length > 0 ? (
                                 <SegmentsBySpeaker
                                     segments={transcriptionSegments}
                                     speakerColors={speakerColors}

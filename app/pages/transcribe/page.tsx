@@ -5,8 +5,8 @@ import PromptLlama from "@/components/custom/prompt-llama";
 import { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
-import Summarize from "@/components/custom/summarize";
 import { Speaker } from "@/components/custom/diar-plot";
+import { motion } from "framer-motion";
 
 // Update the type definition to include summary
 type TranscriptionResult = {
@@ -60,17 +60,14 @@ export default function TranscribePage() {
                             onTranscriptionResult={handleTranscriptionResult}
                         />
                     </div>
-                    <div className='p-4'>
-                        <Summarize 
-                            transcript={transcriptionResult?.transcript || ""} 
-                            onSummaryGenerated={handleSummaryUpdate}
-                            existingSummary={transcriptionResult?.summary}
-                            fileName={transcriptionResult?.og_file_name}
-                        />
-                    </div>
-                    <div className='p-4'>
+                    <motion.div 
+                        className='p-4'
+                        initial={{ y: -30, opacity: 0 }}
+                        animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
+                        transition={{ delay: 1.25, duration: 0.6 }}
+                    >
                         <PromptLlama />
-                    </div>
+                    </motion.div>
                 </div>
             </main>
         </BackgroundWrapper>
