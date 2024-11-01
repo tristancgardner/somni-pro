@@ -107,7 +107,8 @@ type transcriptionResult = {
     og_file_name: string;
     file_name: string;
     rttm_lines: string[];
-    speaker_colors?: Record<string, string>; // Add this new property
+    rttm_merged: string[];
+    speaker_colors?: Record<string, string>;
     transcript: string;
     speakerLegend?: Record<string, Speaker>;
     // Add other properties as needed
@@ -272,33 +273,38 @@ export default function AudioWaveform({
 
     // Update the colorMap useMemo
     const colorMap = useMemo(() => {
-        if (waveformData.length === 0 || rttmData.length === 0) {
+        if (waveformData.length === 0 || !transcriptionResult?.rttm_merged) {
             return [];
         }
 
-        const colors = new Array(waveformData.length).fill(
-            "rgba(200, 200, 200, 0.5)"
-        );
+        const colors = new Array(waveformData.length).fill("rgba(200, 200, 200, 0.5)");
         const timeStep = duration / waveformData.length;
 
-        rttmData.forEach((segment) => {
-            const startIndex = Math.floor(segment.start / timeStep);
-            const endIndex = Math.min(
-                Math.floor((segment.start + segment.duration) / timeStep),
-                waveformData.length
-            );
-            for (let i = startIndex; i < endIndex; i++) {
-                colors[i] =
-                    speakerColors[segment.speaker] ||
-                    "rgba(200, 200, 200, 0.5)";
+        // Parse RTTM merged lines to get speaker segments
+        transcriptionResult.rttm_merged.forEach(line => {
+            const parts = line.split(' ');
+            // RTTM format: SPEAKER file 1 start duration <NA> <NA> speaker <NA> <NA>
+            if (parts.length >= 8) {
+                const start = parseFloat(parts[3]);
+                const duration = parseFloat(parts[4]);
+                const speaker = parts[7];
+                
+                const startIndex = Math.floor(start / timeStep);
+                const endIndex = Math.min(
+                    Math.floor((start + duration) / timeStep),
+                    waveformData.length
+                );
+
+                for (let i = startIndex; i < endIndex; i++) {
+                    colors[i] = speakerColors[speaker] || "rgba(200, 200, 200, 0.5)";
+                }
             }
         });
 
-        // console.log("Color map updated:", colors);
         return colors;
-    }, [waveformData, rttmData, duration, speakerColors]);
+    }, [waveformData, transcriptionResult?.rttm_merged, duration, speakerColors]);
 
-    // Update the chartData
+    // Update the chartData to use the new colorMap
     const chartData = {
         labels: Array.from(
             { length: waveformData.length },
@@ -372,18 +378,22 @@ export default function AudioWaveform({
                 yAlign: "bottom",
                 callbacks: {
                     label: function (context) {
-                        const dataIndex = Math.floor(context.dataIndex / 2);
                         const timeValue = context.parsed.x;
-
-                        // Find the corresponding RTTM segment
-                        const segment = rttmData.find(
-                            (seg) =>
-                                timeValue >= seg.start &&
-                                timeValue <= seg.start + seg.duration
-                        );
+                        
+                        // Find the corresponding speaker from rttm_merged
+                        const segment = transcriptionResult?.rttm_merged.find(line => {
+                            const parts = line.split(' ');
+                            if (parts.length >= 8) {
+                                const start = parseFloat(parts[3]);
+                                const duration = parseFloat(parts[4]);
+                                return timeValue >= start && timeValue <= (start + duration);
+                            }
+                            return false;
+                        });
 
                         if (segment) {
-                            return `${segment.speaker}`;
+                            const parts = segment.split(' ');
+                            return parts[7]; // Return speaker label
                         }
                         return "";
                     },
@@ -583,6 +593,7 @@ export default function AudioWaveform({
 
     const updateSpeakerLabel = useCallback(
         (oldLabel: string, newLabel: string) => {
+            // Update RTTM data segments
             setRttmData((prevData) =>
                 prevData.map((segment) =>
                     segment.speaker === oldLabel
@@ -590,6 +601,8 @@ export default function AudioWaveform({
                         : segment
                 )
             );
+
+            // Update speaker colors
             setSpeakerColors((prevColors) => {
                 const newColors = { ...prevColors };
                 if (oldLabel !== newLabel) {
@@ -598,6 +611,8 @@ export default function AudioWaveform({
                 }
                 return newColors;
             });
+
+            // Update transcription segments
             setTranscriptionSegments((prevSegments) =>
                 prevSegments.map((segment) =>
                     segment.speaker === oldLabel
@@ -605,6 +620,8 @@ export default function AudioWaveform({
                         : segment
                 )
             );
+
+            // Update speaker legend
             setSpeakerLegend((prevLegend) => {
                 const newLegend = { ...prevLegend };
                 if (oldLabel !== newLabel) {
@@ -618,13 +635,41 @@ export default function AudioWaveform({
                 return newLegend;
             });
 
-            // Update the transcript in transcriptionResult and notify parent
+            // Update the transcript and other properties in transcriptionResult
             if (transcriptionResultRef.current) {
+                // Update RTTM lines
+                const updatedRTTMLines =
+                    transcriptionResultRef.current.rttm_lines.map((line) => {
+                        if (line.includes(` ${oldLabel} `)) {
+                            return line.replace(
+                                ` ${oldLabel} `,
+                                ` ${newLabel} `
+                            );
+                        }
+                        return line;
+                    });
+
+                // Update RTTM merged
+                const updatedRTTMMerged =
+                    transcriptionResultRef.current.rttm_merged.map(
+                        (line: string) => {
+                            if (line.includes(` ${oldLabel} `)) {
+                                return line.replace(
+                                    ` ${oldLabel} `,
+                                    ` ${newLabel} `
+                                );
+                            }
+                            return line;
+                        }
+                    );
+
+                // Update transcript text
                 const updatedTranscript =
                     transcriptionResultRef.current.transcript.replace(
                         new RegExp(`\\b${oldLabel}\\b`, "g"),
                         newLabel
                     );
+
                 const updatedResult = {
                     ...transcriptionResultRef.current,
                     transcript: updatedTranscript,
@@ -634,7 +679,10 @@ export default function AudioWaveform({
                                 ? { ...segment, speaker: newLabel }
                                 : segment
                     ),
+                    rttm_lines: updatedRTTMLines,
+                    rttm_merged: updatedRTTMMerged,
                 };
+
                 transcriptionResultRef.current = updatedResult;
                 setTranscriptionResult(updatedResult);
                 // Notify parent component of the update
@@ -647,7 +695,7 @@ export default function AudioWaveform({
             setTranscriptionSegments,
             setSpeakerLegend,
             setTranscriptionResult,
-            onTranscriptionResult, // Add this to dependencies
+            onTranscriptionResult,
         ]
     );
 
@@ -1104,40 +1152,46 @@ export default function AudioWaveform({
         const currentSegmentIndex = getCurrentSegment(segments, currentTime);
 
         useEffect(() => {
-            // Only update lastValidSegmentIndex if we have a valid segment
-            if (currentSegmentIndex !== -1) {
-                lastValidSegmentIndex.current = currentSegmentIndex;
-            }
+            // Skip any updates if we're in an unlabeled section
+            if (currentSegmentIndex === -1) return;
 
-            // Only scroll if we have a valid segment
-            if (currentSegmentIndex !== -1 && containerRef.current) {
+            // Only update if this is a different valid segment
+            if (
+                currentSegmentIndex !== lastValidSegmentIndex.current &&
+                containerRef.current
+            ) {
                 const container = containerRef.current;
-                const segmentElement = container.children[0].children[currentSegmentIndex] as HTMLElement;
-                
+                const segmentElement = container.children[0].children[
+                    currentSegmentIndex
+                ] as HTMLElement;
+
                 if (segmentElement) {
                     const viewportTop = container.scrollTop;
                     const viewportBottom = viewportTop + container.clientHeight;
                     const elementTop = segmentElement.offsetTop;
-                    
-                    if (elementTop < viewportTop || elementTop > viewportBottom) {
-                        // Increased padding from 50px to 80px to move segments down more
+
+                    if (
+                        elementTop < viewportTop ||
+                        elementTop > viewportBottom
+                    ) {
                         const newScrollTop = elementTop - 80;
-                        const scrollBehavior = Math.abs(viewportTop - newScrollTop) > 500 ? "auto" : "smooth";
-                        
+                        const scrollBehavior =
+                            Math.abs(viewportTop - newScrollTop) > 500
+                                ? "auto"
+                                : "smooth";
+
                         container.scrollTo({
                             top: newScrollTop,
-                            behavior: scrollBehavior
+                            behavior: scrollBehavior,
                         });
                     }
                 }
+                lastValidSegmentIndex.current = currentSegmentIndex;
             }
         }, [currentSegmentIndex]);
 
-        // Use lastValidSegmentIndex for highlighting if current segment is invalid
-        const highlightIndex =
-            currentSegmentIndex !== -1
-                ? currentSegmentIndex
-                : lastValidSegmentIndex.current;
+        // Only highlight if we have a valid segment
+        const highlightIndex = currentSegmentIndex;
 
         return (
             <div ref={containerRef} className='overflow-y-auto h-full'>
@@ -1267,7 +1321,7 @@ export default function AudioWaveform({
     const loadDevFiles = async () => {
         try {
             // Load JSON file
-            const jsonResponse = await fetch("/dev_files/trim_2000.json");
+            const jsonResponse = await fetch("/dev_files/V40914AB1_2of2.json");
             const jsonData = await jsonResponse.json();
             setTranscriptionResult(jsonData);
             setTranscriptionSegments(jsonData.segments);
@@ -1300,7 +1354,7 @@ export default function AudioWaveform({
             setOriginalSpeakerColors(colors);
 
             // Load audio file
-            const audio = new Audio("/dev_files/trim_2000.mp3");
+            const audio = new Audio("/dev_files/V40914AB1_2of2.mp3");
             audioRef.current = audio;
 
             audio.addEventListener("loadedmetadata", () => {
@@ -1310,7 +1364,7 @@ export default function AudioWaveform({
             });
 
             // Generate waveform data (you might need to adjust this part)
-            const response = await fetch("/dev_files/trim_2000.mp3");
+            const response = await fetch("/dev_files/V40914AB1_2of2.mp3");
             const arrayBuffer = await response.arrayBuffer();
             const audioContext = new AudioContext();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -1614,7 +1668,7 @@ export default function AudioWaveform({
                         className='card h-[calc(100vh-200px)] flex flex-col'
                         ref={transcriptionSegmentsRef}
                     >
-                        <CardHeader className="pb-2">
+                        <CardHeader className='pb-2'>
                             <CardTitle>Transcription Segments</CardTitle>
                         </CardHeader>
                         <CardContent className='pt-2 px-4 pb-4 flex-1 overflow-hidden'>
