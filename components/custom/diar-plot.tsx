@@ -116,62 +116,42 @@ type transcriptionResult = {
 
 // Add this to your existing props interface
 interface AudioWaveformProps {
-    onTranscriptionResult: (result: transcriptionResult) => void;
+    transcriptionResult: TranscriptionResult | null;
+    setTranscriptionResult: (result: TranscriptionResult) => void;
 }
 
 export default function AudioWaveform({
-    onTranscriptionResult,
+    transcriptionResult,
+    setTranscriptionResult
 }: AudioWaveformProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(600);
     const [volume, setVolume] = useState(1);
     const [rttmData, setRttmData] = useState<ImportedRTTMSegment[]>([]);
-    const [speakerColors, setSpeakerColors] = useState<Record<string, string>>(
-        {}
-    );
+    const [speakerColors, setSpeakerColors] = useState<Record<string, string>>({});
     const [waveformData, setWaveformData] = useState<number[]>([]);
     const [zoomRange, setZoomRange] = useState<[number, number]>([0, duration]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const chartRef = useRef<ChartJS<
-        "line",
-        { x: number; y: number }[],
-        number
-    > | null>(null);
+    const chartRef = useRef<ChartJS<"line", { x: number; y: number }[], number> | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [isAudioUploaded, setIsAudioUploaded] = useState(false);
     const [verticalScale, setVerticalScale] = useState(1);
     const [showPredictionLegend, setShowPredictionLegend] = useState(false);
-    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<
-        Record<string, string>
-    >({});
+    const [originalSpeakerColors, setOriginalSpeakerColors] = useState<Record<string, string>>({});
     const [playbackRate, setPlaybackRate] = useState(1);
-    const [transcriptionFile, setTranscriptionFile] = useState<File | null>(
-        null
-    );
+    const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const [transcriptionResult, setTranscriptionResult] =
-        useState<transcriptionResult | null>(null);
-    const [transcriptionSegments, setTranscriptionSegments] = useState<
-        transcriptionResult["segments"]
-    >([]);
+    const [isCompressing, setIsCompressing] = useState(false);
+    const [fileSize, setFileSize] = useState<number | null>(null);
+    const [showSegmentTimeline, setShowSegmentTimeline] = useState(false);
+    const [showSegmentsBySpeaker, setShowSegmentsBySpeaker] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     const audioWaveformRef = useRef<HTMLDivElement>(null);
     const transcriptionSegmentsRef = useRef<HTMLDivElement>(null);
-    const transcriptionResultRef = useRef<transcriptionResult | null>(null);
 
-    // Add this state declaration
-    const [speakerLegend, setSpeakerLegend] = useState<Record<string, Speaker>>(
-        {}
-    );
-
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    const [isCompressing, setIsCompressing] = useState(false);
-    const [fileSize, setFileSize] = useState<number | null>(null);
-
-    const [showSegmentTimeline, setShowSegmentTimeline] = useState(false);
-    const [showSegmentsBySpeaker, setShowSegmentsBySpeaker] = useState(false);
+    const [transcriptionSegments, setTranscriptionSegments] = useState<TranscriptionResult['segments']>([]);
 
     useEffect(() => {
         setIsLoaded(true);
@@ -591,112 +571,52 @@ export default function AudioWaveform({
         });
     };
 
+    // Update the updateSpeakerLabel function to use props directly
     const updateSpeakerLabel = useCallback(
         (oldLabel: string, newLabel: string) => {
-            // Update RTTM data segments
-            setRttmData((prevData) =>
-                prevData.map((segment) =>
-                    segment.speaker === oldLabel
+            if (!transcriptionResult) return;
+
+            const updatedResult = {
+                ...transcriptionResult,
+                segments: transcriptionResult.segments.map(segment => 
+                    segment.speaker === oldLabel 
                         ? { ...segment, speaker: newLabel }
                         : segment
-                )
-            );
-
-            // Update speaker colors
-            setSpeakerColors((prevColors) => {
-                const newColors = { ...prevColors };
-                if (oldLabel !== newLabel) {
-                    newColors[newLabel] = newColors[oldLabel];
-                    delete newColors[oldLabel];
+                ),
+                rttm_lines: transcriptionResult.rttm_lines.map(line => 
+                    line.includes(` ${oldLabel} `)
+                        ? line.replace(` ${oldLabel} `, ` ${newLabel} `)
+                        : line
+                ),
+                rttm_merged: transcriptionResult.rttm_merged.map(line => 
+                    line.includes(` ${oldLabel} `)
+                        ? line.replace(` ${oldLabel} `, ` ${newLabel} `)
+                        : line
+                ),
+                transcript: transcriptionResult.transcript.replace(
+                    new RegExp(`\\b${oldLabel}\\b`, "g"),
+                    newLabel
+                ),
+                speaker_colors: {
+                    ...transcriptionResult.speaker_colors,
+                    [newLabel]: transcriptionResult.speaker_colors[oldLabel]
+                },
+                speakerLegend: {
+                    ...transcriptionResult.speakerLegend,
+                    [newLabel]: {
+                        originalLabel: transcriptionResult.speakerLegend[oldLabel]?.originalLabel || oldLabel,
+                        currentLabel: newLabel
+                    }
                 }
-                return newColors;
-            });
+            };
 
-            // Update transcription segments
-            setTranscriptionSegments((prevSegments) =>
-                prevSegments.map((segment) =>
-                    segment.speaker === oldLabel
-                        ? { ...segment, speaker: newLabel }
-                        : segment
-                )
-            );
+            // Remove old speaker color and legend entries
+            delete updatedResult.speaker_colors[oldLabel];
+            delete updatedResult.speakerLegend[oldLabel];
 
-            // Update speaker legend
-            setSpeakerLegend((prevLegend) => {
-                const newLegend = { ...prevLegend };
-                if (oldLabel !== newLabel) {
-                    newLegend[newLabel] = {
-                        originalLabel:
-                            prevLegend[oldLabel]?.originalLabel || oldLabel,
-                        currentLabel: newLabel,
-                    };
-                    delete newLegend[oldLabel];
-                }
-                return newLegend;
-            });
-
-            // Update the transcript and other properties in transcriptionResult
-            if (transcriptionResultRef.current) {
-                // Update RTTM lines
-                const updatedRTTMLines =
-                    transcriptionResultRef.current.rttm_lines.map((line) => {
-                        if (line.includes(` ${oldLabel} `)) {
-                            return line.replace(
-                                ` ${oldLabel} `,
-                                ` ${newLabel} `
-                            );
-                        }
-                        return line;
-                    });
-
-                // Update RTTM merged
-                const updatedRTTMMerged =
-                    transcriptionResultRef.current.rttm_merged.map(
-                        (line: string) => {
-                            if (line.includes(` ${oldLabel} `)) {
-                                return line.replace(
-                                    ` ${oldLabel} `,
-                                    ` ${newLabel} `
-                                );
-                            }
-                            return line;
-                        }
-                    );
-
-                // Update transcript text
-                const updatedTranscript =
-                    transcriptionResultRef.current.transcript.replace(
-                        new RegExp(`\\b${oldLabel}\\b`, "g"),
-                        newLabel
-                    );
-
-                const updatedResult = {
-                    ...transcriptionResultRef.current,
-                    transcript: updatedTranscript,
-                    segments: transcriptionResultRef.current.segments.map(
-                        (segment) =>
-                            segment.speaker === oldLabel
-                                ? { ...segment, speaker: newLabel }
-                                : segment
-                    ),
-                    rttm_lines: updatedRTTMLines,
-                    rttm_merged: updatedRTTMMerged,
-                };
-
-                transcriptionResultRef.current = updatedResult;
-                setTranscriptionResult(updatedResult);
-                // Notify parent component of the update
-                onTranscriptionResult(updatedResult);
-            }
+            setTranscriptionResult(updatedResult);
         },
-        [
-            setRttmData,
-            setSpeakerColors,
-            setTranscriptionSegments,
-            setSpeakerLegend,
-            setTranscriptionResult,
-            onTranscriptionResult,
-        ]
+        [transcriptionResult, setTranscriptionResult]
     );
 
     // Add this useEffect to update the chart when predictionRTTMData or speakerColors change
@@ -704,7 +624,7 @@ export default function AudioWaveform({
         if (chartRef.current) {
             chartRef.current.update();
         }
-    }, [rttmData, speakerColors, transcriptionSegments]);
+    }, [rttmData, speakerColors, transcriptionResult?.segments]);
 
     // Update the RTTMLegend component
     const RTTMLegend = ({
@@ -714,6 +634,7 @@ export default function AudioWaveform({
         editable = false,
         onResetColors,
         onUpdateSpeakerLabel,
+        speakerLegend,
     }: {
         data: ImportedRTTMSegment[];
         title: string;
@@ -721,6 +642,7 @@ export default function AudioWaveform({
         editable?: boolean;
         onResetColors?: () => void;
         onUpdateSpeakerLabel: (oldLabel: string, newLabel: string) => void;
+        speakerLegend: Record<string, Speaker>;
     }) => {
         const speakers = useMemo(
             () => Array.from(new Set(data.map((segment) => segment.speaker))),
@@ -1041,16 +963,14 @@ export default function AudioWaveform({
         }
     };
 
-    // Modify the handleTestTranscribeEndpoint function
+    // Update handleTestTranscribeEndpoint to use setTranscriptionResult directly
     const handleTestTranscribeEndpoint = async () => {
-        console.log("handleTestTranscribeEndpoint called");
         if (!transcriptionFile) {
             console.error("No transcription file selected");
             alert("Please select a file first");
             return;
         }
         try {
-            console.log("Calling transcribe_endpoint");
             setIsTranscribing(true);
 
             let fileToSend = transcriptionFile;
@@ -1061,55 +981,22 @@ export default function AudioWaveform({
             }
 
             const result = await transcribe_endpoint(fileToSend);
-            console.log("transcribe() endpoint returned: ", result);
-
-            const session_filename = result.file_name;
-            const splitIndex = session_filename.indexOf("_");
-            const ogFilename =
-                splitIndex !== -1
-                    ? session_filename.slice(splitIndex + 1)
-                    : session_filename;
-            result.og_file_name = ogFilename;
-
-            // Initialize speakerLegend
-            const initialSpeakerLegend: Record<string, Speaker> = {};
-            result.segments.forEach((segment: { speaker: string }) => {
-                if (!initialSpeakerLegend[segment.speaker]) {
-                    initialSpeakerLegend[segment.speaker] = {
-                        originalLabel: segment.speaker,
-                        currentLabel: segment.speaker,
-                    };
-                }
-            });
-            setSpeakerLegend(initialSpeakerLegend);
-
-            // Store the result in the ref and local state
-            transcriptionResultRef.current = result;
+            
+            // Process result and update parent state
             setTranscriptionResult(result);
-            // Notify parent component
-            onTranscriptionResult(result);
-
+            
+            // Update local states for visualization
+            setTranscriptionSegments(result.segments);
             const parsedRttm = parseRTTM(result.rttm_lines);
             setRttmData(parsedRttm as ImportedRTTMSegment[]);
-            const colors = getSpeakerColors(
-                parsedRttm as ImportedRTTMSegment[]
-            );
+            const colors = getSpeakerColors(parsedRttm as ImportedRTTMSegment[]);
             setSpeakerColors(colors);
             setOriginalSpeakerColors(colors);
             setShowPredictionLegend(true);
 
-            setTranscriptionSegments(result.segments || []);
-
-            if (chartRef.current) {
-                chartRef.current.update();
-            }
         } catch (error) {
             console.error("Error in handleTestTranscribeEndpoint:", error);
-            alert(
-                `Error: ${
-                    error instanceof Error ? error.message : String(error)
-                }`
-            );
+            alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setIsTranscribing(false);
             setIsCompressing(false);
@@ -1142,7 +1029,7 @@ export default function AudioWaveform({
         onSegmentClick,
         currentTime,
     }: {
-        segments: transcriptionResult["segments"];
+        segments: TranscriptionResult['segments'];
         speakerColors: Record<string, string>;
         onSegmentClick: (startTime: number) => void;
         currentTime: number;
@@ -1613,6 +1500,7 @@ export default function AudioWaveform({
                                                 onUpdateSpeakerLabel={
                                                     updateSpeakerLabel
                                                 }
+                                                speakerLegend={transcriptionResult?.speakerLegend || {}}
                                             />
                                             <div className='mt-3 flex justify-between w-full'>
                                                 <Button
@@ -1673,7 +1561,7 @@ export default function AudioWaveform({
                         </CardHeader>
                         <CardContent className='pt-2 px-4 pb-4 flex-1 overflow-hidden'>
                             {!isAudioUploaded ||
-                            transcriptionSegments.length === 0 ? (
+                            transcriptionResult?.segments.length === 0 ? (
                                 <div className='flex items-center justify-center h-full'>
                                     <p className='text-gray-500'>
                                         No transcription available
@@ -1749,9 +1637,9 @@ export default function AudioWaveform({
                     >
                         <CardContent>
                             {isAudioUploaded &&
-                            transcriptionSegments.length > 0 ? (
+                            transcriptionResult?.segments.length > 0 ? (
                                 <SegmentTimeline
-                                    segments={transcriptionSegments}
+                                    segments={transcriptionResult?.segments}
                                     speakerColors={speakerColors}
                                     onSegmentClick={handleSegmentClick}
                                     currentTime={currentTime}
@@ -1799,9 +1687,9 @@ export default function AudioWaveform({
                     >
                         <CardContent>
                             {isAudioUploaded &&
-                            transcriptionSegments.length > 0 ? (
+                            transcriptionResult?.segments.length > 0 ? (
                                 <SegmentsBySpeaker
-                                    segments={transcriptionSegments}
+                                    segments={transcriptionResult?.segments}
                                     speakerColors={speakerColors}
                                     onSegmentClick={handleSegmentClick}
                                 />
@@ -1822,9 +1710,9 @@ export default function AudioWaveform({
                     <CardTitle>Reorderable Segment Timeline</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {isAudioUploaded && transcriptionSegments.length > 0 ? (
+                    {isAudioUploaded && transcriptionResult?.segments.length > 0 ? (
                         <DraggableSegmentTimeline
-                            segments={transcriptionSegments.map((segment, index) => ({
+                            segments={transcriptionResult?.segments.map((segment, index) => ({
                                 ...segment,
                                 id: `segment-${index}`
                             }))}
