@@ -97,7 +97,8 @@ export type Speaker = {
     currentLabel: string;
 };
 
-type transcriptionResult = {
+// Change transcriptionResult type name to TranscriptionResult and export it
+export type TranscriptionResult = {
     segments: Array<{
         speaker: string;
         start: number;
@@ -108,13 +109,14 @@ type transcriptionResult = {
     file_name: string;
     rttm_lines: string[];
     rttm_merged: string[];
-    speaker_colors?: Record<string, string>;
+    speaker_colors: Record<string, string>;
     transcript: string;
-    speakerLegend?: Record<string, Speaker>;
+    speakerLegend: Record<string, Speaker>;
+    summary?: string;
     // Add other properties as needed
 };
 
-// Add this to your existing props interface
+// Update the interface to use the new type
 interface AudioWaveformProps {
     transcriptionResult: TranscriptionResult | null;
     setTranscriptionResult: (result: TranscriptionResult) => void;
@@ -261,7 +263,7 @@ export default function AudioWaveform({
         const timeStep = duration / waveformData.length;
 
         // Parse RTTM merged lines to get speaker segments
-        transcriptionResult.rttm_merged.forEach(line => {
+        transcriptionResult.rttm_merged.forEach((line: string) => {
             const parts = line.split(' ');
             // RTTM format: SPEAKER file 1 start duration <NA> <NA> speaker <NA> <NA>
             if (parts.length >= 8) {
@@ -361,7 +363,7 @@ export default function AudioWaveform({
                         const timeValue = context.parsed.x;
                         
                         // Find the corresponding speaker from rttm_merged
-                        const segment = transcriptionResult?.rttm_merged.find(line => {
+                        const segment = transcriptionResult?.rttm_merged.find((line: string) => {
                             const parts = line.split(' ');
                             if (parts.length >= 8) {
                                 const start = parseFloat(parts[3]);
@@ -576,19 +578,19 @@ export default function AudioWaveform({
         (oldLabel: string, newLabel: string) => {
             if (!transcriptionResult) return;
 
-            const updatedResult = {
+            const updatedResult: TranscriptionResult = {
                 ...transcriptionResult,
-                segments: transcriptionResult.segments.map(segment => 
+                segments: transcriptionResult.segments.map((segment: TranscriptionResult['segments'][0]) => 
                     segment.speaker === oldLabel 
                         ? { ...segment, speaker: newLabel }
                         : segment
                 ),
-                rttm_lines: transcriptionResult.rttm_lines.map(line => 
+                rttm_lines: transcriptionResult.rttm_lines.map((line: string) => 
                     line.includes(` ${oldLabel} `)
                         ? line.replace(` ${oldLabel} `, ` ${newLabel} `)
                         : line
                 ),
-                rttm_merged: transcriptionResult.rttm_merged.map(line => 
+                rttm_merged: transcriptionResult.rttm_merged.map((line: string) => 
                     line.includes(` ${oldLabel} `)
                         ? line.replace(` ${oldLabel} `, ` ${newLabel} `)
                         : line
@@ -598,13 +600,13 @@ export default function AudioWaveform({
                     newLabel
                 ),
                 speaker_colors: {
-                    ...transcriptionResult.speaker_colors,
-                    [newLabel]: transcriptionResult.speaker_colors[oldLabel]
+                    ...(transcriptionResult.speaker_colors || {}),
+                    [newLabel]: transcriptionResult.speaker_colors?.[oldLabel]
                 },
                 speakerLegend: {
-                    ...transcriptionResult.speakerLegend,
+                    ...(transcriptionResult.speakerLegend || {}),
                     [newLabel]: {
-                        originalLabel: transcriptionResult.speakerLegend[oldLabel]?.originalLabel || oldLabel,
+                        originalLabel: transcriptionResult.speakerLegend?.[oldLabel]?.originalLabel || oldLabel,
                         currentLabel: newLabel
                     }
                 }
@@ -866,10 +868,19 @@ export default function AudioWaveform({
         setShowPredictionLegend(false);
         setWaveformData([]);
         setCurrentTime(0);
-        setDuration(600); // Reset to default duration
-        setZoomRange([0, 600]); // Reset zoom range to default
+        setDuration(600);
+        setZoomRange([0, 600]);
         setTranscriptionSegments([]);
-        setTranscriptionResult(null);
+        setTranscriptionResult({
+            segments: [],
+            og_file_name: '',
+            file_name: '',
+            rttm_lines: [],
+            rttm_merged: [],
+            speaker_colors: {},
+            transcript: '',
+            speakerLegend: {}
+        });
         if (chartRef.current) {
             chartRef.current.update();
         }
@@ -1013,7 +1024,7 @@ export default function AudioWaveform({
 
     // Add this helper function to find the current segment
     const getCurrentSegment = (
-        segments: transcriptionResult["segments"],
+        segments: TranscriptionResult['segments'],
         currentTime: number
     ) => {
         return segments.findIndex(
@@ -1083,7 +1094,7 @@ export default function AudioWaveform({
         return (
             <div ref={containerRef} className='overflow-y-auto h-full'>
                 <div className='space-y-2'>
-                    {segments.map((segment, index) => (
+                    {segments.map((segment: TranscriptionResult['segments'][0], index: number) => (
                         <div
                             key={index}
                             className={`border p-2 rounded cursor-pointer transition-colors ${
@@ -1161,11 +1172,11 @@ export default function AudioWaveform({
 
     // Modify the downloadTranscript function
     const downloadTranscript = useCallback(() => {
-        if (transcriptionResultRef.current) {
-            const headerText = `Transcript for file: ${transcriptionResultRef.current.og_file_name}\n\n`;
+        if (transcriptionResult) {
+            const headerText = `Transcript for file: ${transcriptionResult.og_file_name}\n\n`;
 
             const formattedTranscript =
-                transcriptionResultRef.current.transcript
+                transcriptionResult.transcript
                     .split("\n")
                     .join("\n\n");
 
@@ -1176,16 +1187,16 @@ export default function AudioWaveform({
             });
             saveAs(
                 blob,
-                `${transcriptionResultRef.current.og_file_name}_transcript.txt`
+                `${transcriptionResult.og_file_name}_transcript.txt`
             );
         }
     }, []);
 
     // Add this new function after the downloadTranscript function
     const copyTranscriptToClipboard = useCallback(() => {
-        if (transcriptionResultRef.current?.transcript) {
+        if (transcriptionResult?.transcript) {
             navigator.clipboard
-                .writeText(transcriptionResultRef.current.transcript)
+                .writeText(transcriptionResult.transcript)
                 .then(() => {
                     // You could add a toast notification here if you want
                     console.log("Transcript copied to clipboard");
@@ -1219,7 +1230,7 @@ export default function AudioWaveform({
             // Update RTTM data with correct speaker labels from segments
             const updatedRttm = parsedRttm.map((segment) => {
                 const matchingSegment = jsonData.segments.find(
-                    (s: transcriptionResult["segments"][0]) =>
+                    (s: TranscriptionResult['segments'][0]) =>
                         s.start <= segment.start &&
                         s.start + s.end >= segment.start + segment.duration
                 );
@@ -1597,8 +1608,7 @@ export default function AudioWaveform({
                                 ...transcriptionResult,
                                 summary,
                             };
-                            transcriptionResultRef.current = updatedResult;
-                            onTranscriptionResult(updatedResult);
+                            setTranscriptionResult(updatedResult);
                         }
                     }}
                     fileName={transcriptionResult?.og_file_name}
@@ -1636,18 +1646,16 @@ export default function AudioWaveform({
                         style={{ overflow: "hidden" }}
                     >
                         <CardContent>
-                            {isAudioUploaded &&
-                            transcriptionResult?.segments.length > 0 ? (
+                            {isAudioUploaded && transcriptionResult && transcriptionResult.segments && transcriptionResult.segments.length > 0 ? (
                                 <SegmentTimeline
-                                    segments={transcriptionResult?.segments}
+                                    segments={transcriptionResult.segments}
                                     speakerColors={speakerColors}
                                     onSegmentClick={handleSegmentClick}
                                     currentTime={currentTime}
                                 />
                             ) : (
                                 <div className='text-center text-gray-500'>
-                                    No segments available. Please upload and
-                                    transcribe an audio file.
+                                    No segments available. Please upload and transcribe an audio file.
                                 </div>
                             )}
                         </CardContent>
@@ -1686,17 +1694,15 @@ export default function AudioWaveform({
                         style={{ overflow: "hidden" }}
                     >
                         <CardContent>
-                            {isAudioUploaded &&
-                            transcriptionResult?.segments.length > 0 ? (
+                            {isAudioUploaded && transcriptionResult && transcriptionResult.segments && transcriptionResult.segments.length > 0 ? (
                                 <SegmentsBySpeaker
-                                    segments={transcriptionResult?.segments}
+                                    segments={transcriptionResult.segments}
                                     speakerColors={speakerColors}
                                     onSegmentClick={handleSegmentClick}
                                 />
                             ) : (
                                 <div className='text-center text-gray-500'>
-                                    No segments available. Please upload and
-                                    transcribe an audio file.
+                                    No segments available. Please upload and transcribe an audio file.
                                 </div>
                             )}
                         </CardContent>

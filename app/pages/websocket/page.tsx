@@ -89,42 +89,6 @@ export default function WebSocketPage() {
             <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
-                    <Card className='card mb-4'>
-                        <CardHeader>
-                            <CardTitle>WebSocket Progress</CardTitle>
-                            <CardDescription>
-                                Testing websockets...
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className='space-y-4'>
-                            <div className='p-4'>
-                                {!isProcessStarted ? (
-                                    <Button
-                                        className='mb-4'
-                                        onClick={handleStartProcess}
-                                    >
-                                        Start Process
-                                    </Button>
-                                ) : (
-                                    <div className='mb-4'>
-                                        <div className='w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700'>
-                                            <div
-                                                className='bg-blue-600 h-2.5 rounded-full'
-                                                style={{
-                                                    width: `${progress}%`,
-                                                }}
-                                            ></div>
-                                        </div>
-                                        <p className='mt-2'>
-                                            Progress: {progress}%
-                                        </p>
-                                    </div>
-                                )}
-                                <p>Status: {status}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
                     <div className='p-4'>
                         <PromptLlama />
                     </div>
