@@ -1,6 +1,8 @@
 "use client";
 
-import AudioWaveform, { TranscriptionResult } from "@/components/custom/diar-plot";
+import AudioWaveform, {
+    TranscriptionResult,
+} from "@/components/custom/diar-plot";
 import PromptLlama from "@/components/custom/prompt-llama";
 import Summarize from "@/components/custom/summarize";
 import { useState, useEffect } from "react";
@@ -11,7 +13,8 @@ import { motion } from "framer-motion";
 
 export default function TranscribePage() {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [transcriptionResult, setTranscriptionResult] = useState<TranscriptionResult | null>(null);
+    const [transcriptionResult, setTranscriptionResult] =
+        useState<TranscriptionResult | null>(null);
 
     useEffect(() => {
         setIsLoaded(true);
@@ -27,12 +30,12 @@ export default function TranscribePage() {
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
                     <div className='p-4'>
-                        <AudioWaveform 
+                        <AudioWaveform
                             transcriptionResult={transcriptionResult}
                             setTranscriptionResult={handleTranscriptionResult}
                         />
                     </div>
-                    <motion.div 
+                    <motion.div
                         className='p-4'
                         initial={{ y: -30, opacity: 0 }}
                         animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}
@@ -46,13 +49,13 @@ export default function TranscribePage() {
                                 if (transcriptionResult) {
                                     setTranscriptionResult({
                                         ...transcriptionResult,
-                                        summary
+                                        summary,
                                     });
                                 }
                             }}
                         />
                     </motion.div>
-                    <motion.div 
+                    <motion.div
                         className='p-4'
                         initial={{ y: -30, opacity: 0 }}
                         animate={{ y: 0, opacity: isLoaded ? 1 : 0 }}

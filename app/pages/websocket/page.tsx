@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import PromptLlama from "@/components/custom/prompt-llama";
+import DescribeImage from "@/components/custom/describe-image";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
@@ -91,6 +92,9 @@ export default function WebSocketPage() {
                     <PageHeader />
                     <div className='p-4'>
                         <PromptLlama />
+                    </div>
+                    <div className='p-4'>
+                        <DescribeImage />
                     </div>
                 </div>
             </main>

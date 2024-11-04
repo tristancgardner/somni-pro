@@ -573,24 +573,41 @@ export default function AudioWaveform({
         });
     };
 
-    // Update the updateSpeakerLabel function to use props directly
+    // Update the updateSpeakerLabel function
     const updateSpeakerLabel = useCallback(
         (oldLabel: string, newLabel: string) => {
             if (!transcriptionResult) return;
 
+            // Create a new speakerColors object with the updated label
+            const newSpeakerColors = { ...speakerColors };
+            if (newSpeakerColors[oldLabel]) {
+                newSpeakerColors[newLabel] = newSpeakerColors[oldLabel];
+                delete newSpeakerColors[oldLabel];
+            }
+            setSpeakerColors(newSpeakerColors);
+
+            // Create new speakerLegend with the updated label
+            const newSpeakerLegend = { ...transcriptionResult.speakerLegend };
+            const originalLabel = newSpeakerLegend[oldLabel]?.originalLabel || oldLabel;
+            delete newSpeakerLegend[oldLabel];
+            newSpeakerLegend[newLabel] = {
+                originalLabel,
+                currentLabel: newLabel
+            };
+
             const updatedResult: TranscriptionResult = {
                 ...transcriptionResult,
-                segments: transcriptionResult.segments.map((segment: TranscriptionResult['segments'][0]) => 
+                segments: transcriptionResult.segments.map(segment => 
                     segment.speaker === oldLabel 
                         ? { ...segment, speaker: newLabel }
                         : segment
                 ),
-                rttm_lines: transcriptionResult.rttm_lines.map((line: string) => 
+                rttm_lines: transcriptionResult.rttm_lines.map(line => 
                     line.includes(` ${oldLabel} `)
                         ? line.replace(` ${oldLabel} `, ` ${newLabel} `)
                         : line
                 ),
-                rttm_merged: transcriptionResult.rttm_merged.map((line: string) => 
+                rttm_merged: transcriptionResult.rttm_merged.map(line => 
                     line.includes(` ${oldLabel} `)
                         ? line.replace(` ${oldLabel} `, ` ${newLabel} `)
                         : line
@@ -599,26 +616,19 @@ export default function AudioWaveform({
                     new RegExp(`\\b${oldLabel}\\b`, "g"),
                     newLabel
                 ),
-                speaker_colors: {
-                    ...(transcriptionResult.speaker_colors || {}),
-                    [newLabel]: transcriptionResult.speaker_colors?.[oldLabel]
-                },
-                speakerLegend: {
-                    ...(transcriptionResult.speakerLegend || {}),
-                    [newLabel]: {
-                        originalLabel: transcriptionResult.speakerLegend?.[oldLabel]?.originalLabel || oldLabel,
-                        currentLabel: newLabel
-                    }
-                }
+                speaker_colors: newSpeakerColors,
+                speakerLegend: newSpeakerLegend
             };
 
-            // Remove old speaker color and legend entries
-            delete updatedResult.speaker_colors[oldLabel];
-            delete updatedResult.speakerLegend[oldLabel];
-
+            // Update both the transcription result and local speaker colors
             setTranscriptionResult(updatedResult);
+            
+            // Force chart update
+            if (chartRef.current) {
+                chartRef.current.update();
+            }
         },
-        [transcriptionResult, setTranscriptionResult]
+        [transcriptionResult, speakerColors, setTranscriptionResult]
     );
 
     // Add this useEffect to update the chart when predictionRTTMData or speakerColors change
