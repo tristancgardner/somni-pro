@@ -21,6 +21,7 @@ export default function TranscribePage() {
     }, []);
 
     const handleTranscriptionResult = (result: TranscriptionResult) => {
+        console.log("Parent received updated transcription result:", result);
         setTranscriptionResult(result);
     };
 
@@ -44,7 +45,7 @@ export default function TranscribePage() {
                         <Summarize
                             transcript={transcriptionResult?.transcript || ""}
                             existingSummary={transcriptionResult?.summary}
-                            fileName={transcriptionResult?.og_file_name}
+                            fileName={transcriptionResult?.file_name}
                             onSummaryGenerated={(summary) => {
                                 if (transcriptionResult) {
                                     setTranscriptionResult({
