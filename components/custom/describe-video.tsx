@@ -13,7 +13,8 @@ import ReactMarkdown from "react-markdown";
 import { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { Upload } from "lucide-react";
-import Image from 'next/image';
+import { Video } from "lucide-react";
+import Image from "next/image";
 
 interface MarkdownProps {
     node?: any;
@@ -23,35 +24,36 @@ interface MarkdownProps {
     [key: string]: any;
 }
 
-export default function DescribeImage() {
+export default function DescribeVideo() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string>('');
+    const [previewUrl, setPreviewUrl] = useState<string>("");
     const [description, setDescription] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
     const [scanPosition, setScanPosition] = useState({ x: 0, y: 0 });
     const animationRef = useRef<number>();
+    const [videoUrl, setVideoUrl] = useState<string>("");
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
             setSelectedFile(file);
             setError("");
-            
-            // Create preview URL for the image
+
+            // Create preview URL for the video
             const url = URL.createObjectURL(file);
-            setPreviewUrl(url);
+            setVideoUrl(url);
         }
     };
 
     // Clean up object URL on component unmount
     useEffect(() => {
         return () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
+            if (videoUrl) {
+                URL.revokeObjectURL(videoUrl);
             }
         };
-    }, [previewUrl]);
+    }, [videoUrl]);
 
     const handleSubmit = async () => {
         if (!selectedFile) {
@@ -90,22 +92,22 @@ export default function DescribeImage() {
         const containerHeight = 300;
         const numRows = Math.floor(containerHeight / boxHeight);
 
-        setScanPosition(prev => {
+        setScanPosition((prev) => {
             // Move right by 10px each frame
             let newX = prev.x + 10;
             let newY = prev.y;
-            
+
             // When reaching the right edge, move to next row
             if (newX >= containerWidth) {
                 newX = 0;
                 newY = prev.y + boxHeight;
-                
+
                 // If we've scanned all rows, reset to top
                 if (newY >= containerHeight - boxHeight) {
                     newY = 0;
                 }
             }
-            
+
             return { x: newX, y: newY };
         });
 
@@ -126,37 +128,37 @@ export default function DescribeImage() {
     return (
         <Card className='card mb-4'>
             <CardHeader>
-                <CardTitle>Describe Image</CardTitle>
+                <CardTitle>Describe Video</CardTitle>
                 <CardDescription>
-                    Upload an image to get a detailed description of the scene
+                    Upload a video to get a detailed description of the scene
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className='grid grid-cols-3 gap-4'>
-                    {/* Image upload section - takes up 2/3 of space */}
+                    {/* Video upload section - takes up 2/3 of space */}
                     <div className='col-span-2'>
-                        {!previewUrl ? (
+                        {!videoUrl ? (
                             <div className='flex items-center justify-center w-full'>
                                 <label
-                                    htmlFor='image-upload'
+                                    htmlFor='video-upload'
                                     className='flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-900 border-gray-600 hover:border-gray-500 hover:bg-gray-800 transition-all duration-200'
                                 >
                                     <div className='flex flex-col items-center justify-center pt-5 pb-6'>
-                                        <Upload className='w-8 h-8 mb-4 text-gray-400' />
+                                        <Video className='w-8 h-8 mb-4 text-gray-400' />
                                         <p className='mb-2 text-sm text-gray-400'>
                                             <span className='font-semibold'>
                                                 Click to upload
-                                            </span>{' '}
-                                            or drag and drop
+                                            </span>{" "}
+                                            or drag and drop a video file
                                         </p>
                                         <p className='text-xs text-gray-400'>
-                                            PNG, JPG, or WEBP (MAX. 10MB)
+                                            (Max Upload Size: 1GB)
                                         </p>
                                     </div>
                                     <Input
-                                        id='image-upload'
+                                        id='video-upload'
                                         type='file'
-                                        accept='image/*'
+                                        accept='video/*'
                                         onChange={handleFileChange}
                                         disabled={isLoading}
                                         className='hidden'
@@ -166,40 +168,39 @@ export default function DescribeImage() {
                         ) : (
                             <div className='relative w-full flex justify-center'>
                                 <div className='relative w-[300px] h-[300px] rounded-lg overflow-hidden bg-gray-900'>
-                                    <Image
-                                        src={previewUrl}
-                                        alt="Preview"
-                                        fill
-                                        style={{ objectFit: 'contain' }}
-                                        className='rounded-lg'
+                                    <video
+                                        src={videoUrl}
+                                        controls
+                                        className='w-full h-full object-contain rounded-lg'
                                     />
                                     {isLoading && (
                                         <>
-                                            <div 
+                                            <div
                                                 className='absolute w-16 h-16 border-2 border-yellow-400/50 bg-yellow-400/20 rounded-lg transition-transform duration-75'
                                                 style={{
                                                     left: `${scanPosition.x}px`,
                                                     top: `${scanPosition.y}px`,
-                                                    transform: 'translate(-50%, 0)',
-                                                    pointerEvents: 'none',
+                                                    transform:
+                                                        "translate(-50%, 0)",
+                                                    pointerEvents: "none",
                                                 }}
                                             >
                                                 <div className='absolute inset-0 bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent animate-pulse'></div>
                                             </div>
                                         </>
                                     )}
-                                    
+
                                     <div className='absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg'>
                                         <label
-                                            htmlFor='image-upload'
+                                            htmlFor='video-upload'
                                             className='px-4 py-2 bg-gray-800 rounded-md cursor-pointer hover:bg-gray-700 transition-colors'
                                         >
-                                            Change Image
+                                            Change Video
                                         </label>
                                         <Input
-                                            id='image-upload'
+                                            id='video-upload'
                                             type='file'
-                                            accept='image/*'
+                                            accept='video/*'
                                             onChange={handleFileChange}
                                             disabled={isLoading}
                                             className='hidden'
@@ -241,7 +242,10 @@ export default function DescribeImage() {
                         <ReactMarkdown
                             components={{
                                 p: ({ node, ...props }: MarkdownProps) => (
-                                    <p className='mb-4 text-gray-200' {...props} />
+                                    <p
+                                        className='mb-4 text-gray-200'
+                                        {...props}
+                                    />
                                 ),
                             }}
                         >

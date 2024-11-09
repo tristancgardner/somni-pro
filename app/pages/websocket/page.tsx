@@ -4,6 +4,7 @@ import PromptLlama from "@/components/custom/prompt-llama";
 import DescribeImage from "@/components/custom/describe-image";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
+import DescribeVideo from "@/components/custom/describe-video";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
 import {
     Card,
@@ -90,12 +91,15 @@ export default function WebSocketPage() {
             <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
-                    <div className='p-4'>
+                    {/* <div className='p-4'>
                         <PromptLlama />
-                    </div>
+                    </div> */}
                     <div className='p-4'>
-                        <DescribeImage />
+                        <DescribeVideo />
                     </div>
+                    {/* <div className='p-4'>
+                        <DescribeImage />
+                    </div> */}
                 </div>
             </main>
         </BackgroundWrapper>
