@@ -33,10 +33,19 @@ export default function DescribeVideo() {
     const [scanPosition, setScanPosition] = useState({ x: 0, y: 0 });
     const animationRef = useRef<number>();
     const [videoUrl, setVideoUrl] = useState<string>("");
+    const [frameUrls, setFrameUrls] = useState<string[]>([]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
+
+            // Check file size (1GB = 1024 * 1024 * 1024 bytes)
+            const maxSize = 1024 * 1024 * 1024; // 1GB in bytes
+            if (file.size > maxSize) {
+                setError("File size exceeds 1GB limit");
+                return;
+            }
+
             setSelectedFile(file);
             setError("");
 
@@ -55,30 +64,84 @@ export default function DescribeVideo() {
         };
     }, [videoUrl]);
 
+    const extractFrames = async (video: HTMLVideoElement): Promise<string[]> => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        const frames: string[] = [];
+
+        // Set canvas size to match video dimensions
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Calculate time intervals for 10 frames with padding
+        const duration = video.duration;
+        const padding = 2; // 2 seconds padding at start and end
+        
+        // Check if video is long enough for padding
+        if (duration <= 4) {
+            // If video is too short, just divide it evenly without padding
+            const interval = duration / 9;
+            for (let i = 0; i < 10; i++) {
+                video.currentTime = i * interval;
+                await new Promise((resolve) => {
+                    video.onseeked = resolve;
+                });
+                context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+                frames.push(canvas.toDataURL("image/jpeg"));
+            }
+        } else {
+            // Calculate intervals with padding
+            const usableDuration = duration - (padding * 2);
+            const interval = usableDuration / 9; // 9 intervals for 10 frames
+
+            // Extract frames at calculated intervals
+            for (let i = 0; i < 10; i++) {
+                // Start at padding, end before padding
+                const currentTime = padding + (i * interval);
+                video.currentTime = currentTime;
+                
+                await new Promise((resolve) => {
+                    video.onseeked = resolve;
+                });
+
+                context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+                frames.push(canvas.toDataURL("image/jpeg"));
+            }
+        }
+
+        return frames;
+    };
+
     const handleSubmit = async () => {
         if (!selectedFile) {
-            setError("Please select an image first");
+            setError("Please select a video first");
             return;
         }
 
         try {
             setIsLoading(true);
             setError("");
+            setFrameUrls([]); // Clear previous frames
 
-            // Convert image to base64
-            const base64Image = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64String = reader.result as string;
-                    // Remove the data URI prefix
-                    resolve(base64String.split(",")[1]);
-                };
-                reader.readAsDataURL(selectedFile);
+            // Create a video element to extract frames
+            const video = document.createElement("video");
+            video.src = videoUrl;
+
+            // Wait for video metadata to load
+            await new Promise((resolve) => {
+                video.onloadedmetadata = resolve;
             });
 
-            // Get description from API
-            const result = await describeImage(base64Image);
-            setDescription(result as string);
+            // Extract frames
+            const frames = await extractFrames(video);
+            setFrameUrls(frames);
+
+            // Convert first frame to base64 for API call
+            const base64Image = frames[0].split(",")[1];
+
+            /// Send to API
+            // const result = await describeImage(base64Image);
+            // setDescription(result as string);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
@@ -251,6 +314,31 @@ export default function DescribeVideo() {
                         >
                             {description}
                         </ReactMarkdown>
+                    </div>
+                )}
+
+                {frameUrls.length > 0 && (
+                    <div className='mt-4'>
+                        <h3 className='text-lg font-semibold mb-2'>
+                            Extracted Frames
+                        </h3>
+                        <div className='overflow-x-auto'>
+                            <div className='flex gap-2 pb-2'>
+                                {frameUrls.map((frame, index) => (
+                                    <div
+                                        key={index}
+                                        className='flex-shrink-0 w-[150px] h-[150px] relative rounded-lg overflow-hidden border border-gray-700'
+                                    >
+                                        <Image
+                                            src={frame}
+                                            alt={`Frame ${index + 1}`}
+                                            fill
+                                            className='object-cover'
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 )}
             </CardContent>
