@@ -64,7 +64,9 @@ export default function DescribeVideo() {
         };
     }, [videoUrl]);
 
-    const extractFrames = async (video: HTMLVideoElement): Promise<string[]> => {
+    const extractFrames = async (
+        video: HTMLVideoElement
+    ): Promise<string[]> => {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         const frames: string[] = [];
@@ -76,7 +78,7 @@ export default function DescribeVideo() {
         // Calculate time intervals for 10 frames with padding
         const duration = video.duration;
         const padding = 2; // 2 seconds padding at start and end
-        
+
         // Check if video is long enough for padding
         if (duration <= 4) {
             // If video is too short, just divide it evenly without padding
@@ -91,15 +93,15 @@ export default function DescribeVideo() {
             }
         } else {
             // Calculate intervals with padding
-            const usableDuration = duration - (padding * 2);
+            const usableDuration = duration - padding * 2;
             const interval = usableDuration / 9; // 9 intervals for 10 frames
 
             // Extract frames at calculated intervals
             for (let i = 0; i < 10; i++) {
                 // Start at padding, end before padding
-                const currentTime = padding + (i * interval);
+                const currentTime = padding + i * interval;
                 video.currentTime = currentTime;
-                
+
                 await new Promise((resolve) => {
                     video.onseeked = resolve;
                 });
