@@ -37,6 +37,20 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
+                        pathname === "/pages/transcribe_v2"
+                            ? "text-[#45b7aa]"
+                            : "text-white"
+                    }
+                >
+                    <Link
+                        href='/pages/transcribe_v2'
+                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
+                    >
+                        transcribe_v2
+                    </Link>
+                </li>
+                <li
+                    className={
                         pathname === "/pages/features"
                             ? "text-[#45b7aa]"
                             : "text-white"
@@ -51,18 +65,19 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/pages/websocket"
+                        pathname === "/pages/generate"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/pages/websocket'
+                        href='/pages/generate'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         generate
                     </Link>
                 </li>
+
                 {/* <li
                     className={
                         pathname === "/pages/forge"
