@@ -1,10 +1,10 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import PromptLlama from "@/components/custom/prompt-llama";
-import DescribeImage from "@/components/custom/describe-image";
+import PromptLlama from "@/components/inference/prompt-llama";
+import DescribeImage from "@/components/inference/describe-image";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
-import DescribeVideo from "@/components/custom/describe-video";
+import DescribeVideo from "@/components/inference/describe-video";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
 import {
     Card,

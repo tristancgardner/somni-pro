@@ -48,12 +48,11 @@ import { Check } from "lucide-react"; // Add this import
 import { motion } from "framer-motion";
 
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
-import { SegmentsBySpeaker } from "@/components/custom/segbyspeaker";
-import { SegmentTimeline } from "./segbytime";
-import { DraggableSegmentTimeline } from "./dragndrop";
+import { SegmentsBySpeaker } from "@/components/transcribe_viewer/SegBySpeaker";
+import { SegmentTimeline } from "@/components/transcribe_viewer/SegTimeline";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import Summarize from "./summarize";
+import Summarize from "../asr_analysis/Summarize";
 
 ChartJS.register(...registerables);
 
@@ -1563,15 +1562,25 @@ export default function AudioWaveform({
                                             <RTTMLegend
                                                 data={rttmData}
                                                 title='Speaker Labels'
-                                                colors={transcriptionResult.speaker_colors || {}}
+                                                colors={
+                                                    transcriptionResult.speaker_colors ||
+                                                    {}
+                                                }
                                                 editable={true}
                                                 onResetColors={resetColors}
-                                                onUpdateSpeakerLabel={updateSpeakerLabel}
-                                                speakerLegend={transcriptionResult.speakerLegend || {}}
+                                                onUpdateSpeakerLabel={
+                                                    updateSpeakerLabel
+                                                }
+                                                speakerLegend={
+                                                    transcriptionResult.speakerLegend ||
+                                                    {}
+                                                }
                                             />
                                             <div className='mt-3 flex justify-between w-full'>
                                                 <Button
-                                                    onClick={copyTranscriptToClipboard}
+                                                    onClick={
+                                                        copyTranscriptToClipboard
+                                                    }
                                                     variant='outline'
                                                     size='sm'
                                                 >
@@ -1593,7 +1602,9 @@ export default function AudioWaveform({
                                                         Download JSON
                                                     </Button>
                                                     <Button
-                                                        onClick={downloadTranscript}
+                                                        onClick={
+                                                            downloadTranscript
+                                                        }
                                                         variant='outline'
                                                         size='sm'
                                                     >
