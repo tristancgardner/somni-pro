@@ -78,12 +78,13 @@ export default function Summarize({
 
     const copyTranscriptToClipboard = useCallback(() => {
         if (transcript) {
-            navigator.clipboard.writeText(transcript)
+            navigator.clipboard
+                .writeText(transcript)
                 .then(() => {
-                    console.log('Transcript copied to clipboard');
+                    console.log("Transcript copied to clipboard");
                 })
-                .catch(err => {
-                    console.error('Failed to copy transcript:', err);
+                .catch((err) => {
+                    console.error("Failed to copy transcript:", err);
                 });
         }
     }, [transcript]);
