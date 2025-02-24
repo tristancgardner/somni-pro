@@ -1,0 +1,35 @@
+{
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/B1/_audio_asr": {
+    "_audio_asr": {
+      "summary": "In the midst of a cluttered house, Grayson and Mike embark on a mission to salvage valuable items, from stained glass to a prized moose sign, while engaging in lighthearted banter about college experiences and plans for future adventures.",
+      "themes": [
+        "Treasure Hunting",
+        "Friendship",
+        "Nostalgia"
+      ],
+      "key_speakers": {
+        "SPEAKER_00": "Grayson",
+        "SPEAKER_01": "Mike"
+      }
+    }
+  },
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/A1/_audio_asr": {
+    "_audio_asr": {
+      "summary": "The show follows a group of characters as they navigate a series of quirky and unexpected events involving moving a heavy item, dealing with playful animals, and discovering valuable antiques. As they face challenges with teamwork and communication, they uncover hidden treasures and plan for future endeavors.",
+      "themes": [
+        "Teamwork and Communication",
+        "Discovery and Exploration",
+        "Unexpected Challenges"
+      ],
+      "key_speakers": {
+        "SPEAKER_01": "Trevor",
+        "SPEAKER_00": "Mike",
+        "SPEAKER_04": "Robert",
+        "SPEAKER_02": "Ted",
+        "SPEAKER_03": "Grayson",
+        "SPEAKER_05": "Michael",
+        "UNKNOWN": "Unknown"
+      }
+    }
+  }
+}

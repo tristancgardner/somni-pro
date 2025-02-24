@@ -59,28 +59,24 @@ export default function Login() {
     };
 
     return (
-        <div className='flex items-center justify-center'>
-            <Card className='card'>
-                <CardHeader className='space-y-1'>
-                    <CardTitle className='text-3xl font-bold tracking-tight'>
-                        Welcome to Somni Pro
-                    </CardTitle>
+        <div className='w-full max-w-md mx-auto'>
+            <Card>
+                <CardHeader>
+                    <CardTitle className='text-white'>Sign In</CardTitle>
                     <CardDescription>
-                        Sign in to access advanced speaker diarization
+                        Sign in to access your account
                     </CardDescription>
                 </CardHeader>
-                <CardContent className='space-y-4'>
+                <CardContent>
                     <form onSubmit={handleSubmit} className='space-y-4'>
                         <div className='space-y-2'>
                             <Label htmlFor='email'>Email</Label>
                             <Input
                                 id='email'
                                 type='email'
-                                placeholder='m@example.com'
+                                placeholder='Enter your email'
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className='w-full'
                             />
                         </div>
                         <div className='space-y-2'>
@@ -88,11 +84,9 @@ export default function Login() {
                             <Input
                                 id='password'
                                 type='password'
-                                placeholder='••••••••'
+                                placeholder='Enter your password'
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className='w-full'
                             />
                         </div>
                         <Button
@@ -103,7 +97,8 @@ export default function Login() {
                             {isLoading ? "Signing in..." : "Sign In"}
                         </Button>
                     </form>
-                    <div className='relative'>
+
+                    <div className='relative my-4'>
                         <div className='absolute inset-0 flex items-center'>
                             <span className='w-full border-t' />
                         </div>
@@ -113,12 +108,12 @@ export default function Login() {
                             </span>
                         </div>
                     </div>
+
                     <div className='grid grid-cols-2 gap-4'>
                         <Button
                             variant='outline'
                             onClick={() => handleSocialLogin("google")}
                             disabled={isLoading}
-                            className='w-full'
                         >
                             <FaGoogle className='mr-2 h-4 w-4' />
                             Google
@@ -127,7 +122,6 @@ export default function Login() {
                             variant='outline'
                             onClick={() => handleSocialLogin("github")}
                             disabled={isLoading}
-                            className='w-full'
                         >
                             <FaGithub className='mr-2 h-4 w-4' />
                             GitHub

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Transcribe",
-    description: "Somni Pro brings you advanced speaker diarization...",
+    title: "Eight Roll Summaries",
+    description: "View and analyze transcription data across files, folders, and drives",
     icons: {
         icon: "/branding/Icon_White.svg",
     },
 };
 
-export default function TranscribeLayout({
+export default function EightRollSummariesLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -18,4 +18,4 @@ export default function TranscribeLayout({
             {children}
         </div>
     );
-}
+} 

@@ -23,13 +23,13 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/pages/transcribe"
+                        pathname === "/transcribe"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/pages/transcribe'
+                        href='/transcribe'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         transcribe
@@ -37,13 +37,13 @@ const Navigation = () => {
                 </li>
                 {/* <li
                     className={
-                        pathname === "/pages/websocket"
+                        pathname === "/websocket"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/pages/websocket'
+                        href='/websocket'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         websocket
@@ -51,44 +51,32 @@ const Navigation = () => {
                 </li> */}
                 <li
                     className={
-                        pathname === "/pages/features"
+                        pathname === "/features"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/pages/features'
+                        href='/features'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         features
                     </Link>
                 </li>
-                {/* <li
+                <li
                     className={
-                        pathname === "/pages/forge"
+                        pathname === "/transcribe-2"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/pages/forge'
+                        href='/transcribe-2'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
-                        forge
+                        batch upload
                     </Link>
                 </li>
-                <li
-                    className={
-                        pathname === "/pulse" ? "text-[#45b7aa]" : "text-white"
-                    }
-                >
-                    <Link
-                        href='/pulse'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        helix
-                    </Link>
-                </li> */}
             </ul>
         </nav>
     );

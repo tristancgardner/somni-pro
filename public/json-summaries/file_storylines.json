@@ -1,0 +1,122 @@
+{
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/B1/_audio_asr": {
+    "B089C312_190402HU_SDBB2": {
+      "B089C312_190402HU_SDBB2": {
+        "summary": "In the midst of a bustling store, the unseen SPEAKER_00 navigates a chaotic day, trying to manage tasks and make sense of the disorder around them. They first task someone named Grayson with retrieving carts, hinting at the busy environment. Their cryptic remarks about a 'Target line' and 'Quality' suggest a focus on organization and standards in their work, though possibly with an air of uncertainty. As they continue, their attention shifts to unexpected nuisances – notably a group of unruly cats – adding a touch of humor and frustration to their day.",
+        "themes": [
+          "chaos",
+          "workplace challenges",
+          "humor"
+        ],
+        "key_speakers": {
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C313_190402TS_SDBB2": {
+      "B089C313_190402TS_SDBB2": {
+        "summary": "No valuable story content.",
+        "themes": [],
+        "key_speakers": {}
+      }
+    },
+    "B089C314_190402A6_SDBB2": {
+      "B089C314_190402A6_SDBB2": {
+        "summary": "In this reality TV episode, the two main characters, Mike and his partner, embark on a scavenging adventure inside a house brimming with historical charm. They focused on extracting valuable items like a stained glass door and vintage trim work, while also appreciating the architectural beauty of the house. Their task became more than just work as they exchanged light-hearted banter and reflected on their college experiences. With plans to return for more treasures, particularly for the exterior features like the moose sign and the roof, they wrap up their day, satisfied with their accomplishments.",
+        "themes": [
+          "Exploration and Discovery",
+          "Nostalgia for the Past",
+          "Teamwork and Friendship"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Mike's Partner",
+          "SPEAKER_00": "Mike"
+        }
+      }
+    }
+  },
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/A1/_audio_asr": {
+    "A105C209_190402NE_SDAA0": {
+      "A105C209_190402NE_SDAA0": {
+        "summary": "In this chaotic yet humorous adventure, a group of friends, including SPEAKER_01 and SPEAKER_00, embark on a mission to relocate a pool table. Amidst the unexpected discovery of a hiding cat, they navigate challenges and mishaps, including missteps and miscommunications, as they attempt to maneuver the table onto a moving vehicle. As tensions rise, they work together to ensure everything is loaded securely, ultimately achieving their goal. The dynamic between the speakers adds a layer of camaraderie and comedy to the operation.",
+        "themes": [
+          "Teamwork",
+          "Humor",
+          "Problem-solving"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C312_190402HU_SDBB2": {
+      "B089C312_190402HU_SDBB2": {
+        "summary": "In a bustling retail environment, SPEAKER_00, presumably a store employee, navigates the challenges of a busy day. Tasked with managing carts, they address Grayson, another unseen character, amid a chaotic atmosphere. Despite the mundane tasks, SPEAKER_00 grapples humorously with the presence of cats, dubbing them 'nasty little bastards' in a moment of candid frustration.",
+        "themes": [
+          "workplace dynamics",
+          "humor",
+          "chaos"
+        ],
+        "key_speakers": {
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "A105C210_190402Y0_SDAA0": {
+      "A105C210_190402Y0_SDAA0": {
+        "summary": "In an energetic setting, a group of speakers, including Trevor, Grayson, and others, appear to be engaged in a chaotic and dynamic activity involving heavy equipment, as they work through various issues like cracked rails and misaligned handholds. The group navigates through problems together, offering suggestions, and humorous remarks, while dealing with unexpected elements like stray cats. Amidst this, interpersonal tension surfaces, adding a hint of drama to the scenario.",
+        "themes": [
+          "Teamwork and Problem Solving",
+          "Chaos and Humor",
+          "Interpersonal Dynamics"
+        ],
+        "key_speakers": {
+          "SPEAKER_04": "Unknown",
+          "SPEAKER_02": "Unknown",
+          "SPEAKER_03": "Unknown",
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_05": "Unknown",
+          "UNKNOWN": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C313_190402TS_SDBB2": {
+      "B089C313_190402TS_SDBB2": {
+        "summary": "No valuable story content.",
+        "themes": [],
+        "key_speakers": {}
+      }
+    },
+    "A105C208_190402GC_SDAA0": {
+      "A105C208_190402GC_SDAA0": {
+        "summary": "In a competitive yet light-hearted exchange, SPEAKER_02 celebrates a recent victory with enthusiasm, recounting the tense moments of the match and the final, decisive shot. The conversation hints at a playful rivalry with Mike and a personal strategy for future wins. SPEAKER_00 and SPEAKER_01 chime in with humor and congrats, acknowledging the win and setting the stage for future teasing reminders.",
+        "themes": [
+          "competitive spirit",
+          "humor and camaraderie",
+          "victory and persistence"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_02": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C314_190402A6_SDBB2": {
+      "B089C314_190402A6_SDBB2": {
+        "summary": "In a lively exchange, two speakers, SPEAKER_01 and SPEAKER_00, embark on an adventurous day involving the extraction of valuable architectural elements from a site. They celebrate their successful efforts with playful banter, discussing their haul, which includes stained glass and a moose sign. Their dialogue is lighthearted and filled with camaraderie as they make plans to return for more treasures despite some humorous misunderstandings about college experiences.",
+        "themes": [
+          "Adventure and Discovery",
+          "Teamwork and Camaraderie",
+          "Humor and Misunderstandings"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    }
+  }
+}

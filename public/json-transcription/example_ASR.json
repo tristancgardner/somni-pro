@@ -1,0 +1,3246 @@
+{
+  "file": "A105C205_1904020Y_SDAA0",
+  "transcript": [
+    {
+      "segment_id": 0,
+      "speaker": "SPEAKER_00",
+      "text": "Robert, congratulations. Congratulations. Yeah, man, I'm proud of you. We need to take them home. Let's make this the executive board table. Okay. Losers lose. Oh, man. That hurts. All right, everybody, let's get the balls.",
+      "start": 0.031,
+      "end": 13.992,
+      "words": [
+        {
+          "word": "Robert,",
+          "start": 0.031,
+          "end": 0.271
+        },
+        {
+          "word": "congratulations.",
+          "start": 0.291,
+          "end": 1.473
+        },
+        {
+          "word": "Congratulations.",
+          "start": 1.513,
+          "end": 2.835
+        },
+        {
+          "word": "Yeah,",
+          "start": 2.855,
+          "end": 2.995
+        },
+        {
+          "word": "man,",
+          "start": 3.015,
+          "end": 3.496
+        },
+        {
+          "word": "I'm",
+          "start": 3.516,
+          "end": 3.576
+        },
+        {
+          "word": "proud",
+          "start": 3.777,
+          "end": 3.937
+        },
+        {
+          "word": "of",
+          "start": 4.017,
+          "end": 4.077
+        },
+        {
+          "word": "you.",
+          "start": 4.117,
+          "end": 4.337
+        },
+        {
+          "word": "We",
+          "start": 4.358,
+          "end": 4.398
+        },
+        {
+          "word": "need",
+          "start": 4.418,
+          "end": 4.498
+        },
+        {
+          "word": "to",
+          "start": 4.518,
+          "end": 4.598
+        },
+        {
+          "word": "take",
+          "start": 4.638,
+          "end": 4.778
+        },
+        {
+          "word": "them",
+          "start": 4.818,
+          "end": 4.898
+        },
+        {
+          "word": "home.",
+          "start": 4.918,
+          "end": 5.219
+        },
+        {
+          "word": "Let's",
+          "start": 5.239,
+          "end": 5.359
+        },
+        {
+          "word": "make",
+          "start": 5.419,
+          "end": 5.559
+        },
+        {
+          "word": "this",
+          "start": 5.599,
+          "end": 5.72
+        },
+        {
+          "word": "the",
+          "start": 5.76,
+          "end": 5.86
+        },
+        {
+          "word": "executive",
+          "start": 5.9,
+          "end": 6.381
+        },
+        {
+          "word": "board",
+          "start": 6.421,
+          "end": 6.621
+        },
+        {
+          "word": "table.",
+          "start": 6.681,
+          "end": 6.981
+        },
+        {
+          "word": "Okay.",
+          "start": 7.102,
+          "end": 7.743
+        },
+        {
+          "word": "Losers",
+          "start": 7.923,
+          "end": 8.283
+        },
+        {
+          "word": "lose.",
+          "start": 8.344,
+          "end": 8.644
+        },
+        {
+          "word": "Oh,",
+          "start": 8.744,
+          "end": 8.984
+        },
+        {
+          "word": "man.",
+          "start": 9.465,
+          "end": 9.545
+        },
+        {
+          "word": "That",
+          "start": 9.565,
+          "end": 9.886
+        },
+        {
+          "word": "hurts.",
+          "start": 10.226,
+          "end": 10.407
+        },
+        {
+          "word": "All",
+          "start": 10.427,
+          "end": 10.567
+        },
+        {
+          "word": "right,",
+          "start": 11.268,
+          "end": 12.029
+        },
+        {
+          "word": "everybody,",
+          "start": 12.109,
+          "end": 12.49
+        },
+        {
+          "word": "let's",
+          "start": 12.63,
+          "end": 12.85
+        },
+        {
+          "word": "get",
+          "start": 12.87,
+          "end": 12.93
+        },
+        {
+          "word": "the",
+          "start": 12.97,
+          "end": 13.071
+        },
+        {
+          "word": "balls.",
+          "start": 13.311,
+          "end": 13.992
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 1,
+      "speaker": "SPEAKER_01",
+      "text": "Can we get a better pool table for an executive pool table?",
+      "start": 14.413,
+      "end": 17.437,
+      "words": [
+        {
+          "word": "Can",
+          "start": 14.413,
+          "end": 14.473
+        },
+        {
+          "word": "we",
+          "start": 14.553,
+          "end": 14.613
+        },
+        {
+          "word": "get",
+          "start": 14.673,
+          "end": 14.793
+        },
+        {
+          "word": "a",
+          "start": 14.853,
+          "end": 14.873
+        },
+        {
+          "word": "better",
+          "start": 14.953,
+          "end": 15.194
+        },
+        {
+          "word": "pool",
+          "start": 15.274,
+          "end": 15.514
+        },
+        {
+          "word": "table",
+          "start": 15.554,
+          "end": 15.855
+        },
+        {
+          "word": "for",
+          "start": 15.895,
+          "end": 16.015
+        },
+        {
+          "word": "an",
+          "start": 16.055,
+          "end": 16.095
+        },
+        {
+          "word": "executive",
+          "start": 16.155,
+          "end": 16.736
+        },
+        {
+          "word": "pool",
+          "start": 16.776,
+          "end": 17.097
+        },
+        {
+          "word": "table?",
+          "start": 17.117,
+          "end": 17.437
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 2,
+      "speaker": "SPEAKER_02",
+      "text": "No, I love it. This is the legislative pool table. Not in our executive.",
+      "start": 17.517,
+      "end": 22.905,
+      "words": [
+        {
+          "word": "No,",
+          "start": 17.517,
+          "end": 18.278
+        },
+        {
+          "word": "I",
+          "start": 18.419,
+          "end": 18.479
+        },
+        {
+          "word": "love",
+          "start": 18.659,
+          "end": 19.5
+        },
+        {
+          "word": "it.",
+          "start": 19.641,
+          "end": 19.701
+        },
+        {
+          "word": "This",
+          "start": 19.721,
+          "end": 19.801
+        },
+        {
+          "word": "is",
+          "start": 19.821,
+          "end": 19.861
+        },
+        {
+          "word": "the",
+          "start": 19.881,
+          "end": 19.941
+        },
+        {
+          "word": "legislative",
+          "start": 19.961,
+          "end": 20.261
+        },
+        {
+          "word": "pool",
+          "start": 20.301,
+          "end": 20.502
+        },
+        {
+          "word": "table.",
+          "start": 20.522,
+          "end": 20.902
+        },
+        {
+          "word": "Not",
+          "start": 20.942,
+          "end": 21.083
+        },
+        {
+          "word": "in",
+          "start": 21.123,
+          "end": 21.183
+        },
+        {
+          "word": "our",
+          "start": 21.263,
+          "end": 21.363
+        },
+        {
+          "word": "executive.",
+          "start": 21.423,
+          "end": 22.905
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 3,
+      "speaker": "SPEAKER_00",
+      "text": "This is great. All right, where's the door cart? Let me de-ball this thing. The old door cart. De-ball. De-ball.",
+      "start": 22.925,
+      "end": 29.295,
+      "words": [
+        {
+          "word": "This",
+          "start": 22.925,
+          "end": 23.006
+        },
+        {
+          "word": "is",
+          "start": 23.026,
+          "end": 23.106
+        },
+        {
+          "word": "great.",
+          "start": 23.226,
+          "end": 23.546
+        },
+        {
+          "word": "All",
+          "start": 23.987,
+          "end": 24.047
+        },
+        {
+          "word": "right,",
+          "start": 24.067,
+          "end": 24.508
+        },
+        {
+          "word": "where's",
+          "start": 24.528,
+          "end": 24.668
+        },
+        {
+          "word": "the",
+          "start": 24.688,
+          "end": 24.748
+        },
+        {
+          "word": "door",
+          "start": 24.768,
+          "end": 24.848
+        },
+        {
+          "word": "cart?",
+          "start": 24.868,
+          "end": 24.969
+        },
+        {
+          "word": "Let",
+          "start": 25.129,
+          "end": 25.249
+        },
+        {
+          "word": "me",
+          "start": 25.269,
+          "end": 25.349
+        },
+        {
+          "word": "de-ball",
+          "start": 25.369,
+          "end": 25.85
+        },
+        {
+          "word": "this",
+          "start": 25.89,
+          "end": 25.97
+        },
+        {
+          "word": "thing.",
+          "start": 25.99,
+          "end": 26.11
+        },
+        {
+          "word": "The",
+          "start": 26.13,
+          "end": 26.27
+        },
+        {
+          "word": "old",
+          "start": 26.291,
+          "end": 26.371
+        },
+        {
+          "word": "door",
+          "start": 26.431,
+          "end": 26.671
+        },
+        {
+          "word": "cart.",
+          "start": 26.711,
+          "end": 27.052
+        },
+        {
+          "word": "De-ball.",
+          "start": 27.793,
+          "end": 28.434
+        },
+        {
+          "word": "De-ball.",
+          "start": 28.594,
+          "end": 29.295
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 4,
+      "speaker": "SPEAKER_02",
+      "text": "WHAT'S THE STRATEGY? MORE BEER. OKAY, SO RIGHT NOW WE'RE LOOKING AT AN EXIT STRATEGY FOR THIS. YOU WANT SOME WHEELS? WELL, IT NEEDS TO GO UP ON ITS SIDE. I THINK IT WILL STAY TOGETHER, THESE SMALL TABLES. WHAT WAS THE WEIGHT ON THESE, TREVOR? DIDN'T YOU PICK THEM UP?",
+      "start": 29.596,
+      "end": 50.017,
+      "words": [
+        {
+          "word": "WHAT'S",
+          "start": 29.596,
+          "end": 32.279
+        },
+        {
+          "word": "THE",
+          "start": 32.319,
+          "end": 32.419
+        },
+        {
+          "word": "STRATEGY?",
+          "start": 33.24,
+          "end": 33.72
+        },
+        {
+          "word": "MORE",
+          "start": 33.74,
+          "end": 33.82
+        },
+        {
+          "word": "BEER.",
+          "start": 33.86,
+          "end": 34.121
+        },
+        {
+          "word": "OKAY,",
+          "start": 34.221,
+          "end": 34.521
+        },
+        {
+          "word": "SO",
+          "start": 34.561,
+          "end": 34.641
+        },
+        {
+          "word": "RIGHT",
+          "start": 34.761,
+          "end": 35.002
+        },
+        {
+          "word": "NOW",
+          "start": 35.042,
+          "end": 35.262
+        },
+        {
+          "word": "WE'RE",
+          "start": 35.302,
+          "end": 35.502
+        },
+        {
+          "word": "LOOKING",
+          "start": 36.583,
+          "end": 36.824
+        },
+        {
+          "word": "AT",
+          "start": 36.844,
+          "end": 36.884
+        },
+        {
+          "word": "AN",
+          "start": 36.904,
+          "end": 36.944
+        },
+        {
+          "word": "EXIT",
+          "start": 36.984,
+          "end": 37.384
+        },
+        {
+          "word": "STRATEGY",
+          "start": 37.404,
+          "end": 37.724
+        },
+        {
+          "word": "FOR",
+          "start": 37.744,
+          "end": 37.805
+        },
+        {
+          "word": "THIS.",
+          "start": 37.845,
+          "end": 37.965
+        },
+        {
+          "word": "YOU",
+          "start": 38.005,
+          "end": 38.065
+        },
+        {
+          "word": "WANT",
+          "start": 38.085,
+          "end": 38.165
+        },
+        {
+          "word": "SOME",
+          "start": 38.185,
+          "end": 38.265
+        },
+        {
+          "word": "WHEELS?",
+          "start": 38.305,
+          "end": 38.605
+        },
+        {
+          "word": "WELL,",
+          "start": 39.526,
+          "end": 39.767
+        },
+        {
+          "word": "IT",
+          "start": 40.127,
+          "end": 40.287
+        },
+        {
+          "word": "NEEDS",
+          "start": 40.407,
+          "end": 40.627
+        },
+        {
+          "word": "TO",
+          "start": 40.647,
+          "end": 40.708
+        },
+        {
+          "word": "GO",
+          "start": 40.748,
+          "end": 40.868
+        },
+        {
+          "word": "UP",
+          "start": 40.948,
+          "end": 41.028
+        },
+        {
+          "word": "ON",
+          "start": 41.088,
+          "end": 41.148
+        },
+        {
+          "word": "ITS",
+          "start": 41.208,
+          "end": 41.308
+        },
+        {
+          "word": "SIDE.",
+          "start": 41.348,
+          "end": 41.689
+        },
+        {
+          "word": "I",
+          "start": 41.729,
+          "end": 41.749
+        },
+        {
+          "word": "THINK",
+          "start": 41.789,
+          "end": 41.909
+        },
+        {
+          "word": "IT",
+          "start": 41.969,
+          "end": 42.029
+        },
+        {
+          "word": "WILL",
+          "start": 42.049,
+          "end": 42.149
+        },
+        {
+          "word": "STAY",
+          "start": 42.189,
+          "end": 42.369
+        },
+        {
+          "word": "TOGETHER,",
+          "start": 42.409,
+          "end": 42.81
+        },
+        {
+          "word": "THESE",
+          "start": 43.05,
+          "end": 43.27
+        },
+        {
+          "word": "SMALL",
+          "start": 43.31,
+          "end": 43.671
+        },
+        {
+          "word": "TABLES.",
+          "start": 43.731,
+          "end": 45.933
+        },
+        {
+          "word": "WHAT",
+          "start": 45.953,
+          "end": 46.073
+        },
+        {
+          "word": "WAS",
+          "start": 46.093,
+          "end": 46.614
+        },
+        {
+          "word": "THE",
+          "start": 46.654,
+          "end": 46.754
+        },
+        {
+          "word": "WEIGHT",
+          "start": 46.854,
+          "end": 47.054
+        },
+        {
+          "word": "ON",
+          "start": 47.094,
+          "end": 47.134
+        },
+        {
+          "word": "THESE,",
+          "start": 47.174,
+          "end": 47.334
+        },
+        {
+          "word": "TREVOR?",
+          "start": 47.495,
+          "end": 47.815
+        },
+        {
+          "word": "DIDN'T",
+          "start": 48.616,
+          "end": 48.756
+        },
+        {
+          "word": "YOU",
+          "start": 48.776,
+          "end": 48.856
+        },
+        {
+          "word": "PICK",
+          "start": 48.896,
+          "end": 49.016
+        },
+        {
+          "word": "THEM",
+          "start": 49.036,
+          "end": 49.116
+        },
+        {
+          "word": "UP?",
+          "start": 49.176,
+          "end": 50.017
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 5,
+      "speaker": "SPEAKER_02",
+      "text": "BUT IT'S NOT TERRIBLE. LET'S GO WITH THE LIGHT ONE. I THINK WE PUT IT ON A DOOR CART. This way? On a door cart. Take the legs off of it if we need to, to get it through a door. There's no ramps.",
+      "start": 52.88,
+      "end": 71.287,
+      "words": [
+        {
+          "word": "BUT",
+          "start": 52.88,
+          "end": 52.98
+        },
+        {
+          "word": "IT'S",
+          "start": 53.02,
+          "end": 53.12
+        },
+        {
+          "word": "NOT",
+          "start": 53.14,
+          "end": 53.261
+        },
+        {
+          "word": "TERRIBLE.",
+          "start": 53.301,
+          "end": 53.741
+        },
+        {
+          "word": "LET'S",
+          "start": 54.242,
+          "end": 54.342
+        },
+        {
+          "word": "GO",
+          "start": 54.382,
+          "end": 54.462
+        },
+        {
+          "word": "WITH",
+          "start": 54.482,
+          "end": 54.562
+        },
+        {
+          "word": "THE",
+          "start": 54.582,
+          "end": 54.642
+        },
+        {
+          "word": "LIGHT",
+          "start": 54.702,
+          "end": 54.862
+        },
+        {
+          "word": "ONE.",
+          "start": 54.942,
+          "end": 55.062
+        },
+        {
+          "word": "I",
+          "start": 56.744,
+          "end": 56.784
+        },
+        {
+          "word": "THINK",
+          "start": 56.844,
+          "end": 56.964
+        },
+        {
+          "word": "WE",
+          "start": 57.004,
+          "end": 57.145
+        },
+        {
+          "word": "PUT",
+          "start": 57.185,
+          "end": 57.285
+        },
+        {
+          "word": "IT",
+          "start": 57.325,
+          "end": 57.385
+        },
+        {
+          "word": "ON",
+          "start": 57.465,
+          "end": 57.505
+        },
+        {
+          "word": "A",
+          "start": 57.565,
+          "end": 57.585
+        },
+        {
+          "word": "DOOR",
+          "start": 57.645,
+          "end": 57.865
+        },
+        {
+          "word": "CART.",
+          "start": 57.925,
+          "end": 58.506
+        },
+        {
+          "word": "This",
+          "start": 59.195,
+          "end": 59.415
+        },
+        {
+          "word": "way?",
+          "start": 59.475,
+          "end": 59.675
+        },
+        {
+          "word": "On",
+          "start": 60.817,
+          "end": 61.918
+        },
+        {
+          "word": "a",
+          "start": 61.978,
+          "end": 61.998
+        },
+        {
+          "word": "door",
+          "start": 62.038,
+          "end": 62.238
+        },
+        {
+          "word": "cart.",
+          "start": 62.298,
+          "end": 62.558
+        },
+        {
+          "word": "Take",
+          "start": 63.019,
+          "end": 63.159
+        },
+        {
+          "word": "the",
+          "start": 63.199,
+          "end": 63.299
+        },
+        {
+          "word": "legs",
+          "start": 63.86,
+          "end": 64.1
+        },
+        {
+          "word": "off",
+          "start": 64.22,
+          "end": 64.36
+        },
+        {
+          "word": "of",
+          "start": 64.48,
+          "end": 64.54
+        },
+        {
+          "word": "it",
+          "start": 64.6,
+          "end": 64.64
+        },
+        {
+          "word": "if",
+          "start": 64.66,
+          "end": 64.7
+        },
+        {
+          "word": "we",
+          "start": 64.76,
+          "end": 64.841
+        },
+        {
+          "word": "need",
+          "start": 64.881,
+          "end": 65.061
+        },
+        {
+          "word": "to,",
+          "start": 65.101,
+          "end": 65.301
+        },
+        {
+          "word": "to",
+          "start": 65.481,
+          "end": 65.541
+        },
+        {
+          "word": "get",
+          "start": 65.581,
+          "end": 65.661
+        },
+        {
+          "word": "it",
+          "start": 65.681,
+          "end": 65.741
+        },
+        {
+          "word": "through",
+          "start": 65.761,
+          "end": 65.902
+        },
+        {
+          "word": "a",
+          "start": 65.922,
+          "end": 65.962
+        },
+        {
+          "word": "door.",
+          "start": 66.002,
+          "end": 66.242
+        },
+        {
+          "word": "There's",
+          "start": 66.963,
+          "end": 67.123
+        },
+        {
+          "word": "no",
+          "start": 67.163,
+          "end": 67.443
+        },
+        {
+          "word": "ramps.",
+          "start": 68.124,
+          "end": 71.287
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 6,
+      "speaker": "SPEAKER_01",
+      "text": "This is reminding me of one of our jobs all of a sudden.",
+      "start": 71.567,
+      "end": 77.633,
+      "words": [
+        {
+          "word": "This",
+          "start": 71.567,
+          "end": 73.069
+        },
+        {
+          "word": "is",
+          "start": 73.129,
+          "end": 73.189
+        },
+        {
+          "word": "reminding",
+          "start": 73.349,
+          "end": 73.829
+        },
+        {
+          "word": "me",
+          "start": 73.889,
+          "end": 74.09
+        },
+        {
+          "word": "of",
+          "start": 74.971,
+          "end": 75.031
+        },
+        {
+          "word": "one",
+          "start": 75.131,
+          "end": 75.211
+        },
+        {
+          "word": "of",
+          "start": 75.251,
+          "end": 75.291
+        },
+        {
+          "word": "our",
+          "start": 75.411,
+          "end": 75.491
+        },
+        {
+          "word": "jobs",
+          "start": 75.551,
+          "end": 75.972
+        },
+        {
+          "word": "all",
+          "start": 76.072,
+          "end": 76.152
+        },
+        {
+          "word": "of",
+          "start": 76.212,
+          "end": 76.252
+        },
+        {
+          "word": "a",
+          "start": 76.272,
+          "end": 76.312
+        },
+        {
+          "word": "sudden.",
+          "start": 76.332,
+          "end": 77.633
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 7,
+      "speaker": "SPEAKER_00",
+      "text": "All right, let's go. We got a door cart?",
+      "start": 77.653,
+      "end": 81.637,
+      "words": [
+        {
+          "word": "All",
+          "start": 77.653,
+          "end": 77.813
+        },
+        {
+          "word": "right,",
+          "start": 79.515,
+          "end": 79.695
+        },
+        {
+          "word": "let's",
+          "start": 79.715,
+          "end": 79.835
+        },
+        {
+          "word": "go.",
+          "start": 79.855,
+          "end": 80.136
+        },
+        {
+          "word": "We",
+          "start": 80.916,
+          "end": 80.976
+        },
+        {
+          "word": "got",
+          "start": 81.016,
+          "end": 81.097
+        },
+        {
+          "word": "a",
+          "start": 81.137,
+          "end": 81.157
+        },
+        {
+          "word": "door",
+          "start": 81.197,
+          "end": 81.357
+        },
+        {
+          "word": "cart?",
+          "start": 81.397,
+          "end": 81.637
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 8,
+      "speaker": "SPEAKER_01",
+      "text": "I'm going back to my beer. Let's go to the other side.",
+      "start": 83.459,
+      "end": 89.826,
+      "words": [
+        {
+          "word": "I'm",
+          "start": 83.459,
+          "end": 84.18
+        },
+        {
+          "word": "going",
+          "start": 84.22,
+          "end": 84.4
+        },
+        {
+          "word": "back",
+          "start": 84.44,
+          "end": 84.6
+        },
+        {
+          "word": "to",
+          "start": 84.64,
+          "end": 84.74
+        },
+        {
+          "word": "my",
+          "start": 84.78,
+          "end": 84.88
+        },
+        {
+          "word": "beer.",
+          "start": 84.92,
+          "end": 85.641
+        },
+        {
+          "word": "Let's",
+          "start": 86.482,
+          "end": 87.904
+        },
+        {
+          "word": "go",
+          "start": 88.024,
+          "end": 88.144
+        },
+        {
+          "word": "to",
+          "start": 89.105,
+          "end": 89.265
+        },
+        {
+          "word": "the",
+          "start": 89.305,
+          "end": 89.365
+        },
+        {
+          "word": "other",
+          "start": 89.405,
+          "end": 89.566
+        },
+        {
+          "word": "side.",
+          "start": 89.586,
+          "end": 89.826
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 9,
+      "speaker": "SPEAKER_00",
+      "text": "Is that a blanket?",
+      "start": 89.926,
+      "end": 90.527,
+      "words": [
+        {
+          "word": "Is",
+          "start": 89.926,
+          "end": 89.966
+        },
+        {
+          "word": "that",
+          "start": 89.986,
+          "end": 90.066
+        },
+        {
+          "word": "a",
+          "start": 90.086,
+          "end": 90.106
+        },
+        {
+          "word": "blanket?",
+          "start": 90.126,
+          "end": 90.527
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 10,
+      "speaker": "SPEAKER_01",
+      "text": "The coins are going to fall out.",
+      "start": 92.829,
+      "end": 95.092,
+      "words": [
+        {
+          "word": "The",
+          "start": 92.829,
+          "end": 93.69
+        },
+        {
+          "word": "coins",
+          "start": 93.891,
+          "end": 94.171
+        },
+        {
+          "word": "are",
+          "start": 94.211,
+          "end": 94.291
+        },
+        {
+          "word": "going",
+          "start": 94.331,
+          "end": 94.431
+        },
+        {
+          "word": "to",
+          "start": 94.451,
+          "end": 94.511
+        },
+        {
+          "word": "fall",
+          "start": 94.571,
+          "end": 94.812
+        },
+        {
+          "word": "out.",
+          "start": 94.952,
+          "end": 95.092
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 11,
+      "speaker": "SPEAKER_00",
+      "text": "Don't let you pick them up.",
+      "start": 96.634,
+      "end": 101.119,
+      "words": [
+        {
+          "word": "Don't",
+          "start": 96.634,
+          "end": 96.954
+        },
+        {
+          "word": "let",
+          "start": 96.974,
+          "end": 97.094
+        },
+        {
+          "word": "you",
+          "start": 97.134,
+          "end": 97.194
+        },
+        {
+          "word": "pick",
+          "start": 97.235,
+          "end": 97.375
+        },
+        {
+          "word": "them",
+          "start": 98.616,
+          "end": 98.696
+        },
+        {
+          "word": "up.",
+          "start": 101.059,
+          "end": 101.119
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 12,
+      "speaker": "SPEAKER_02",
+      "text": "Where's the ball?",
+      "start": 101.139,
+      "end": 101.64,
+      "words": [
+        {
+          "word": "Where's",
+          "start": 101.139,
+          "end": 101.279
+        },
+        {
+          "word": "the",
+          "start": 101.299,
+          "end": 101.359
+        },
+        {
+          "word": "ball?",
+          "start": 101.379,
+          "end": 101.64
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 13,
+      "speaker": "SPEAKER_00",
+      "text": "Don't crush yourself, dude.",
+      "start": 103.141,
+      "end": 104.803,
+      "words": [
+        {
+          "word": "Don't",
+          "start": 103.141,
+          "end": 103.322
+        },
+        {
+          "word": "crush",
+          "start": 103.362,
+          "end": 103.562
+        },
+        {
+          "word": "yourself,",
+          "start": 103.582,
+          "end": 103.942
+        },
+        {
+          "word": "dude.",
+          "start": 104.083,
+          "end": 104.803
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 14,
+      "speaker": "SPEAKER_02",
+      "text": "Get me out.",
+      "start": 105.024,
+      "end": 105.464,
+      "words": [
+        {
+          "word": "Get",
+          "start": 105.024,
+          "end": 105.124
+        },
+        {
+          "word": "me",
+          "start": 105.184,
+          "end": 105.244
+        },
+        {
+          "word": "out.",
+          "start": 105.344,
+          "end": 105.464
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 15,
+      "speaker": "SPEAKER_00",
+      "text": "Get out of there, Robert.",
+      "start": 106.285,
+      "end": 107.867,
+      "words": [
+        {
+          "word": "Get",
+          "start": 106.285,
+          "end": 106.405
+        },
+        {
+          "word": "out",
+          "start": 106.585,
+          "end": 106.645
+        },
+        {
+          "word": "of",
+          "start": 106.746,
+          "end": 106.806
+        },
+        {
+          "word": "there,",
+          "start": 106.846,
+          "end": 107.106
+        },
+        {
+          "word": "Robert.",
+          "start": 107.126,
+          "end": 107.867
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 16,
+      "speaker": "SPEAKER_02",
+      "text": "He's going to roll it back to the... Are we ready? Is he going to get the edge?",
+      "start": 107.887,
+      "end": 113.974,
+      "words": [
+        {
+          "word": "He's",
+          "start": 107.887,
+          "end": 107.967
+        },
+        {
+          "word": "going",
+          "start": 108.007,
+          "end": 108.187
+        },
+        {
+          "word": "to",
+          "start": 108.207,
+          "end": 108.247
+        },
+        {
+          "word": "roll",
+          "start": 108.307,
+          "end": 108.488
+        },
+        {
+          "word": "it",
+          "start": 108.508,
+          "end": 108.588
+        },
+        {
+          "word": "back",
+          "start": 108.648,
+          "end": 108.788
+        },
+        {
+          "word": "to",
+          "start": 108.828,
+          "end": 108.928
+        },
+        {
+          "word": "the...",
+          "start": 108.948,
+          "end": 109.629
+        },
+        {
+          "word": "Are",
+          "start": 109.649,
+          "end": 109.729
+        },
+        {
+          "word": "we",
+          "start": 110.37,
+          "end": 110.49
+        },
+        {
+          "word": "ready?",
+          "start": 110.53,
+          "end": 110.77
+        },
+        {
+          "word": "Is",
+          "start": 110.991,
+          "end": 111.271
+        },
+        {
+          "word": "he",
+          "start": 112.652,
+          "end": 112.693
+        },
+        {
+          "word": "going",
+          "start": 112.713,
+          "end": 112.813
+        },
+        {
+          "word": "to",
+          "start": 112.833,
+          "end": 112.873
+        },
+        {
+          "word": "get",
+          "start": 112.913,
+          "end": 112.973
+        },
+        {
+          "word": "the",
+          "start": 113.013,
+          "end": 113.093
+        },
+        {
+          "word": "edge?",
+          "start": 113.113,
+          "end": 113.974
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 17,
+      "speaker": "SPEAKER_02",
+      "text": "I think it's got to go closer to the bottom.",
+      "start": 117.903,
+      "end": 120.806,
+      "words": [
+        {
+          "word": "I",
+          "start": 117.903,
+          "end": 118.303
+        },
+        {
+          "word": "think",
+          "start": 118.364,
+          "end": 118.484
+        },
+        {
+          "word": "it's",
+          "start": 118.524,
+          "end": 118.864
+        },
+        {
+          "word": "got",
+          "start": 118.884,
+          "end": 118.984
+        },
+        {
+          "word": "to",
+          "start": 119.004,
+          "end": 119.044
+        },
+        {
+          "word": "go",
+          "start": 119.104,
+          "end": 119.184
+        },
+        {
+          "word": "closer",
+          "start": 119.245,
+          "end": 119.505
+        },
+        {
+          "word": "to",
+          "start": 119.545,
+          "end": 119.625
+        },
+        {
+          "word": "the",
+          "start": 119.665,
+          "end": 119.725
+        },
+        {
+          "word": "bottom.",
+          "start": 119.765,
+          "end": 120.806
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 18,
+      "speaker": "SPEAKER_00",
+      "text": "Yep. That's good right there. All right, Tay's getting his socket set.",
+      "start": 121.147,
+      "end": 125.952,
+      "words": [
+        {
+          "word": "Yep.",
+          "start": 121.147,
+          "end": 122.989
+        },
+        {
+          "word": "That's",
+          "start": 123.089,
+          "end": 123.269
+        },
+        {
+          "word": "good",
+          "start": 123.289,
+          "end": 123.389
+        },
+        {
+          "word": "right",
+          "start": 123.429,
+          "end": 123.569
+        },
+        {
+          "word": "there.",
+          "start": 123.589,
+          "end": 123.75
+        },
+        {
+          "word": "All",
+          "start": 124.611,
+          "end": 124.671
+        },
+        {
+          "word": "right,",
+          "start": 124.691,
+          "end": 124.831
+        },
+        {
+          "word": "Tay's",
+          "start": 124.891,
+          "end": 125.091
+        },
+        {
+          "word": "getting",
+          "start": 125.111,
+          "end": 125.271
+        },
+        {
+          "word": "his",
+          "start": 125.311,
+          "end": 125.392
+        },
+        {
+          "word": "socket",
+          "start": 125.412,
+          "end": 125.692
+        },
+        {
+          "word": "set.",
+          "start": 125.792,
+          "end": 125.952
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 19,
+      "speaker": "SPEAKER_01",
+      "text": "That looks like a 9-6 tenths.",
+      "start": 126.293,
+      "end": 127.934,
+      "words": [
+        {
+          "word": "That",
+          "start": 126.293,
+          "end": 126.373
+        },
+        {
+          "word": "looks",
+          "start": 126.393,
+          "end": 126.573
+        },
+        {
+          "word": "like",
+          "start": 126.593,
+          "end": 126.753
+        },
+        {
+          "word": "a",
+          "start": 126.793,
+          "end": 126.813
+        },
+        {
+          "word": "9-6",
+          "start": 126.833,
+          "end": 127.474
+        },
+        {
+          "word": "tenths.",
+          "start": 127.494,
+          "end": 127.934
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 20,
+      "speaker": "SPEAKER_00",
+      "text": "This is a great America. Great America. We might be able to just weave it out with the legs on it. Will it go out with the legs on it?",
+      "start": 128.415,
+      "end": 136.124,
+      "words": [
+        {
+          "word": "This",
+          "start": 128.415,
+          "end": 128.555
+        },
+        {
+          "word": "is",
+          "start": 128.655,
+          "end": 128.815
+        },
+        {
+          "word": "a",
+          "start": 128.856,
+          "end": 128.876
+        },
+        {
+          "word": "great",
+          "start": 128.896,
+          "end": 129.096
+        },
+        {
+          "word": "America.",
+          "start": 129.136,
+          "end": 129.556
+        },
+        {
+          "word": "Great",
+          "start": 130.077,
+          "end": 130.257
+        },
+        {
+          "word": "America.",
+          "start": 130.277,
+          "end": 130.618
+        },
+        {
+          "word": "We",
+          "start": 130.978,
+          "end": 131.018
+        },
+        {
+          "word": "might",
+          "start": 131.038,
+          "end": 131.158
+        },
+        {
+          "word": "be",
+          "start": 131.198,
+          "end": 131.238
+        },
+        {
+          "word": "able",
+          "start": 131.258,
+          "end": 131.338
+        },
+        {
+          "word": "to",
+          "start": 131.358,
+          "end": 131.418
+        },
+        {
+          "word": "just",
+          "start": 131.458,
+          "end": 131.619
+        },
+        {
+          "word": "weave",
+          "start": 131.959,
+          "end": 132.159
+        },
+        {
+          "word": "it",
+          "start": 132.199,
+          "end": 132.259
+        },
+        {
+          "word": "out",
+          "start": 132.339,
+          "end": 132.44
+        },
+        {
+          "word": "with",
+          "start": 132.46,
+          "end": 132.54
+        },
+        {
+          "word": "the",
+          "start": 132.62,
+          "end": 132.7
+        },
+        {
+          "word": "legs",
+          "start": 133.681,
+          "end": 133.881
+        },
+        {
+          "word": "on",
+          "start": 134.001,
+          "end": 134.102
+        },
+        {
+          "word": "it.",
+          "start": 134.142,
+          "end": 134.222
+        },
+        {
+          "word": "Will",
+          "start": 135.043,
+          "end": 135.183
+        },
+        {
+          "word": "it",
+          "start": 135.203,
+          "end": 135.243
+        },
+        {
+          "word": "go",
+          "start": 135.283,
+          "end": 135.363
+        },
+        {
+          "word": "out",
+          "start": 135.403,
+          "end": 135.483
+        },
+        {
+          "word": "with",
+          "start": 135.523,
+          "end": 135.603
+        },
+        {
+          "word": "the",
+          "start": 135.623,
+          "end": 135.683
+        },
+        {
+          "word": "legs",
+          "start": 135.703,
+          "end": 135.884
+        },
+        {
+          "word": "on",
+          "start": 135.964,
+          "end": 136.044
+        },
+        {
+          "word": "it?",
+          "start": 136.064,
+          "end": 136.124
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 21,
+      "speaker": "SPEAKER_02",
+      "text": "If it will, we're going to keep on it.",
+      "start": 136.364,
+      "end": 137.906,
+      "words": [
+        {
+          "word": "If",
+          "start": 136.364,
+          "end": 136.424
+        },
+        {
+          "word": "it",
+          "start": 136.484,
+          "end": 136.544
+        },
+        {
+          "word": "will,",
+          "start": 136.584,
+          "end": 136.925
+        },
+        {
+          "word": "we're",
+          "start": 136.945,
+          "end": 137.045
+        },
+        {
+          "word": "going",
+          "start": 137.065,
+          "end": 137.165
+        },
+        {
+          "word": "to",
+          "start": 137.245,
+          "end": 137.425
+        },
+        {
+          "word": "keep",
+          "start": 137.445,
+          "end": 137.525
+        },
+        {
+          "word": "on",
+          "start": 137.545,
+          "end": 137.585
+        },
+        {
+          "word": "it.",
+          "start": 137.826,
+          "end": 137.906
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 22,
+      "speaker": "SPEAKER_00",
+      "text": "I don't know. Can we go at an angle?",
+      "start": 137.946,
+      "end": 139.247,
+      "words": [
+        {
+          "word": "I",
+          "start": 137.946,
+          "end": 138.006
+        },
+        {
+          "word": "don't",
+          "start": 138.046,
+          "end": 138.186
+        },
+        {
+          "word": "know.",
+          "start": 138.206,
+          "end": 138.306
+        },
+        {
+          "word": "Can",
+          "start": 138.326,
+          "end": 138.386
+        },
+        {
+          "word": "we",
+          "start": 138.446,
+          "end": 138.487
+        },
+        {
+          "word": "go",
+          "start": 138.507,
+          "end": 138.667
+        },
+        {
+          "word": "at",
+          "start": 138.767,
+          "end": 138.847
+        },
+        {
+          "word": "an",
+          "start": 138.887,
+          "end": 138.927
+        },
+        {
+          "word": "angle?",
+          "start": 139.007,
+          "end": 139.247
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 23,
+      "speaker": "SPEAKER_01",
+      "text": "That's so close.",
+      "start": 139.628,
+      "end": 142.171,
+      "words": [
+        {
+          "word": "That's",
+          "start": 139.628,
+          "end": 141.31
+        },
+        {
+          "word": "so",
+          "start": 141.37,
+          "end": 141.45
+        },
+        {
+          "word": "close.",
+          "start": 141.61,
+          "end": 142.171
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 24,
+      "speaker": "SPEAKER_00",
+      "text": "Can we use this as a ramp?",
+      "start": 142.191,
+      "end": 143.132,
+      "words": [
+        {
+          "word": "Can",
+          "start": 142.191,
+          "end": 142.251
+        },
+        {
+          "word": "we",
+          "start": 142.271,
+          "end": 142.311
+        },
+        {
+          "word": "use",
+          "start": 142.331,
+          "end": 142.511
+        },
+        {
+          "word": "this",
+          "start": 142.531,
+          "end": 142.611
+        },
+        {
+          "word": "as",
+          "start": 142.631,
+          "end": 142.751
+        },
+        {
+          "word": "a",
+          "start": 142.771,
+          "end": 142.852
+        },
+        {
+          "word": "ramp?",
+          "start": 142.952,
+          "end": 143.132
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 25,
+      "speaker": "SPEAKER_02",
+      "text": "That's cool. All right, everybody, hold up. Yep. I'd like, hey, Mike, can you grab these, the thing again? I'd like to shift it. 9-16. All the way over. You think? What do you want to do? Just shift it. We're going to shift it again. Tight to the curb.",
+      "start": 143.312,
+      "end": 157.103,
+      "words": [
+        {
+          "word": "That's",
+          "start": 143.312,
+          "end": 143.432
+        },
+        {
+          "word": "cool.",
+          "start": 143.452,
+          "end": 143.733
+        },
+        {
+          "word": "All",
+          "start": 143.753,
+          "end": 143.813
+        },
+        {
+          "word": "right,",
+          "start": 143.833,
+          "end": 143.953
+        },
+        {
+          "word": "everybody,",
+          "start": 143.993,
+          "end": 144.453
+        },
+        {
+          "word": "hold",
+          "start": 144.573,
+          "end": 145.194
+        },
+        {
+          "word": "up.",
+          "start": 145.314,
+          "end": 145.414
+        },
+        {
+          "word": "Yep.",
+          "start": 145.615,
+          "end": 145.935
+        },
+        {
+          "word": "I'd",
+          "start": 146.557,
+          "end": 146.858
+        },
+        {
+          "word": "like,",
+          "start": 146.918,
+          "end": 147.098
+        },
+        {
+          "word": "hey,",
+          "start": 147.138,
+          "end": 147.399
+        },
+        {
+          "word": "Mike,",
+          "start": 147.419,
+          "end": 147.64
+        },
+        {
+          "word": "can",
+          "start": 147.66,
+          "end": 147.76
+        },
+        {
+          "word": "you",
+          "start": 147.8,
+          "end": 147.9
+        },
+        {
+          "word": "grab",
+          "start": 147.94,
+          "end": 148.201
+        },
+        {
+          "word": "these,",
+          "start": 148.261,
+          "end": 148.482
+        },
+        {
+          "word": "the",
+          "start": 148.702,
+          "end": 148.923
+        },
+        {
+          "word": "thing",
+          "start": 149.103,
+          "end": 149.344
+        },
+        {
+          "word": "again?",
+          "start": 149.424,
+          "end": 149.544
+        },
+        {
+          "word": "I'd",
+          "start": 149.584,
+          "end": 149.685
+        },
+        {
+          "word": "like",
+          "start": 149.705,
+          "end": 149.825
+        },
+        {
+          "word": "to",
+          "start": 149.865,
+          "end": 149.925
+        },
+        {
+          "word": "shift",
+          "start": 149.965,
+          "end": 150.206
+        },
+        {
+          "word": "it.",
+          "start": 150.246,
+          "end": 150.306
+        },
+        {
+          "word": "9-16.",
+          "start": 150.888,
+          "end": 151.088
+        },
+        {
+          "word": "All",
+          "start": 151.108,
+          "end": 151.168
+        },
+        {
+          "word": "the",
+          "start": 151.208,
+          "end": 151.329
+        },
+        {
+          "word": "way",
+          "start": 151.409,
+          "end": 151.609
+        },
+        {
+          "word": "over.",
+          "start": 151.73,
+          "end": 151.95
+        },
+        {
+          "word": "You",
+          "start": 151.97,
+          "end": 152.03
+        },
+        {
+          "word": "think?",
+          "start": 152.171,
+          "end": 152.291
+        },
+        {
+          "word": "What",
+          "start": 152.311,
+          "end": 152.472
+        },
+        {
+          "word": "do",
+          "start": 152.492,
+          "end": 152.532
+        },
+        {
+          "word": "you",
+          "start": 152.552,
+          "end": 152.652
+        },
+        {
+          "word": "want",
+          "start": 152.692,
+          "end": 152.852
+        },
+        {
+          "word": "to",
+          "start": 152.873,
+          "end": 152.913
+        },
+        {
+          "word": "do?",
+          "start": 153.193,
+          "end": 153.253
+        },
+        {
+          "word": "Just",
+          "start": 153.274,
+          "end": 153.354
+        },
+        {
+          "word": "shift",
+          "start": 153.394,
+          "end": 153.735
+        },
+        {
+          "word": "it.",
+          "start": 153.755,
+          "end": 153.815
+        },
+        {
+          "word": "We're",
+          "start": 154.216,
+          "end": 154.316
+        },
+        {
+          "word": "going",
+          "start": 154.336,
+          "end": 154.436
+        },
+        {
+          "word": "to",
+          "start": 154.476,
+          "end": 154.537
+        },
+        {
+          "word": "shift",
+          "start": 154.557,
+          "end": 154.757
+        },
+        {
+          "word": "it",
+          "start": 154.817,
+          "end": 154.877
+        },
+        {
+          "word": "again.",
+          "start": 155.018,
+          "end": 155.298
+        },
+        {
+          "word": "Tight",
+          "start": 156.08,
+          "end": 156.301
+        },
+        {
+          "word": "to",
+          "start": 156.341,
+          "end": 156.461
+        },
+        {
+          "word": "the",
+          "start": 156.481,
+          "end": 156.642
+        },
+        {
+          "word": "curb.",
+          "start": 156.802,
+          "end": 157.103
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 26,
+      "speaker": "SPEAKER_00",
+      "text": "There you go. A little more. That's good. That's pretty good. Let's put a strap on it, too. Which way is the truck?",
+      "start": 160.15,
+      "end": 167.137,
+      "words": [
+        {
+          "word": "There",
+          "start": 160.15,
+          "end": 160.251
+        },
+        {
+          "word": "you",
+          "start": 160.271,
+          "end": 160.331
+        },
+        {
+          "word": "go.",
+          "start": 160.351,
+          "end": 160.471
+        },
+        {
+          "word": "A",
+          "start": 160.491,
+          "end": 160.511
+        },
+        {
+          "word": "little",
+          "start": 160.531,
+          "end": 160.672
+        },
+        {
+          "word": "more.",
+          "start": 160.692,
+          "end": 160.812
+        },
+        {
+          "word": "That's",
+          "start": 160.852,
+          "end": 160.972
+        },
+        {
+          "word": "good.",
+          "start": 161.013,
+          "end": 161.173
+        },
+        {
+          "word": "That's",
+          "start": 161.193,
+          "end": 161.333
+        },
+        {
+          "word": "pretty",
+          "start": 161.373,
+          "end": 162.697
+        },
+        {
+          "word": "good.",
+          "start": 162.717,
+          "end": 162.877
+        },
+        {
+          "word": "Let's",
+          "start": 163.078,
+          "end": 163.218
+        },
+        {
+          "word": "put",
+          "start": 163.258,
+          "end": 163.358
+        },
+        {
+          "word": "a",
+          "start": 163.398,
+          "end": 163.418
+        },
+        {
+          "word": "strap",
+          "start": 163.459,
+          "end": 163.739
+        },
+        {
+          "word": "on",
+          "start": 163.839,
+          "end": 163.9
+        },
+        {
+          "word": "it,",
+          "start": 163.96,
+          "end": 164.02
+        },
+        {
+          "word": "too.",
+          "start": 164.401,
+          "end": 164.481
+        },
+        {
+          "word": "Which",
+          "start": 166.115,
+          "end": 166.275
+        },
+        {
+          "word": "way",
+          "start": 166.295,
+          "end": 166.416
+        },
+        {
+          "word": "is",
+          "start": 166.436,
+          "end": 166.496
+        },
+        {
+          "word": "the",
+          "start": 166.576,
+          "end": 166.636
+        },
+        {
+          "word": "truck?",
+          "start": 166.696,
+          "end": 167.137
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 27,
+      "speaker": "SPEAKER_02",
+      "text": "Uh, yeah. Maui will know where they are, and they need to be hook straps. We'll get two of them. Old style. They'll stay on them. Harbor Freight ones. How are you? I'm Ted.",
+      "start": 167.758,
+      "end": 177.94,
+      "words": [
+        {
+          "word": "Uh,",
+          "start": 167.758,
+          "end": 167.959
+        },
+        {
+          "word": "yeah.",
+          "start": 168.239,
+          "end": 169.903
+        },
+        {
+          "word": "Maui",
+          "start": 169.943,
+          "end": 170.123
+        },
+        {
+          "word": "will",
+          "start": 170.143,
+          "end": 170.324
+        },
+        {
+          "word": "know",
+          "start": 170.344,
+          "end": 170.464
+        },
+        {
+          "word": "where",
+          "start": 170.524,
+          "end": 170.645
+        },
+        {
+          "word": "they",
+          "start": 170.665,
+          "end": 170.765
+        },
+        {
+          "word": "are,",
+          "start": 170.825,
+          "end": 170.925
+        },
+        {
+          "word": "and",
+          "start": 170.945,
+          "end": 171.005
+        },
+        {
+          "word": "they",
+          "start": 171.045,
+          "end": 171.126
+        },
+        {
+          "word": "need",
+          "start": 171.166,
+          "end": 171.306
+        },
+        {
+          "word": "to",
+          "start": 171.326,
+          "end": 171.386
+        },
+        {
+          "word": "be",
+          "start": 171.426,
+          "end": 171.526
+        },
+        {
+          "word": "hook",
+          "start": 171.607,
+          "end": 171.827
+        },
+        {
+          "word": "straps.",
+          "start": 171.847,
+          "end": 172.208
+        },
+        {
+          "word": "We'll",
+          "start": 172.569,
+          "end": 172.669
+        },
+        {
+          "word": "get",
+          "start": 172.689,
+          "end": 172.809
+        },
+        {
+          "word": "two",
+          "start": 172.869,
+          "end": 173.009
+        },
+        {
+          "word": "of",
+          "start": 173.11,
+          "end": 173.19
+        },
+        {
+          "word": "them.",
+          "start": 173.21,
+          "end": 173.891
+        },
+        {
+          "word": "Old",
+          "start": 173.911,
+          "end": 174.112
+        },
+        {
+          "word": "style.",
+          "start": 174.212,
+          "end": 174.412
+        },
+        {
+          "word": "They'll",
+          "start": 174.513,
+          "end": 174.733
+        },
+        {
+          "word": "stay",
+          "start": 174.753,
+          "end": 174.974
+        },
+        {
+          "word": "on",
+          "start": 175.114,
+          "end": 175.194
+        },
+        {
+          "word": "them.",
+          "start": 175.214,
+          "end": 175.314
+        },
+        {
+          "word": "Harbor",
+          "start": 175.415,
+          "end": 176.096
+        },
+        {
+          "word": "Freight",
+          "start": 176.116,
+          "end": 176.357
+        },
+        {
+          "word": "ones.",
+          "start": 176.437,
+          "end": 176.597
+        },
+        {
+          "word": "How",
+          "start": 176.617,
+          "end": 176.697
+        },
+        {
+          "word": "are",
+          "start": 176.717,
+          "end": 176.777
+        },
+        {
+          "word": "you?",
+          "start": 176.797,
+          "end": 177.519
+        },
+        {
+          "word": "I'm",
+          "start": 177.539,
+          "end": 177.639
+        },
+        {
+          "word": "Ted.",
+          "start": 177.659,
+          "end": 177.94
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 28,
+      "speaker": "SPEAKER_01",
+      "text": "Good to see you.",
+      "start": 179.182,
+      "end": 181.828,
+      "words": [
+        {
+          "word": "Good",
+          "start": 179.182,
+          "end": 179.443
+        },
+        {
+          "word": "to",
+          "start": 179.503,
+          "end": 179.603
+        },
+        {
+          "word": "see",
+          "start": 179.704,
+          "end": 179.824
+        },
+        {
+          "word": "you.",
+          "start": 180.345,
+          "end": 181.828
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 29,
+      "speaker": "SPEAKER_01",
+      "text": "You're my hero. And Robert ain't as grumpy as you put him off the pitch. You have no idea. We just let him win the game.",
+      "start": 183.918,
+      "end": 192.497,
+      "words": [
+        {
+          "word": "You're",
+          "start": 183.918,
+          "end": 184.239
+        },
+        {
+          "word": "my",
+          "start": 184.279,
+          "end": 184.419
+        },
+        {
+          "word": "hero.",
+          "start": 184.459,
+          "end": 184.88
+        },
+        {
+          "word": "And",
+          "start": 185.201,
+          "end": 185.281
+        },
+        {
+          "word": "Robert",
+          "start": 185.341,
+          "end": 185.642
+        },
+        {
+          "word": "ain't",
+          "start": 185.682,
+          "end": 185.822
+        },
+        {
+          "word": "as",
+          "start": 185.882,
+          "end": 185.942
+        },
+        {
+          "word": "grumpy",
+          "start": 185.982,
+          "end": 186.263
+        },
+        {
+          "word": "as",
+          "start": 186.303,
+          "end": 186.383
+        },
+        {
+          "word": "you",
+          "start": 186.403,
+          "end": 186.544
+        },
+        {
+          "word": "put",
+          "start": 186.604,
+          "end": 186.724
+        },
+        {
+          "word": "him",
+          "start": 186.764,
+          "end": 186.824
+        },
+        {
+          "word": "off",
+          "start": 186.884,
+          "end": 187.005
+        },
+        {
+          "word": "the",
+          "start": 187.245,
+          "end": 188.047
+        },
+        {
+          "word": "pitch.",
+          "start": 188.468,
+          "end": 188.969
+        },
+        {
+          "word": "You",
+          "start": 189.49,
+          "end": 189.691
+        },
+        {
+          "word": "have",
+          "start": 189.731,
+          "end": 189.831
+        },
+        {
+          "word": "no",
+          "start": 189.891,
+          "end": 190.031
+        },
+        {
+          "word": "idea.",
+          "start": 190.152,
+          "end": 190.572
+        },
+        {
+          "word": "We",
+          "start": 191.033,
+          "end": 191.074
+        },
+        {
+          "word": "just",
+          "start": 191.154,
+          "end": 191.234
+        },
+        {
+          "word": "let",
+          "start": 191.374,
+          "end": 191.494
+        },
+        {
+          "word": "him",
+          "start": 191.535,
+          "end": 191.615
+        },
+        {
+          "word": "win",
+          "start": 191.635,
+          "end": 191.775
+        },
+        {
+          "word": "the",
+          "start": 191.815,
+          "end": 192.096
+        },
+        {
+          "word": "game.",
+          "start": 192.156,
+          "end": 192.497
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 30,
+      "speaker": "SPEAKER_00",
+      "text": "His reality is not normal.",
+      "start": 192.797,
+      "end": 194.341,
+      "words": [
+        {
+          "word": "His",
+          "start": 192.797,
+          "end": 192.897
+        },
+        {
+          "word": "reality",
+          "start": 192.958,
+          "end": 193.439
+        },
+        {
+          "word": "is",
+          "start": 193.519,
+          "end": 193.619
+        },
+        {
+          "word": "not",
+          "start": 193.699,
+          "end": 194.1
+        },
+        {
+          "word": "normal.",
+          "start": 194.12,
+          "end": 194.341
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 31,
+      "speaker": "SPEAKER_01",
+      "text": "He's in such a good mood. Jay's over there doing some de-legging. We're getting the pool table out of here. We're not finished up for the day.",
+      "start": 194.621,
+      "end": 204.222,
+      "words": [
+        {
+          "word": "He's",
+          "start": 194.621,
+          "end": 194.721
+        },
+        {
+          "word": "in",
+          "start": 194.982,
+          "end": 195.022
+        },
+        {
+          "word": "such",
+          "start": 195.423,
+          "end": 195.503
+        },
+        {
+          "word": "a",
+          "start": 195.523,
+          "end": 195.543
+        },
+        {
+          "word": "good",
+          "start": 195.563,
+          "end": 195.764
+        },
+        {
+          "word": "mood.",
+          "start": 196.646,
+          "end": 196.806
+        },
+        {
+          "word": "Jay's",
+          "start": 196.946,
+          "end": 197.147
+        },
+        {
+          "word": "over",
+          "start": 197.227,
+          "end": 197.367
+        },
+        {
+          "word": "there",
+          "start": 197.427,
+          "end": 197.588
+        },
+        {
+          "word": "doing",
+          "start": 197.628,
+          "end": 197.888
+        },
+        {
+          "word": "some",
+          "start": 197.908,
+          "end": 198.069
+        },
+        {
+          "word": "de-legging.",
+          "start": 198.65,
+          "end": 199.552
+        },
+        {
+          "word": "We're",
+          "start": 199.572,
+          "end": 199.712
+        },
+        {
+          "word": "getting",
+          "start": 199.732,
+          "end": 199.893
+        },
+        {
+          "word": "the",
+          "start": 199.953,
+          "end": 200.013
+        },
+        {
+          "word": "pool",
+          "start": 200.033,
+          "end": 200.133
+        },
+        {
+          "word": "table",
+          "start": 200.153,
+          "end": 200.394
+        },
+        {
+          "word": "out",
+          "start": 200.454,
+          "end": 200.554
+        },
+        {
+          "word": "of",
+          "start": 200.594,
+          "end": 200.654
+        },
+        {
+          "word": "here.",
+          "start": 200.714,
+          "end": 200.875
+        },
+        {
+          "word": "We're",
+          "start": 201.717,
+          "end": 202.218
+        },
+        {
+          "word": "not",
+          "start": 202.298,
+          "end": 202.578
+        },
+        {
+          "word": "finished",
+          "start": 202.599,
+          "end": 202.879
+        },
+        {
+          "word": "up",
+          "start": 203.12,
+          "end": 203.16
+        },
+        {
+          "word": "for",
+          "start": 203.24,
+          "end": 203.861
+        },
+        {
+          "word": "the",
+          "start": 204.062,
+          "end": 204.122
+        },
+        {
+          "word": "day.",
+          "start": 204.142,
+          "end": 204.222
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 32,
+      "speaker": "SPEAKER_00",
+      "text": "I did. All scrap wood, buddy. Buddy. I built that. That's good. Very good. Mac.",
+      "start": 223.76,
+      "end": 230.384,
+      "words": [
+        {
+          "word": "I",
+          "start": 223.76,
+          "end": 223.961
+        },
+        {
+          "word": "did.",
+          "start": 223.981,
+          "end": 224.483
+        },
+        {
+          "word": "All",
+          "start": 224.503,
+          "end": 224.623
+        },
+        {
+          "word": "scrap",
+          "start": 224.643,
+          "end": 225.045
+        },
+        {
+          "word": "wood,",
+          "start": 225.065,
+          "end": 225.265
+        },
+        {
+          "word": "buddy.",
+          "start": 225.286,
+          "end": 225.567
+        },
+        {
+          "word": "Buddy.",
+          "start": 226.329,
+          "end": 226.651
+        },
+        {
+          "word": "I",
+          "start": 226.751,
+          "end": 226.811
+        },
+        {
+          "word": "built",
+          "start": 226.831,
+          "end": 227.052
+        },
+        {
+          "word": "that.",
+          "start": 227.092,
+          "end": 227.253
+        },
+        {
+          "word": "That's",
+          "start": 227.333,
+          "end": 227.453
+        },
+        {
+          "word": "good.",
+          "start": 227.714,
+          "end": 227.935
+        },
+        {
+          "word": "Very",
+          "start": 228.818,
+          "end": 228.899
+        },
+        {
+          "word": "good.",
+          "start": 229.16,
+          "end": 229.682
+        },
+        {
+          "word": "Mac.",
+          "start": 229.822,
+          "end": 230.384
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 33,
+      "speaker": "SPEAKER_02",
+      "text": "Awesome. Awesome. There you go. Where did that bucket go? I'd ask you to sign my arm, but you're my hand. You do some of the stinking shit I do.",
+      "start": 230.404,
+      "end": 240.16,
+      "words": [
+        {
+          "word": "Awesome.",
+          "start": 230.404,
+          "end": 232.231
+        },
+        {
+          "word": "Awesome.",
+          "start": 232.432,
+          "end": 233.857
+        },
+        {
+          "word": "There",
+          "start": 233.877,
+          "end": 234.339
+        },
+        {
+          "word": "you",
+          "start": 234.359,
+          "end": 234.419
+        },
+        {
+          "word": "go.",
+          "start": 234.439,
+          "end": 234.499
+        },
+        {
+          "word": "Where",
+          "start": 234.519,
+          "end": 234.62
+        },
+        {
+          "word": "did",
+          "start": 234.8,
+          "end": 234.901
+        },
+        {
+          "word": "that",
+          "start": 234.941,
+          "end": 235.081
+        },
+        {
+          "word": "bucket",
+          "start": 235.142,
+          "end": 235.423
+        },
+        {
+          "word": "go?",
+          "start": 235.503,
+          "end": 235.563
+        },
+        {
+          "word": "I'd",
+          "start": 235.583,
+          "end": 235.643
+        },
+        {
+          "word": "ask",
+          "start": 235.663,
+          "end": 235.784
+        },
+        {
+          "word": "you",
+          "start": 235.804,
+          "end": 235.884
+        },
+        {
+          "word": "to",
+          "start": 235.924,
+          "end": 235.985
+        },
+        {
+          "word": "sign",
+          "start": 236.025,
+          "end": 236.225
+        },
+        {
+          "word": "my",
+          "start": 236.266,
+          "end": 236.426
+        },
+        {
+          "word": "arm,",
+          "start": 236.446,
+          "end": 236.647
+        },
+        {
+          "word": "but",
+          "start": 236.707,
+          "end": 236.988
+        },
+        {
+          "word": "you're",
+          "start": 237.008,
+          "end": 237.149
+        },
+        {
+          "word": "my",
+          "start": 237.169,
+          "end": 237.309
+        },
+        {
+          "word": "hand.",
+          "start": 237.37,
+          "end": 237.651
+        },
+        {
+          "word": "You",
+          "start": 237.671,
+          "end": 237.851
+        },
+        {
+          "word": "do",
+          "start": 237.871,
+          "end": 237.972
+        },
+        {
+          "word": "some",
+          "start": 238.012,
+          "end": 238.293
+        },
+        {
+          "word": "of",
+          "start": 238.313,
+          "end": 238.353
+        },
+        {
+          "word": "the",
+          "start": 238.373,
+          "end": 238.494
+        },
+        {
+          "word": "stinking",
+          "start": 238.694,
+          "end": 239.016
+        },
+        {
+          "word": "shit",
+          "start": 239.297,
+          "end": 239.899
+        },
+        {
+          "word": "I",
+          "start": 239.919,
+          "end": 239.939
+        },
+        {
+          "word": "do.",
+          "start": 240.019,
+          "end": 240.16
+        }
+      ],
+      "name": "Robert"
+    },
+    {
+      "segment_id": 34,
+      "speaker": "SPEAKER_01",
+      "text": "Robert, you're not as gropey as they put you off the board.",
+      "start": 240.18,
+      "end": 243.492,
+      "words": [
+        {
+          "word": "Robert,",
+          "start": 240.18,
+          "end": 240.421
+        },
+        {
+          "word": "you're",
+          "start": 240.481,
+          "end": 240.742
+        },
+        {
+          "word": "not",
+          "start": 240.782,
+          "end": 240.862
+        },
+        {
+          "word": "as",
+          "start": 240.923,
+          "end": 241.003
+        },
+        {
+          "word": "gropey",
+          "start": 241.063,
+          "end": 241.324
+        },
+        {
+          "word": "as",
+          "start": 241.384,
+          "end": 241.445
+        },
+        {
+          "word": "they",
+          "start": 241.485,
+          "end": 241.625
+        },
+        {
+          "word": "put",
+          "start": 241.665,
+          "end": 241.806
+        },
+        {
+          "word": "you",
+          "start": 241.826,
+          "end": 242.027
+        },
+        {
+          "word": "off",
+          "start": 242.549,
+          "end": 242.85
+        },
+        {
+          "word": "the",
+          "start": 243.251,
+          "end": 243.311
+        },
+        {
+          "word": "board.",
+          "start": 243.372,
+          "end": 243.492
+        }
+      ],
+      "name": "Unknown"
+    },
+    {
+      "segment_id": 35,
+      "speaker": "SPEAKER_02",
+      "text": "No, he's not.",
+      "start": 243.512,
+      "end": 243.793,
+      "words": [
+        {
+          "word": "No,",
+          "start": 243.512,
+          "end": 243.572
+        },
+        {
+          "word": "he's",
+          "start": 243.592,
+          "end": 243.693
+        },
+        {
+          "word": "not.",
+          "start": 243.713,
+          "end": 243.793
+        }
+      ],
+      "name": "Robert"
+    }
+  ],
+  "num_speakers": 3
+}

@@ -1,0 +1,122 @@
+{
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/B1/_audio_asr": {
+    "B089C312_190402HU_SDBB2": {
+      "B089C312_190402HU_SDBB2": {
+        "summary": "The transcript features a single speaker, SPEAKER_00, who appears to be involved in a task that includes managing carts and evaluating items, possibly in a retail or warehouse setting. The speaker mentions a 'Target line' and comments on the quality of items. There is also a humorous or frustrated remark about 'more cats' and 'nasty little bastards,' suggesting a chaotic or unexpected situation.",
+        "themes": [
+          "task management",
+          "evaluation",
+          "unexpected situations"
+        ],
+        "key_speakers": {
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C313_190402TS_SDBB2": {
+      "B089C313_190402TS_SDBB2": {
+        "summary": "No valuable story content.",
+        "themes": [],
+        "key_speakers": {}
+      }
+    },
+    "B089C314_190402A6_SDBB2": {
+      "B089C314_190402A6_SDBB2": {
+        "summary": "The conversation revolves around a group of individuals, led by SPEAKER_00 and SPEAKER_01, who are involved in salvaging valuable items from a house. They discuss the challenges and successes of extracting items like a front door with stained glass, staircase parts, and other architectural features. They express a desire to return for more items, particularly the roof and a moose sign. The dialogue also includes light-hearted banter about college experiences and a humorous mention of a lobotomy.",
+        "themes": [
+          "Salvage Operation",
+          "Teamwork",
+          "Humor"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    }
+  },
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/A1/_audio_asr": {
+    "A105C209_190402NE_SDAA0": {
+      "A105C209_190402NE_SDAA0": {
+        "summary": "The transcript captures a group of individuals engaged in a task involving moving a heavy object, possibly a pool table. The conversation is filled with instructions and adjustments as they attempt to maneuver the object using a cart and a boom. There are moments of confusion and humor, such as when a cat is unexpectedly found, and when Mike is noted to have missed some instructions. The dialogue reflects teamwork, problem-solving, and light-hearted banter.",
+        "themes": [
+          "teamwork",
+          "problem-solving",
+          "humor"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C312_190402HU_SDBB2": {
+      "B089C312_190402HU_SDBB2": {
+        "summary": "The transcript captures a series of fragmented interactions by SPEAKER_00, who appears to be involved in organizing or managing a task involving carts and possibly a target line. The speaker expresses uncertainty and comments on quality, before shifting focus to a disdainful observation about cats, referring to them as 'nasty little bastards.'",
+        "themes": [
+          "task management",
+          "uncertainty",
+          "disdain for animals"
+        ],
+        "key_speakers": {
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "A105C210_190402Y0_SDAA0": {
+      "A105C210_190402Y0_SDAA0": {
+        "summary": "The conversation involves several speakers coordinating a task that involves moving and adjusting objects, possibly in a construction or setup scenario. SPEAKER_04 initiates the discussion, asking for a pause and suggesting actions like 'booming in.' SPEAKER_02 and SPEAKER_03 discuss positioning and adjustments, with SPEAKER_01 expressing uncertainty about visibility and direction. There is mention of a cracked rail and the need to reposition items. SPEAKER_05 suggests 'shimmying' and 'booming out,' while SPEAKER_03 prefers a more cautious approach. The dialogue includes references to handling equipment, adjusting tables, and dealing with unexpected issues like a crack and misplaced handholds. The conversation ends with a light-hearted exchange about cats and a bird, and a remark about New Yorkers.",
+        "themes": [
+          "coordination",
+          "problem-solving",
+          "equipment handling"
+        ],
+        "key_speakers": {
+          "SPEAKER_04": "Unknown",
+          "SPEAKER_02": "Unknown",
+          "SPEAKER_03": "Unknown",
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_05": "Unknown",
+          "UNKNOWN": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C313_190402TS_SDBB2": {
+      "B089C313_190402TS_SDBB2": {
+        "summary": "No valuable story content.",
+        "themes": [],
+        "key_speakers": {}
+      }
+    },
+    "A105C208_190402GC_SDAA0": {
+      "A105C208_190402GC_SDAA0": {
+        "summary": "The conversation revolves around a recent win by SPEAKER_02, who describes the match as tight but ultimately successful due to a remarkable final shot. Despite lacking his usual bar beverage, SPEAKER_02 believes his vision gave him an edge over his competitor, Mike. SPEAKER_00 humorously questions how long SPEAKER_02 will celebrate the win, to which SPEAKER_02 responds that he will be relentless in reminding others of his victory. SPEAKER_01 congratulates SPEAKER_02, who expresses gratitude and promises to remind them of the win again tomorrow.",
+        "themes": [
+          "competition",
+          "celebration",
+          "humor"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_02": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    },
+    "B089C314_190402A6_SDBB2": {
+      "B089C314_190402A6_SDBB2": {
+        "summary": "In this episode, SPEAKER_01 and SPEAKER_00 discuss their successful day of salvaging valuable items from a house, including a front door with stained glass, staircase parts, and a moose sign. They express satisfaction with their work, noting the difficulty of extracting some items but emphasizing the worth of their efforts. They plan to return to the site to salvage more, particularly the roof and exterior features. The conversation also includes light-hearted banter about college experiences and a humorous mention of a lobotomy.",
+        "themes": [
+          "Salvage and Restoration",
+          "Teamwork and Accomplishment",
+          "Humor and Banter"
+        ],
+        "key_speakers": {
+          "SPEAKER_01": "Unknown",
+          "SPEAKER_00": "Unknown"
+        }
+      }
+    }
+  }
+}

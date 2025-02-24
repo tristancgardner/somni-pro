@@ -1,0 +1,37 @@
+{
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/B1/_audio_asr": {
+    "_audio_asr": {
+      "summary": "The conversation involves two speakers, SPEAKER_00 and SPEAKER_01, discussing their day's work, which involved salvaging items from a house. They mention extracting a front door with stained glass, appreciating the quality of the doors, trim work, and staircase parts. They plan to return for more items, including a roof and a moose sign. The dialogue also includes light-hearted banter about college experiences and a humorous mention of a lobotomy.",
+      "themes": [
+        "salvage operation",
+        "teamwork",
+        "humor"
+      ],
+      "key_speakers": {
+        "SPEAKER_00": "Unknown",
+        "SPEAKER_01": "Unknown"
+      }
+    }
+  },
+  "/Users/tristangardner/Documents/Programming/02_Media/Salvage-VirginPOC/sub_test/A1/_audio_asr": {
+    "_audio_asr": {
+      "summary": "The transcript captures a series of interactions among several speakers engaged in a task involving moving and handling objects, possibly in a construction or renovation setting. The conversation includes discussions about handling a cat, moving a pool table, and dealing with various equipment. There are moments of humor and camaraderie, with references to a win in a game, and plans to return for more work. The speakers also discuss the challenges and successes of the day, highlighting teamwork and problem-solving.",
+      "themes": [
+        "Teamwork",
+        "Problem-solving",
+        "Humor",
+        "Construction/Renovation",
+        "Camaraderie"
+      ],
+      "key_speakers": {
+        "SPEAKER_01": "Unknown",
+        "SPEAKER_00": "Unknown",
+        "SPEAKER_04": "Unknown",
+        "SPEAKER_02": "Unknown",
+        "SPEAKER_03": "Unknown",
+        "SPEAKER_05": "Unknown",
+        "UNKNOWN": "Unknown"
+      }
+    }
+  }
+}
