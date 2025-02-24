@@ -1,0 +1,155 @@
+{
+    "file": "_TEST_AUDIO_10s_1",
+    "transcript": [
+        {
+            "segment_id": 0,
+            "speaker": "SPEAKER_00",
+            "text": "I had a mentor who recently passed away that was part of really my big introduction to politics. He taught me about it. His name is Woody Kaplan,",
+            "start": 0.031,
+            "end": 10.075,
+            "words": [
+                {
+                    "word": "I",
+                    "start": 0.031,
+                    "end": 0.313
+                },
+                {
+                    "word": "had",
+                    "start": 0.373,
+                    "end": 0.474
+                },
+                {
+                    "word": "a",
+                    "start": 0.514,
+                    "end": 0.534
+                },
+                {
+                    "word": "mentor",
+                    "start": 0.595,
+                    "end": 1.017
+                },
+                {
+                    "word": "who",
+                    "start": 1.098,
+                    "end": 1.279
+                },
+                {
+                    "word": "recently",
+                    "start": 1.48,
+                    "end": 1.822
+                },
+                {
+                    "word": "passed",
+                    "start": 1.883,
+                    "end": 2.205
+                },
+                {
+                    "word": "away",
+                    "start": 2.265,
+                    "end": 2.547
+                },
+                {
+                    "word": "that",
+                    "start": 2.587,
+                    "end": 3.171
+                },
+                {
+                    "word": "was",
+                    "start": 3.614,
+                    "end": 3.755
+                },
+                {
+                    "word": "part",
+                    "start": 3.835,
+                    "end": 4.057
+                },
+                {
+                    "word": "of",
+                    "start": 4.157,
+                    "end": 4.238
+                },
+                {
+                    "word": "really",
+                    "start": 4.278,
+                    "end": 4.661
+                },
+                {
+                    "word": "my",
+                    "start": 4.701,
+                    "end": 4.842
+                },
+                {
+                    "word": "big",
+                    "start": 4.942,
+                    "end": 5.164
+                },
+                {
+                    "word": "introduction",
+                    "start": 5.345,
+                    "end": 5.888
+                },
+                {
+                    "word": "to",
+                    "start": 5.909,
+                    "end": 5.969
+                },
+                {
+                    "word": "politics.",
+                    "start": 6.009,
+                    "end": 6.472
+                },
+                {
+                    "word": "He",
+                    "start": 6.533,
+                    "end": 6.734
+                },
+                {
+                    "word": "taught",
+                    "start": 7.338,
+                    "end": 7.559
+                },
+                {
+                    "word": "me",
+                    "start": 7.599,
+                    "end": 7.68
+                },
+                {
+                    "word": "about",
+                    "start": 7.74,
+                    "end": 8.002
+                },
+                {
+                    "word": "it.",
+                    "start": 8.022,
+                    "end": 8.223
+                },
+                {
+                    "word": "His",
+                    "start": 8.445,
+                    "end": 8.867
+                },
+                {
+                    "word": "name",
+                    "start": 8.908,
+                    "end": 9.008
+                },
+                {
+                    "word": "is",
+                    "start": 9.028,
+                    "end": 9.069
+                },
+                {
+                    "word": "Woody",
+                    "start": 9.109,
+                    "end": 9.31
+                },
+                {
+                    "word": "Kaplan,",
+                    "start": 9.33,
+                    "end": 10.075
+                }
+            ]
+        }
+    ],
+    "num_speakers": 1
+}

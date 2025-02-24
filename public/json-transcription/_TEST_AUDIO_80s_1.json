@@ -1,0 +1,1004 @@
+{
+    "file": "_TEST_AUDIO_80s_1",
+    "transcript": [
+        {
+            "segment_id": 0,
+            "speaker": "SPEAKER_00",
+            "text": "country and we have this teetering quasi corrupt democracy and these politicians who for the most part are in it for themselves and our influence peddling and that got me really passionate about it I will say that I I had a mentor who recently passed away that was part of really my big introduction to politics. He taught me about it. His name was Woody Kaplan and he took me under his wing as like his mentee and he was remarkably connected politically and he introduced me to a lot of people and taught me the ropes and convinced me that You know, activism on its own is helpful, but if you really want to make a difference, you have to get the politicians to make change. So you've got two college-age children. Mm-hmm. They think the system is hopeless.",
+            "start": 0.031,
+            "end": 56.093,
+            "words": [
+                {
+                    "word": "country",
+                    "start": 0.031,
+                    "end": 0.973
+                },
+                {
+                    "word": "and",
+                    "start": 1.013,
+                    "end": 1.834
+                },
+                {
+                    "word": "we",
+                    "start": 1.874,
+                    "end": 2.215
+                },
+                {
+                    "word": "have",
+                    "start": 2.275,
+                    "end": 2.395
+                },
+                {
+                    "word": "this",
+                    "start": 2.455,
+                    "end": 2.595
+                },
+                {
+                    "word": "teetering",
+                    "start": 2.896,
+                    "end": 3.557
+                },
+                {
+                    "word": "quasi",
+                    "start": 3.898,
+                    "end": 4.339
+                },
+                {
+                    "word": "corrupt",
+                    "start": 4.419,
+                    "end": 5.0
+                },
+                {
+                    "word": "democracy",
+                    "start": 5.44,
+                    "end": 6.262
+                },
+                {
+                    "word": "and",
+                    "start": 6.302,
+                    "end": 6.983
+                },
+                {
+                    "word": "these",
+                    "start": 7.023,
+                    "end": 8.245
+                },
+                {
+                    "word": "politicians",
+                    "start": 8.366,
+                    "end": 9.007
+                },
+                {
+                    "word": "who",
+                    "start": 9.067,
+                    "end": 9.267
+                },
+                {
+                    "word": "for",
+                    "start": 9.407,
+                    "end": 9.508
+                },
+                {
+                    "word": "the",
+                    "start": 9.548,
+                    "end": 9.608
+                },
+                {
+                    "word": "most",
+                    "start": 9.648,
+                    "end": 9.828
+                },
+                {
+                    "word": "part",
+                    "start": 9.868,
+                    "end": 10.069
+                },
+                {
+                    "word": "are",
+                    "start": 10.129,
+                    "end": 10.209
+                },
+                {
+                    "word": "in",
+                    "start": 10.329,
+                    "end": 10.409
+                },
+                {
+                    "word": "it",
+                    "start": 10.429,
+                    "end": 10.489
+                },
+                {
+                    "word": "for",
+                    "start": 10.529,
+                    "end": 10.65
+                },
+                {
+                    "word": "themselves",
+                    "start": 10.67,
+                    "end": 11.311
+                },
+                {
+                    "word": "and",
+                    "start": 12.072,
+                    "end": 12.212
+                },
+                {
+                    "word": "our",
+                    "start": 12.232,
+                    "end": 12.292
+                },
+                {
+                    "word": "influence",
+                    "start": 12.693,
+                    "end": 13.214
+                },
+                {
+                    "word": "peddling",
+                    "start": 13.274,
+                    "end": 13.735
+                },
+                {
+                    "word": "and",
+                    "start": 13.755,
+                    "end": 13.815
+                },
+                {
+                    "word": "that",
+                    "start": 14.396,
+                    "end": 15.478
+                },
+                {
+                    "word": "got",
+                    "start": 15.518,
+                    "end": 15.678
+                },
+                {
+                    "word": "me",
+                    "start": 15.718,
+                    "end": 15.839
+                },
+                {
+                    "word": "really",
+                    "start": 15.879,
+                    "end": 16.159
+                },
+                {
+                    "word": "passionate",
+                    "start": 16.219,
+                    "end": 16.46
+                },
+                {
+                    "word": "about",
+                    "start": 16.48,
+                    "end": 16.64
+                },
+                {
+                    "word": "it",
+                    "start": 16.66,
+                    "end": 16.7
+                },
+                {
+                    "word": "I",
+                    "start": 16.72,
+                    "end": 16.74
+                },
+                {
+                    "word": "will",
+                    "start": 16.76,
+                    "end": 17.221
+                },
+                {
+                    "word": "say",
+                    "start": 17.261,
+                    "end": 17.421
+                },
+                {
+                    "word": "that",
+                    "start": 17.461,
+                    "end": 17.742
+                },
+                {
+                    "word": "I",
+                    "start": 17.782,
+                    "end": 19.525
+                },
+                {
+                    "word": "I",
+                    "start": 19.505,
+                    "end": 19.645
+                },
+                {
+                    "word": "had",
+                    "start": 19.705,
+                    "end": 19.805
+                },
+                {
+                    "word": "a",
+                    "start": 19.845,
+                    "end": 19.866
+                },
+                {
+                    "word": "mentor",
+                    "start": 19.926,
+                    "end": 20.346
+                },
+                {
+                    "word": "who",
+                    "start": 20.426,
+                    "end": 20.607
+                },
+                {
+                    "word": "recently",
+                    "start": 20.807,
+                    "end": 21.147
+                },
+                {
+                    "word": "passed",
+                    "start": 21.207,
+                    "end": 21.528
+                },
+                {
+                    "word": "away",
+                    "start": 21.588,
+                    "end": 21.868
+                },
+                {
+                    "word": "that",
+                    "start": 21.888,
+                    "end": 22.489
+                },
+                {
+                    "word": "was",
+                    "start": 22.93,
+                    "end": 23.07
+                },
+                {
+                    "word": "part",
+                    "start": 23.15,
+                    "end": 23.371
+                },
+                {
+                    "word": "of",
+                    "start": 23.471,
+                    "end": 23.551
+                },
+                {
+                    "word": "really",
+                    "start": 23.591,
+                    "end": 23.951
+                },
+                {
+                    "word": "my",
+                    "start": 23.991,
+                    "end": 24.152
+                },
+                {
+                    "word": "big",
+                    "start": 24.252,
+                    "end": 24.472
+                },
+                {
+                    "word": "introduction",
+                    "start": 24.652,
+                    "end": 25.173
+                },
+                {
+                    "word": "to",
+                    "start": 25.213,
+                    "end": 25.253
+                },
+                {
+                    "word": "politics.",
+                    "start": 25.313,
+                    "end": 25.774
+                },
+                {
+                    "word": "He",
+                    "start": 25.814,
+                    "end": 26.014
+                },
+                {
+                    "word": "taught",
+                    "start": 26.054,
+                    "end": 26.856
+                },
+                {
+                    "word": "me",
+                    "start": 26.896,
+                    "end": 26.976
+                },
+                {
+                    "word": "about",
+                    "start": 27.036,
+                    "end": 27.276
+                },
+                {
+                    "word": "it.",
+                    "start": 27.316,
+                    "end": 27.376
+                },
+                {
+                    "word": "His",
+                    "start": 27.737,
+                    "end": 29.8
+                },
+                {
+                    "word": "name",
+                    "start": 29.84,
+                    "end": 29.96
+                },
+                {
+                    "word": "was",
+                    "start": 30.0,
+                    "end": 30.08
+                },
+                {
+                    "word": "Woody",
+                    "start": 30.12,
+                    "end": 30.341
+                },
+                {
+                    "word": "Kaplan",
+                    "start": 30.361,
+                    "end": 30.761
+                },
+                {
+                    "word": "and",
+                    "start": 31.242,
+                    "end": 31.422
+                },
+                {
+                    "word": "he",
+                    "start": 31.442,
+                    "end": 31.482
+                },
+                {
+                    "word": "took",
+                    "start": 32.704,
+                    "end": 32.984
+                },
+                {
+                    "word": "me",
+                    "start": 33.004,
+                    "end": 33.064
+                },
+                {
+                    "word": "under",
+                    "start": 33.104,
+                    "end": 33.305
+                },
+                {
+                    "word": "his",
+                    "start": 33.385,
+                    "end": 33.485
+                },
+                {
+                    "word": "wing",
+                    "start": 33.565,
+                    "end": 33.785
+                },
+                {
+                    "word": "as",
+                    "start": 33.846,
+                    "end": 33.906
+                },
+                {
+                    "word": "like",
+                    "start": 33.966,
+                    "end": 34.126
+                },
+                {
+                    "word": "his",
+                    "start": 34.166,
+                    "end": 34.286
+                },
+                {
+                    "word": "mentee",
+                    "start": 34.346,
+                    "end": 34.847
+                },
+                {
+                    "word": "and",
+                    "start": 35.288,
+                    "end": 35.448
+                },
+                {
+                    "word": "he",
+                    "start": 35.488,
+                    "end": 35.528
+                },
+                {
+                    "word": "was",
+                    "start": 35.808,
+                    "end": 36.009
+                },
+                {
+                    "word": "remarkably",
+                    "start": 36.049,
+                    "end": 37.831
+                },
+                {
+                    "word": "connected",
+                    "start": 38.172,
+                    "end": 38.612
+                },
+                {
+                    "word": "politically",
+                    "start": 38.713,
+                    "end": 39.313
+                },
+                {
+                    "word": "and",
+                    "start": 39.333,
+                    "end": 39.393
+                },
+                {
+                    "word": "he",
+                    "start": 40.115,
+                    "end": 40.275
+                },
+                {
+                    "word": "introduced",
+                    "start": 40.335,
+                    "end": 40.675
+                },
+                {
+                    "word": "me",
+                    "start": 40.695,
+                    "end": 40.735
+                },
+                {
+                    "word": "to",
+                    "start": 40.755,
+                    "end": 40.795
+                },
+                {
+                    "word": "a",
+                    "start": 40.816,
+                    "end": 40.836
+                },
+                {
+                    "word": "lot",
+                    "start": 40.856,
+                    "end": 40.916
+                },
+                {
+                    "word": "of",
+                    "start": 40.956,
+                    "end": 40.996
+                },
+                {
+                    "word": "people",
+                    "start": 41.016,
+                    "end": 41.276
+                },
+                {
+                    "word": "and",
+                    "start": 41.316,
+                    "end": 41.396
+                },
+                {
+                    "word": "taught",
+                    "start": 41.416,
+                    "end": 41.577
+                },
+                {
+                    "word": "me",
+                    "start": 41.597,
+                    "end": 41.657
+                },
+                {
+                    "word": "the",
+                    "start": 41.697,
+                    "end": 41.797
+                },
+                {
+                    "word": "ropes",
+                    "start": 41.817,
+                    "end": 42.137
+                },
+                {
+                    "word": "and",
+                    "start": 42.398,
+                    "end": 42.498
+                },
+                {
+                    "word": "convinced",
+                    "start": 42.678,
+                    "end": 43.059
+                },
+                {
+                    "word": "me",
+                    "start": 43.119,
+                    "end": 43.219
+                },
+                {
+                    "word": "that",
+                    "start": 43.239,
+                    "end": 43.96
+                },
+                {
+                    "word": "You",
+                    "start": 43.94,
+                    "end": 44.201
+                },
+                {
+                    "word": "know,",
+                    "start": 44.261,
+                    "end": 44.361
+                },
+                {
+                    "word": "activism",
+                    "start": 44.381,
+                    "end": 44.822
+                },
+                {
+                    "word": "on",
+                    "start": 44.883,
+                    "end": 44.943
+                },
+                {
+                    "word": "its",
+                    "start": 45.003,
+                    "end": 45.103
+                },
+                {
+                    "word": "own",
+                    "start": 45.244,
+                    "end": 45.364
+                },
+                {
+                    "word": "is",
+                    "start": 45.384,
+                    "end": 45.925
+                },
+                {
+                    "word": "helpful,",
+                    "start": 45.966,
+                    "end": 46.266
+                },
+                {
+                    "word": "but",
+                    "start": 46.286,
+                    "end": 46.367
+                },
+                {
+                    "word": "if",
+                    "start": 46.407,
+                    "end": 46.447
+                },
+                {
+                    "word": "you",
+                    "start": 46.487,
+                    "end": 46.627
+                },
+                {
+                    "word": "really",
+                    "start": 46.687,
+                    "end": 46.888
+                },
+                {
+                    "word": "want",
+                    "start": 46.928,
+                    "end": 47.028
+                },
+                {
+                    "word": "to",
+                    "start": 47.048,
+                    "end": 47.109
+                },
+                {
+                    "word": "make",
+                    "start": 47.129,
+                    "end": 47.269
+                },
+                {
+                    "word": "a",
+                    "start": 47.289,
+                    "end": 47.329
+                },
+                {
+                    "word": "difference,",
+                    "start": 47.369,
+                    "end": 47.77
+                },
+                {
+                    "word": "you",
+                    "start": 48.011,
+                    "end": 48.172
+                },
+                {
+                    "word": "have",
+                    "start": 48.212,
+                    "end": 48.312
+                },
+                {
+                    "word": "to",
+                    "start": 48.332,
+                    "end": 48.372
+                },
+                {
+                    "word": "get",
+                    "start": 48.412,
+                    "end": 48.492
+                },
+                {
+                    "word": "the",
+                    "start": 48.512,
+                    "end": 48.593
+                },
+                {
+                    "word": "politicians",
+                    "start": 48.633,
+                    "end": 49.295
+                },
+                {
+                    "word": "to",
+                    "start": 49.335,
+                    "end": 49.656
+                },
+                {
+                    "word": "make",
+                    "start": 49.716,
+                    "end": 49.856
+                },
+                {
+                    "word": "change.",
+                    "start": 49.916,
+                    "end": 50.217
+                },
+                {
+                    "word": "So",
+                    "start": 51.481,
+                    "end": 51.521
+                },
+                {
+                    "word": "you've",
+                    "start": 51.541,
+                    "end": 51.681
+                },
+                {
+                    "word": "got",
+                    "start": 51.701,
+                    "end": 51.862
+                },
+                {
+                    "word": "two",
+                    "start": 51.962,
+                    "end": 52.263
+                },
+                {
+                    "word": "college-age",
+                    "start": 52.503,
+                    "end": 53.125
+                },
+                {
+                    "word": "children.",
+                    "start": 54.088,
+                    "end": 54.268
+                },
+                {
+                    "word": "Mm-hmm.",
+                    "start": 54.288,
+                    "end": 54.649
+                },
+                {
+                    "word": "They",
+                    "start": 54.669,
+                    "end": 54.95
+                },
+                {
+                    "word": "think",
+                    "start": 55.01,
+                    "end": 55.612
+                },
+                {
+                    "word": "the",
+                    "start": 55.632,
+                    "end": 55.692
+                },
+                {
+                    "word": "system",
+                    "start": 55.712,
+                    "end": 55.832
+                },
+                {
+                    "word": "is",
+                    "start": 55.852,
+                    "end": 55.893
+                },
+                {
+                    "word": "hopeless.",
+                    "start": 55.913,
+                    "end": 56.093
+                }
+            ]
+        },
+        {
+            "segment_id": 1,
+            "speaker": "SPEAKER_00",
+            "text": "To be honest, my children and I don't talk a lot about this. I'll say this. I think, at least from my kids, I think the system and the current political climate is so frustrating and so toxic. I think a lot of times they don't even want to talk about it. They want to",
+            "start": 61.237,
+            "end": 78.503,
+            "words": [
+                {
+                    "word": "To",
+                    "start": 61.237,
+                    "end": 61.398
+                },
+                {
+                    "word": "be",
+                    "start": 61.438,
+                    "end": 61.518
+                },
+                {
+                    "word": "honest,",
+                    "start": 61.558,
+                    "end": 61.779
+                },
+                {
+                    "word": "my",
+                    "start": 61.819,
+                    "end": 61.9
+                },
+                {
+                    "word": "children",
+                    "start": 61.98,
+                    "end": 62.281
+                },
+                {
+                    "word": "and",
+                    "start": 62.301,
+                    "end": 62.361
+                },
+                {
+                    "word": "I",
+                    "start": 62.401,
+                    "end": 62.422
+                },
+                {
+                    "word": "don't",
+                    "start": 62.482,
+                    "end": 62.662
+                },
+                {
+                    "word": "talk",
+                    "start": 62.883,
+                    "end": 63.124
+                },
+                {
+                    "word": "a",
+                    "start": 63.164,
+                    "end": 63.205
+                },
+                {
+                    "word": "lot",
+                    "start": 63.225,
+                    "end": 63.365
+                },
+                {
+                    "word": "about",
+                    "start": 63.405,
+                    "end": 63.586
+                },
+                {
+                    "word": "this.",
+                    "start": 63.626,
+                    "end": 63.787
+                },
+                {
+                    "word": "I'll",
+                    "start": 63.867,
+                    "end": 65.011
+                },
+                {
+                    "word": "say",
+                    "start": 65.032,
+                    "end": 65.152
+                },
+                {
+                    "word": "this.",
+                    "start": 65.172,
+                    "end": 65.333
+                },
+                {
+                    "word": "I",
+                    "start": 65.493,
+                    "end": 65.554
+                },
+                {
+                    "word": "think,",
+                    "start": 65.594,
+                    "end": 66.818
+                },
+                {
+                    "word": "at",
+                    "start": 67.059,
+                    "end": 67.12
+                },
+                {
+                    "word": "least",
+                    "start": 67.18,
+                    "end": 67.381
+                },
+                {
+                    "word": "from",
+                    "start": 67.561,
+                    "end": 67.702
+                },
+                {
+                    "word": "my",
+                    "start": 68.244,
+                    "end": 68.404
+                },
+                {
+                    "word": "kids,",
+                    "start": 68.465,
+                    "end": 68.686
+                },
+                {
+                    "word": "I",
+                    "start": 68.726,
+                    "end": 68.766
+                },
+                {
+                    "word": "think",
+                    "start": 68.786,
+                    "end": 68.967
+                },
+                {
+                    "word": "the",
+                    "start": 69.549,
+                    "end": 69.669
+                },
+                {
+                    "word": "system",
+                    "start": 69.73,
+                    "end": 70.131
+                },
+                {
+                    "word": "and",
+                    "start": 70.613,
+                    "end": 70.794
+                },
+                {
+                    "word": "the",
+                    "start": 70.834,
+                    "end": 71.275
+                },
+                {
+                    "word": "current",
+                    "start": 71.316,
+                    "end": 71.536
+                },
+                {
+                    "word": "political",
+                    "start": 71.577,
+                    "end": 71.958
+                },
+                {
+                    "word": "climate",
+                    "start": 72.018,
+                    "end": 72.36
+                },
+                {
+                    "word": "is",
+                    "start": 72.44,
+                    "end": 72.5
+                },
+                {
+                    "word": "so",
+                    "start": 72.621,
+                    "end": 72.801
+                },
+                {
+                    "word": "frustrating",
+                    "start": 72.902,
+                    "end": 73.564
+                },
+                {
+                    "word": "and",
+                    "start": 73.584,
+                    "end": 74.207
+                },
+                {
+                    "word": "so",
+                    "start": 74.307,
+                    "end": 74.508
+                },
+                {
+                    "word": "toxic.",
+                    "start": 74.709,
+                    "end": 75.391
+                },
+                {
+                    "word": "I",
+                    "start": 76.014,
+                    "end": 76.074
+                },
+                {
+                    "word": "think",
+                    "start": 76.375,
+                    "end": 76.495
+                },
+                {
+                    "word": "a",
+                    "start": 76.536,
+                    "end": 76.556
+                },
+                {
+                    "word": "lot",
+                    "start": 76.576,
+                    "end": 76.676
+                },
+                {
+                    "word": "of",
+                    "start": 76.696,
+                    "end": 76.736
+                },
+                {
+                    "word": "times",
+                    "start": 76.756,
+                    "end": 76.897
+                },
+                {
+                    "word": "they",
+                    "start": 76.917,
+                    "end": 76.997
+                },
+                {
+                    "word": "don't",
+                    "start": 77.017,
+                    "end": 77.138
+                },
+                {
+                    "word": "even",
+                    "start": 77.178,
+                    "end": 77.278
+                },
+                {
+                    "word": "want",
+                    "start": 77.319,
+                    "end": 77.419
+                },
+                {
+                    "word": "to",
+                    "start": 77.439,
+                    "end": 77.479
+                },
+                {
+                    "word": "talk",
+                    "start": 77.519,
+                    "end": 77.72
+                },
+                {
+                    "word": "about",
+                    "start": 77.76,
+                    "end": 77.901
+                },
+                {
+                    "word": "it.",
+                    "start": 77.921,
+                    "end": 78.001
+                },
+                {
+                    "word": "They",
+                    "start": 78.021,
+                    "end": 78.102
+                },
+                {
+                    "word": "want",
+                    "start": 78.142,
+                    "end": 78.403
+                },
+                {
+                    "word": "to",
+                    "start": 78.443,
+                    "end": 78.503
+                }
+            ]
+        }
+    ],
+    "num_speakers": 1
+}

@@ -37,11 +37,27 @@ interface TranscriptData {
   num_speakers: number;
 }
 
+interface FolderStats {
+  totalFiles: number;
+  totalDuration: number;
+  totalSegments: number;
+  totalWords: number;
+  uniqueSpeakers: {
+    name: string;
+    speaker: string;
+    totalDuration: number;
+    totalSegments: number;
+    totalWords: number;
+    filesAppearingIn: string[];
+  }[];
+}
+
 export default function Transcribe2Page() {
   const [files, setFiles] = useState<AudioFileWithDuration[]>([]);
   const [totalDuration, setTotalDuration] = useState<number>(0);
   const [emailNotification, setEmailNotification] = useState(false);
   const [transcriptionData, setTranscriptionData] = useState<TranscriptData[] | null>(null);
+  const [folderStats, setFolderStats] = useState<FolderStats | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const formatDuration = (seconds: number): string => {
@@ -109,22 +125,108 @@ export default function Transcribe2Page() {
     }
   };
 
+  const calculateFolderStats = (transcripts: TranscriptData[]): FolderStats => {
+    const stats: FolderStats = {
+      totalFiles: transcripts.length,
+      totalDuration: 0,
+      totalSegments: 0,
+      totalWords: 0,
+      uniqueSpeakers: []
+    };
+
+    const speakerMap = new Map<string, {
+      name: string;
+      speaker: string;
+      totalDuration: number;
+      totalSegments: number;
+      totalWords: number;
+      filesAppearingIn: Set<string>;
+    }>();
+
+    transcripts.forEach(file => {
+      // Get file duration from last segment's end time
+      const fileDuration = file.transcript[file.transcript.length - 1]?.end || 0;
+      stats.totalDuration += fileDuration;
+      stats.totalSegments += file.transcript.length;
+      
+      file.transcript.forEach(segment => {
+        stats.totalWords += segment.words?.length || 0;
+        
+        const existingSpeaker = speakerMap.get(segment.speaker);
+        if (existingSpeaker) {
+          existingSpeaker.totalDuration += segment.end - segment.start;
+          existingSpeaker.totalSegments += 1;
+          existingSpeaker.totalWords += segment.words?.length || 0;
+          existingSpeaker.filesAppearingIn.add(file.file);
+        } else {
+          speakerMap.set(segment.speaker, {
+            name: segment.name || "Unknown",
+            speaker: segment.speaker,
+            totalDuration: segment.end - segment.start,
+            totalSegments: 1,
+            totalWords: segment.words?.length || 0,
+            filesAppearingIn: new Set([file.file])
+          });
+        }
+      });
+    });
+
+    stats.uniqueSpeakers = Array.from(speakerMap.values()).map(speaker => ({
+      ...speaker,
+      filesAppearingIn: Array.from(speaker.filesAppearingIn)
+    }));
+
+    return stats;
+  };
+
   const handleUpload = async () => {
     setIsProcessing(true);
     
     // Simulate processing time
     setTimeout(async () => {
       try {
-        // Load example transcription data
-        const res = await fetch("/json-transcription/example_ASR.json");
-        const jsonData = await res.json();
-        setTranscriptionData(Array.isArray(jsonData) ? jsonData : [jsonData]);
+        // Get list of all JSON files in the directory
+        const filesResponse = await fetch('/api/list-transcripts');
+        const { files } = await filesResponse.json();
+        
+        if (!files || files.length === 0) {
+          throw new Error("No transcription files found in directory");
+        }
+
+        const transcripts: TranscriptData[] = [];
+        
+        // Load each transcription file
+        for (const file of files) {
+          try {
+            const res = await fetch(`/json-transcription/${file}`);
+            if (!res.ok) {
+              console.error(`Failed to load ${file}: ${res.status} ${res.statusText}`);
+              continue;
+            }
+            const jsonData = await res.json();
+            if (jsonData) {
+              transcripts.push(jsonData);
+            }
+          } catch (error) {
+            console.error(`Error loading ${file}:`, error);
+          }
+        }
+
+        if (transcripts.length === 0) {
+          throw new Error("No transcription files could be loaded");
+        }
+
+        setTranscriptionData(transcripts);
+        
+        // Calculate folder stats
+        const stats = calculateFolderStats(transcripts);
+        setFolderStats(stats);
       } catch (error) {
-        console.error("Error loading transcription:", error);
+        console.error("Error loading transcriptions:", error);
       } finally {
         setIsProcessing(false);
       }
-    }, 2000); // Simulate 2 second processing time
+    }, 2000);
   };
 
   return (
@@ -330,17 +432,97 @@ export default function Transcribe2Page() {
                   </TabsContent>
 
                   {/* FOLDER VIEW TAB */}
-                  <TabsContent value="folder">
-                    <Card className="bg-black/50 border-gray-800">
-                      <CardHeader>
-                        <CardTitle className="text-white">Folder Analysis</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-400">
-                          Select a folder to view aggregated statistics across multiple files. (Coming soon)
-                        </p>
-                      </CardContent>
-                    </Card>
+                  <TabsContent value="folder" className="space-y-4">
+                    {folderStats && (
+                      <Card className="bg-black/50 border-gray-800">
+                        <CardHeader>
+                          <CardTitle className="text-white">Folder Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          {/* Overall Stats */}
+                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Card className="bg-black/30 border-gray-800">
+                              <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2 text-white">
+                                  <FileText className="w-4 h-4" />
+                                  Total Files
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-4 pt-0">
+                                <div className="text-2xl font-bold text-[#45b7aa]">
+                                  {folderStats.totalFiles}
+                                </div>
+                              </CardContent>
+                            </Card>
+                            <Card className="bg-black/30 border-gray-800">
+                              <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2 text-white">
+                                  <Clock className="w-4 h-4" />
+                                  Total Duration
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-4 pt-0">
+                                <div className="text-2xl font-bold text-[#45b7aa]">
+                                  {formatDuration(folderStats.totalDuration)}
+                                </div>
+                              </CardContent>
+                            </Card>
+                            <Card className="bg-black/30 border-gray-800">
+                              <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2 text-white">
+                                  <Users className="w-4 h-4" />
+                                  Unique Speakers
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-4 pt-0">
+                                <div className="text-2xl font-bold text-[#45b7aa]">
+                                  {folderStats.uniqueSpeakers.length}
+                                </div>
+                              </CardContent>
+                            </Card>
+                            <Card className="bg-black/30 border-gray-800">
+                              <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2 text-white">
+                                  <FileText className="w-4 h-4" />
+                                  Total Words
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-4 pt-0">
+                                <div className="text-2xl font-bold text-[#45b7aa]">
+                                  {folderStats.totalWords}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+
+                          {/* Speaker Analysis */}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-2 text-white">Speakers Across Files</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {folderStats.uniqueSpeakers.map((speaker) => (
+                                <div
+                                  key={speaker.speaker}
+                                  className="flex items-center space-x-3 p-3 rounded-lg border border-gray-800 bg-black/30"
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      <h4 className="font-semibold text-white">{speaker.name}</h4>
+                                      <Badge variant="secondary" className="bg-[#45b7aa] text-white">{speaker.speaker}</Badge>
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                      {speaker.totalSegments} segments · {speaker.totalWords} words · {formatDuration(speaker.totalDuration)}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      Appears in {speaker.filesAppearingIn.length} file(s)
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </TabsContent>
 
                   {/* DRIVE VIEW TAB */}

@@ -1,0 +1,360 @@
+{
+    "file": "_TEST_AUDIO_30s_1",
+    "transcript": [
+        {
+            "segment_id": 0,
+            "speaker": "SPEAKER_01",
+            "text": "school of social work s2 so when we're recreating a set there's a huge emphasis on attention to detail we want to match let's see we bring on a production designer that has a knack for knowing how and we bring on a production designer that knows how to dress the set properly and then we'll coordinate with them in pre-production so that we can light the thing and",
+            "start": 0.031,
+            "end": 29.818,
+            "words": [
+                {
+                    "word": "school",
+                    "start": 0.031,
+                    "end": 2.253
+                },
+                {
+                    "word": "of",
+                    "start": 2.273,
+                    "end": 2.313
+                },
+                {
+                    "word": "social",
+                    "start": 2.333,
+                    "end": 2.613
+                },
+                {
+                    "word": "work",
+                    "start": 2.653,
+                    "end": 2.834
+                },
+                {
+                    "word": "s2",
+                    "start": 2.994,
+                    "end": 3.074
+                },
+                {
+                    "word": "so",
+                    "start": 7.798,
+                    "end": 7.918
+                },
+                {
+                    "word": "when",
+                    "start": 7.938,
+                    "end": 8.038
+                },
+                {
+                    "word": "we're",
+                    "start": 8.078,
+                    "end": 8.258
+                },
+                {
+                    "word": "recreating",
+                    "start": 8.298,
+                    "end": 8.799
+                },
+                {
+                    "word": "a",
+                    "start": 8.819,
+                    "end": 8.839
+                },
+                {
+                    "word": "set",
+                    "start": 8.919,
+                    "end": 9.179
+                },
+                {
+                    "word": "there's",
+                    "start": 9.7,
+                    "end": 9.88
+                },
+                {
+                    "word": "a",
+                    "start": 9.9,
+                    "end": 9.92
+                },
+                {
+                    "word": "huge",
+                    "start": 9.96,
+                    "end": 10.14
+                },
+                {
+                    "word": "emphasis",
+                    "start": 10.2,
+                    "end": 10.601
+                },
+                {
+                    "word": "on",
+                    "start": 10.761,
+                    "end": 10.821
+                },
+                {
+                    "word": "attention",
+                    "start": 10.901,
+                    "end": 11.201
+                },
+                {
+                    "word": "to",
+                    "start": 11.221,
+                    "end": 11.281
+                },
+                {
+                    "word": "detail",
+                    "start": 11.341,
+                    "end": 11.702
+                },
+                {
+                    "word": "we",
+                    "start": 12.883,
+                    "end": 12.983
+                },
+                {
+                    "word": "want",
+                    "start": 13.023,
+                    "end": 13.163
+                },
+                {
+                    "word": "to",
+                    "start": 13.183,
+                    "end": 13.243
+                },
+                {
+                    "word": "match",
+                    "start": 13.323,
+                    "end": 13.663
+                },
+                {
+                    "word": "let's",
+                    "start": 14.464,
+                    "end": 14.564
+                },
+                {
+                    "word": "see",
+                    "start": 14.584,
+                    "end": 14.744
+                },
+                {
+                    "word": "we",
+                    "start": 15.385,
+                    "end": 15.485
+                },
+                {
+                    "word": "bring",
+                    "start": 15.525,
+                    "end": 15.725
+                },
+                {
+                    "word": "on",
+                    "start": 15.885,
+                    "end": 15.965
+                },
+                {
+                    "word": "a",
+                    "start": 16.005,
+                    "end": 16.026
+                },
+                {
+                    "word": "production",
+                    "start": 16.066,
+                    "end": 16.446
+                },
+                {
+                    "word": "designer",
+                    "start": 16.466,
+                    "end": 16.926
+                },
+                {
+                    "word": "that",
+                    "start": 17.387,
+                    "end": 17.587
+                },
+                {
+                    "word": "has",
+                    "start": 17.627,
+                    "end": 17.887
+                },
+                {
+                    "word": "a",
+                    "start": 17.947,
+                    "end": 17.967
+                },
+                {
+                    "word": "knack",
+                    "start": 18.027,
+                    "end": 18.328
+                },
+                {
+                    "word": "for",
+                    "start": 18.428,
+                    "end": 18.788
+                },
+                {
+                    "word": "knowing",
+                    "start": 19.489,
+                    "end": 19.809
+                },
+                {
+                    "word": "how",
+                    "start": 19.889,
+                    "end": 20.209
+                },
+                {
+                    "word": "and",
+                    "start": 20.269,
+                    "end": 20.369
+                },
+                {
+                    "word": "we",
+                    "start": 22.311,
+                    "end": 22.431
+                },
+                {
+                    "word": "bring",
+                    "start": 22.471,
+                    "end": 22.631
+                },
+                {
+                    "word": "on",
+                    "start": 22.692,
+                    "end": 22.752
+                },
+                {
+                    "word": "a",
+                    "start": 22.812,
+                    "end": 22.832
+                },
+                {
+                    "word": "production",
+                    "start": 22.872,
+                    "end": 23.192
+                },
+                {
+                    "word": "designer",
+                    "start": 23.212,
+                    "end": 23.612
+                },
+                {
+                    "word": "that",
+                    "start": 23.652,
+                    "end": 23.893
+                },
+                {
+                    "word": "knows",
+                    "start": 24.033,
+                    "end": 24.213
+                },
+                {
+                    "word": "how",
+                    "start": 24.273,
+                    "end": 24.353
+                },
+                {
+                    "word": "to",
+                    "start": 24.393,
+                    "end": 24.453
+                },
+                {
+                    "word": "dress",
+                    "start": 24.493,
+                    "end": 24.854
+                },
+                {
+                    "word": "the",
+                    "start": 24.874,
+                    "end": 24.954
+                },
+                {
+                    "word": "set",
+                    "start": 24.974,
+                    "end": 25.154
+                },
+                {
+                    "word": "properly",
+                    "start": 25.194,
+                    "end": 25.674
+                },
+                {
+                    "word": "and",
+                    "start": 25.774,
+                    "end": 25.834
+                },
+                {
+                    "word": "then",
+                    "start": 25.874,
+                    "end": 25.975
+                },
+                {
+                    "word": "we'll",
+                    "start": 26.015,
+                    "end": 26.195
+                },
+                {
+                    "word": "coordinate",
+                    "start": 26.515,
+                    "end": 26.835
+                },
+                {
+                    "word": "with",
+                    "start": 26.875,
+                    "end": 26.955
+                },
+                {
+                    "word": "them",
+                    "start": 26.975,
+                    "end": 27.096
+                },
+                {
+                    "word": "in",
+                    "start": 27.136,
+                    "end": 27.176
+                },
+                {
+                    "word": "pre-production",
+                    "start": 27.236,
+                    "end": 27.916
+                },
+                {
+                    "word": "so",
+                    "start": 28.016,
+                    "end": 28.136
+                },
+                {
+                    "word": "that",
+                    "start": 28.177,
+                    "end": 28.297
+                },
+                {
+                    "word": "we",
+                    "start": 28.357,
+                    "end": 28.477
+                },
+                {
+                    "word": "can",
+                    "start": 28.537,
+                    "end": 28.737
+                },
+                {
+                    "word": "light",
+                    "start": 29.077,
+                    "end": 29.258
+                },
+                {
+                    "word": "the",
+                    "start": 29.318,
+                    "end": 29.398
+                },
+                {
+                    "word": "thing",
+                    "start": 29.438,
+                    "end": 29.678
+                },
+                {
+                    "word": "and",
+                    "start": 29.758,
+                    "end": 29.818
+                }
+            ]
+        }
+    ],
+    "num_speakers": 1
+}
