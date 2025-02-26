@@ -14,8 +14,8 @@ const handler = NextAuth({
         }),
     ],
     pages: {
-        signIn: '/',
-        error: '/',
+        signIn: '/login',
+        error: '/login',
     },
     callbacks: {
         async redirect({ url, baseUrl }) {
@@ -24,6 +24,16 @@ const handler = NextAuth({
             // Allows callback URLs on the same origin
             else if (new URL(url).origin === baseUrl) return url
             return baseUrl
+        },
+        async session({ session, token, user }) {
+            // Send properties to the client
+            return {
+                ...session,
+                user: {
+                    ...session.user,
+                    id: token.sub,
+                }
+            }
         },
     },
 });

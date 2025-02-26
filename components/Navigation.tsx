@@ -7,8 +7,8 @@ const Navigation = () => {
     const pathname = usePathname();
 
     return (
-        <nav className='flex items-center z-50 relative'>
-            <ul className='flex flex-wrap gap-4 items-center'>
+        <nav className='flex items-center'>
+            <ul className='flex gap-8 items-center'>
                 <li
                     className={
                         pathname === "/" ? "text-[#45b7aa]" : "text-white"
@@ -89,6 +89,20 @@ const Navigation = () => {
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         summaries
+                    </Link>
+                </li>
+                <li
+                    className={
+                        pathname === "/login"
+                            ? "text-[#45b7aa]"
+                            : "text-white"
+                    }
+                >
+                    <Link
+                        href='/login'
+                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
+                    >
+                        login
                     </Link>
                 </li>
             </ul>

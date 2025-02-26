@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BackgroundWrapper from "@/components/BackgroundWrapper";
+import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
     title: "Home",
@@ -16,7 +18,13 @@ export default function RootLayout({
 }>) {
     return (
         <html lang='en'>
-            <body className='antialiased'>{children}</body>
+            <body className='antialiased'>
+                <SessionProvider>
+                    <BackgroundWrapper imagePath='/images/electric_timeline.png'>
+                        {children}
+                    </BackgroundWrapper>
+                </SessionProvider>
+            </body>
         </html>
     );
 } 
