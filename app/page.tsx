@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
-import Login from "@/components/login";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
-import { motion } from "framer-motion";
 
-export default function Home() {
+export default function HomePage() {
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
@@ -14,18 +12,13 @@ export default function Home() {
     }, []);
 
     return (
-        <BackgroundWrapper imagePath='/images/electric_timeline.png'>
-            <main className='flex min-h-screen flex-col items-center p-24 pt-9'>
+        <BackgroundWrapper imagePath="/images/electric_timeline.png">
+            <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
                     <div className='flex items-center justify-center mt-[200px]'>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1.3, duration: 0.5 }}
-                        >
-                            <Login />
-                        </motion.div>
+                        <h1 className='text-4xl font-bold text-white'>Welcome to Somni Pro</h1>
+                        <p className='text-lg text-gray-300 mt-4'>Your gateway to advanced speaker diarization and more.</p>
                     </div>
                 </div>
             </main>

@@ -1,9 +1,10 @@
+
 import type { Metadata } from "next";
-import "./globals.css";
+import "../globals.css";
 
 export const metadata: Metadata = {
     title: "Home",
-    description: "Welcome to Somni Pro - Your gateway to advanced speaker diarization and more.",
+    description: "Somni Pro brings you advanced speaker diarization...",
     icons: {
         icon: "/branding/Icon_White.svg",
     },
@@ -19,4 +20,4 @@ export default function RootLayout({
             <body className='antialiased'>{children}</body>
         </html>
     );
-} 
+}
