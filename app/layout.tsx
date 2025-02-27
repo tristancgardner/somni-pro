@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
 import SessionProvider from "@/components/SessionProvider";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
     title: "Home",
@@ -23,6 +24,7 @@ export default function RootLayout({
                     <BackgroundWrapper imagePath='/images/electric_timeline.png'>
                         {children}
                     </BackgroundWrapper>
+                    <Toaster />
                 </SessionProvider>
             </body>
         </html>

@@ -65,13 +65,13 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/transcribe-2"
+                        pathname === "/batch-upload"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/transcribe-2'
+                        href='/batch-upload'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         batch upload
@@ -89,20 +89,6 @@ const Navigation = () => {
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         summaries
-                    </Link>
-                </li>
-                <li
-                    className={
-                        pathname === "/login"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/login'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        login
                     </Link>
                 </li>
             </ul>
