@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from "next-auth/react";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiUpload, FiPlay, FiCheck, FiX } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiUpload, FiPlay, FiCheck, FiX, FiFileText } from "react-icons/fi";
 import { v4 as uuidv4 } from 'uuid';
+import TranscriptionViewer from '@/components/TranscriptionViewer';
 
 type JobStatus = {
   jobId: string;
@@ -55,6 +56,10 @@ export default function UploadTestPage() {
   const [hasMoreTranscriptions, setHasMoreTranscriptions] = useState(false);
   const [resultsPage, setResultsPage] = useState(1);
   const maxResultsPerPage = 10;
+  
+  // Transcription viewer state
+  const [selectedTranscription, setSelectedTranscription] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   // Generate a sessionId once when the component mounts
   useEffect(() => {
@@ -342,6 +347,11 @@ export default function UploadTestPage() {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+  
+  const viewTranscription = (url: string) => {
+    setSelectedTranscription(url);
+    setViewerOpen(true);
+  };
 
   // Show a login message if not authenticated
   if (status === "unauthenticated") {
@@ -399,6 +409,7 @@ export default function UploadTestPage() {
     }}>
       <h1 style={{ color: '#ffffff', marginBottom: '1rem' }}>S3 Upload & Batch Transcription Testing</h1>
       
+      {/* Session Info Banner */}
       <div style={{ 
         backgroundColor: 'rgba(255,255,255,0.05)', 
         padding: '1rem', 
@@ -427,436 +438,459 @@ export default function UploadTestPage() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* File Upload Panel */}
-        <div style={{ 
-          background: 'rgba(255,255,255,0.05)', 
-          padding: '2rem', 
-          borderRadius: '8px',
-          marginBottom: '2rem'
-        }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Step 1: Upload Audio Files</h2>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label 
-              htmlFor="file-upload" 
-              style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                fontWeight: 'bold' 
+      {/* Main Content */}
+      {viewerOpen && selectedTranscription ? (
+        /* Transcription Viewer */
+        <div>
+          <div className="mb-4 flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Transcription Viewer</h2>
+            <button 
+              onClick={() => {
+                setViewerOpen(false);
+                setSelectedTranscription(null);
               }}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
             >
-              Select one or more .wav files to upload:
-            </label>
-            <input 
-              id="file-upload"
-              type="file" 
-              accept=".wav,.mp3,.m4a" 
-              onChange={handleFileChange}
-              multiple
-              style={{ 
-                color: '#ffffff', 
-                background: 'transparent',
-                width: '100%',
-                padding: '0.5rem 0'
-              }}
-              disabled={isUploading}
-            />
-            {selectedFiles.length > 0 && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#aaa' }}>
-                Selected {selectedFiles.length} file(s) - Total size: {
-                  formatFileSize(selectedFiles.reduce((sum, file) => sum + file.size, 0))
-                }
-              </div>
-            )}
+              Back to Results
+            </button>
           </div>
-          
-          <button 
-            onClick={handleUpload}
-            disabled={isUploading || selectedFiles.length === 0}
-            style={{ 
-              padding: '0.75rem 1.5rem', 
-              backgroundColor: isUploading ? '#6b7280' : '#4f46e5', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '0.25rem',
-              cursor: isUploading ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-              transition: 'background-color 0.2s ease',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <FiUpload />
-            {isUploading ? 'Uploading...' : 'Upload Files to S3'}
-          </button>
-          
-          {/* File Upload Status List */}
-          {uploadStatuses.length > 0 && (
-            <div style={{ 
-              marginTop: '1.5rem',
-              backgroundColor: 'rgba(0,0,0,0.2)',
-              borderRadius: '0.5rem',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  {uploadStatuses.map((status, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', width: '75%', wordBreak: 'break-all' }}>
-                        {status.filename}
-                      </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                        {status.status === 'pending' && (
-                          <span style={{ color: '#9CA3AF' }}>Pending</span>
-                        )}
-                        {status.status === 'uploading' && (
-                          <span style={{ color: '#3B82F6' }}>Uploading...</span>
-                        )}
-                        {status.status === 'success' && (
-                          <span style={{ color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                            <FiCheck style={{ marginRight: '4px' }} /> Success
-                          </span>
-                        )}
-                        {status.status === 'error' && (
-                          <span style={{ color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                            <FiX style={{ marginRight: '4px' }} /> Error
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <TranscriptionViewer jsonUrl={selectedTranscription} />
         </div>
-        
-        {/* Batch Transcription Panel */}
-        <div style={{ 
-          background: 'rgba(255,255,255,0.05)', 
-          padding: '2rem', 
-          borderRadius: '8px',
-          marginBottom: '2rem'
-        }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Step 2: Process All Files</h2>
-          <p style={{ marginBottom: '1.5rem', color: '#aaa' }}>
-            This will find all audio files in your input directory for this session and submit them for transcription.
-          </p>
-          
-          <button 
-            onClick={handleSubmitJobs}
-            disabled={isSubmitting}
-            style={{ 
-              padding: '0.75rem 1.5rem', 
-              backgroundColor: isSubmitting ? '#6b7280' : '#10b981', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '0.25rem',
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-              transition: 'background-color 0.2s ease',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <FiPlay />
-            {isSubmitting ? 'Submitting...' : 'Submit Transcription Jobs'}
-          </button>
-          
-          {jobMessage && (
+      ) : (
+        /* Normal Upload and Process Flow */
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* File Upload Panel */}
             <div style={{ 
-              marginTop: '1.5rem',
-              padding: '1rem',
-              borderRadius: '0.25rem',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              borderLeft: '4px solid #10b981',
-              color: '#34d399'
+              background: 'rgba(255,255,255,0.05)', 
+              padding: '2rem', 
+              borderRadius: '8px',
+              marginBottom: '2rem'
             }}>
-              <p style={{ margin: 0, fontWeight: 'bold' }}>
-                {jobMessage}
-              </p>
-            </div>
-          )}
-          
-          {jobError && (
-            <div style={{ 
-              marginTop: '1.5rem',
-              padding: '1rem',
-              borderRadius: '0.25rem',
-              backgroundColor: 'rgba(220, 38, 38, 0.1)',
-              borderLeft: '4px solid #dc2626',
-              color: '#f87171'
-            }}>
-              <p style={{ margin: 0, fontWeight: 'bold' }}>
-                {jobError}
-              </p>
-            </div>
-          )}
-          
-          <div style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Job Status</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: '#aaa' }}>
-                  <input
-                    type="checkbox"
-                    checked={autoRefresh}
-                    onChange={() => setAutoRefresh(!autoRefresh)}
-                    style={{ marginRight: '0.5rem' }}
-                  />
-                  Auto-refresh (15s)
-                </label>
-                <button
-                  onClick={checkJobStatus}
-                  disabled={isCheckingStatus || jobs.length === 0}
+              <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Step 1: Upload Audio Files</h2>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label 
+                  htmlFor="file-upload" 
                   style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: isCheckingStatus ? '#6b7280' : '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.875rem',
-                    cursor: isCheckingStatus || jobs.length === 0 ? 'not-allowed' : 'pointer'
+                    display: 'block', 
+                    marginBottom: '0.5rem', 
+                    fontWeight: 'bold' 
                   }}
                 >
-                  <FiRefreshCw className={isCheckingStatus ? "animate-spin" : ""} />
-                  Refresh
-                </button>
+                  Select one or more .wav files to upload:
+                </label>
+                <input 
+                  id="file-upload"
+                  type="file" 
+                  accept=".wav,.mp3,.m4a" 
+                  onChange={handleFileChange}
+                  multiple
+                  style={{ 
+                    color: '#ffffff', 
+                    background: 'transparent',
+                    width: '100%',
+                    padding: '0.5rem 0'
+                  }}
+                  disabled={isUploading}
+                />
+                {selectedFiles.length > 0 && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#aaa' }}>
+                    Selected {selectedFiles.length} file(s) - Total size: {
+                      formatFileSize(selectedFiles.reduce((sum, file) => sum + file.size, 0))
+                    }
+                  </div>
+                )}
               </div>
-            </div>
-            
-            {jobs.length > 0 ? (
-              <div style={{ overflowX: 'auto', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '0.5rem' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>File</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobs.map((job, index) => {
-                      const statusRecord = jobStatuses.find(status => status.jobId === job.jobId);
-                      const status = statusRecord?.status || 'Unknown';
-                      const statusColorClass = getStatusBadgeColor(status);
-                      
-                      return (
+              
+              <button 
+                onClick={handleUpload}
+                disabled={isUploading || selectedFiles.length === 0}
+                style={{ 
+                  padding: '0.75rem 1.5rem', 
+                  backgroundColor: isUploading ? '#6b7280' : '#4f46e5', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.25rem',
+                  cursor: isUploading ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold',
+                  transition: 'background-color 0.2s ease',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <FiUpload />
+                {isUploading ? 'Uploading...' : 'Upload Files to S3'}
+              </button>
+              
+              {/* File Upload Status List */}
+              {uploadStatuses.length > 0 && (
+                <div style={{ 
+                  marginTop: '1.5rem',
+                  backgroundColor: 'rgba(0,0,0,0.2)',
+                  borderRadius: '0.5rem',
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      {uploadStatuses.map((status, index) => (
                         <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{job.fileName}</td>
-                          <td style={{ padding: '0.75rem' }}>
-                            <span style={{ 
-                              display: 'inline-block',
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: '9999px',
-                              fontSize: '0.75rem',
-                              fontWeight: 'bold',
-                              backgroundColor: statusColorClass.split(' ')[0].replace('bg-', ''),
-                              color: statusColorClass.split(' ')[1].replace('text-', '')
-                            }}>
-                              {status}
-                            </span>
+                          <td style={{ padding: '0.75rem', fontSize: '0.875rem', width: '75%', wordBreak: 'break-all' }}>
+                            {status.filename}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            {status.status === 'pending' && (
+                              <span style={{ color: '#9CA3AF' }}>Pending</span>
+                            )}
+                            {status.status === 'uploading' && (
+                              <span style={{ color: '#3B82F6' }}>Uploading...</span>
+                            )}
+                            {status.status === 'success' && (
+                              <span style={{ color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <FiCheck style={{ marginRight: '4px' }} /> Success
+                              </span>
+                            )}
+                            {status.status === 'error' && (
+                              <span style={{ color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <FiX style={{ marginRight: '4px' }} /> Error
+                              </span>
+                            )}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            
+            {/* Batch Transcription Panel */}
+            <div style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              padding: '2rem', 
+              borderRadius: '8px',
+              marginBottom: '2rem'
+            }}>
+              <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Step 2: Process All Files</h2>
+              <p style={{ marginBottom: '1.5rem', color: '#aaa' }}>
+                This will find all audio files in your input directory for this session and submit them for transcription.
+              </p>
+              
+              <button 
+                onClick={handleSubmitJobs}
+                disabled={isSubmitting}
+                style={{ 
+                  padding: '0.75rem 1.5rem', 
+                  backgroundColor: isSubmitting ? '#6b7280' : '#10b981', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.25rem',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold',
+                  transition: 'background-color 0.2s ease',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <FiPlay />
+                {isSubmitting ? 'Submitting...' : 'Submit Transcription Jobs'}
+              </button>
+              
+              {jobMessage && (
+                <div style={{ 
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  borderRadius: '0.25rem',
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  borderLeft: '4px solid #10b981',
+                  color: '#34d399'
+                }}>
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>
+                    {jobMessage}
+                  </p>
+                </div>
+              )}
+              
+              {jobError && (
+                <div style={{ 
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  borderRadius: '0.25rem',
+                  backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                  borderLeft: '4px solid #dc2626',
+                  color: '#f87171'
+                }}>
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>
+                    {jobError}
+                  </p>
+                </div>
+              )}
+              
+              <div style={{ marginTop: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: 0 }}>Job Status</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: '#aaa' }}>
+                      <input
+                        type="checkbox"
+                        checked={autoRefresh}
+                        onChange={() => setAutoRefresh(!autoRefresh)}
+                        style={{ marginRight: '0.5rem' }}
+                      />
+                      Auto-refresh (15s)
+                    </label>
+                    <button
+                      onClick={checkJobStatus}
+                      disabled={isCheckingStatus || jobs.length === 0}
+                      style={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: isCheckingStatus ? '#6b7280' : '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem',
+                        cursor: isCheckingStatus || jobs.length === 0 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <FiRefreshCw className={isCheckingStatus ? "animate-spin" : ""} />
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+                
+                {jobs.length > 0 ? (
+                  <div style={{ overflowX: 'auto', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '0.5rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>File</th>
+                          <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {jobs.map((job, index) => {
+                          const statusRecord = jobStatuses.find(status => status.jobId === job.jobId);
+                          const status = statusRecord?.status || 'Unknown';
+                          const statusColorClass = getStatusBadgeColor(status);
+                          
+                          return (
+                            <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{job.fileName}</td>
+                              <td style={{ padding: '0.75rem' }}>
+                                <span style={{ 
+                                  display: 'inline-block',
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '9999px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  backgroundColor: statusColorClass.split(' ')[0].replace('bg-', ''),
+                                  color: statusColorClass.split(' ')[1].replace('text-', '')
+                                }}>
+                                  {status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ 
+                    padding: '2rem', 
+                    textAlign: 'center', 
+                    color: '#aaa', 
+                    backgroundColor: 'rgba(0,0,0,0.2)', 
+                    borderRadius: '0.5rem'
+                  }}>
+                    No jobs submitted yet
+                  </div>
+                )}
               </div>
+            </div>
+          </div>
+          
+          {/* Transcription Results Panel */}
+          <div style={{ 
+            background: 'rgba(255,255,255,0.05)', 
+            padding: '2rem', 
+            borderRadius: '8px',
+            marginBottom: '2rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Step 3: View Transcriptions</h2>
+              <button
+                onClick={() => loadTranscriptionResults()}
+                disabled={isLoadingTranscriptions}
+                style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  backgroundColor: isLoadingTranscriptions ? '#6b7280' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.25rem',
+                  cursor: isLoadingTranscriptions ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
+                Refresh List
+              </button>
+            </div>
+            
+            {transcriptionError && (
+              <div style={{ 
+                marginBottom: '1.5rem',
+                padding: '1rem',
+                borderRadius: '0.25rem',
+                backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                borderLeft: '4px solid #dc2626',
+                color: '#f87171'
+              }}>
+                {transcriptionError}
+              </div>
+            )}
+            
+            {getCurrentPageTranscriptions().length > 0 ? (
+              <>
+                <div style={{ overflowX: 'auto', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '0.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>File Name</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Size</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Date</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getCurrentPageTranscriptions().map((file, index) => (
+                        <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{file.filename}</td>
+                          <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{formatFileSize(file.size)}</td>
+                          <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
+                            {new Date(file.lastModified).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                            <div className="flex items-center justify-end gap-4">
+                              <button
+                                onClick={() => viewTranscription(file.downloadUrl)}
+                                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                              >
+                                <FiFileText /> View
+                              </button>
+                              <a 
+                                href={file.downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                              >
+                                <FiDownload /> Download
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination Controls */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginTop: '1rem',
+                  color: '#aaa',
+                  fontSize: '0.875rem'
+                }}>
+                  <button
+                    onClick={() => handlePaginationChange('prev')}
+                    disabled={resultsPage <= 1}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.25rem',
+                      padding: '0.5rem',
+                      color: resultsPage <= 1 ? '#6b7280' : '#60a5fa',
+                      background: 'none',
+                      border: 'none',
+                      cursor: resultsPage <= 1 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <FiChevronLeft /> Previous
+                  </button>
+                  <span>Page {resultsPage}</span>
+                  <button
+                    onClick={() => handlePaginationChange('next')}
+                    disabled={!hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.25rem',
+                      padding: '0.5rem',
+                      color: !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage ? '#6b7280' : '#60a5fa',
+                      background: 'none',
+                      border: 'none',
+                      cursor: !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Next <FiChevronRight />
+                  </button>
+                </div>
+              </>
             ) : (
               <div style={{ 
-                padding: '2rem', 
+                padding: '3rem', 
                 textAlign: 'center', 
                 color: '#aaa', 
                 backgroundColor: 'rgba(0,0,0,0.2)', 
                 borderRadius: '0.5rem'
               }}>
-                No jobs submitted yet
+                {isLoadingTranscriptions ? (
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ 
+                      width: '2rem', 
+                      height: '2rem', 
+                      borderRadius: '9999px', 
+                      borderTop: '2px solid #60a5fa', 
+                      borderRight: '2px solid transparent', 
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                  </div>
+                ) : (
+                  "No transcription files found in your output directory for this session."
+                )}
               </div>
             )}
           </div>
-        </div>
-      </div>
-      
-      {/* Transcription Results Panel */}
-      <div style={{ 
-        background: 'rgba(255,255,255,0.05)', 
-        padding: '2rem', 
-        borderRadius: '8px',
-        marginBottom: '2rem'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', margin: 0 }}>Step 3: View Transcriptions</h2>
-          <button
-            onClick={() => loadTranscriptionResults()}
-            disabled={isLoadingTranscriptions}
-            style={{ 
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: isLoadingTranscriptions ? '#6b7280' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.25rem',
-              cursor: isLoadingTranscriptions ? 'not-allowed' : 'pointer'
-            }}
-          >
-            <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
-            Refresh List
-          </button>
-        </div>
-        
-        {transcriptionError && (
-          <div style={{ 
-            marginBottom: '1.5rem',
-            padding: '1rem',
-            borderRadius: '0.25rem',
-            backgroundColor: 'rgba(220, 38, 38, 0.1)',
-            borderLeft: '4px solid #dc2626',
-            color: '#f87171'
-          }}>
-            {transcriptionError}
+          
+          <div style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', color: '#aaa', fontSize: '0.875rem' }}>
+            <p><strong>Testing Flow:</strong></p>
+            <ol style={{ paddingLeft: '1.5rem' }}>
+              <li>Upload audio files using the form in Step 1</li>
+              <li>Click "Submit Transcription Jobs" in Step 2 to process all files</li>
+              <li>Monitor job status in the table below Step 2</li>
+              <li>Once jobs complete, view and download results in Step 3</li>
+            </ol>
+            <p><strong>Directory Structure:</strong></p>
+            <ul style={{ paddingLeft: '1.5rem' }}>
+              <li>Input files: <code>s3://{process.env.S3_TRANSCRIBE_BUCKET}/input/{session?.user?.email}/{sessionId}/</code></li>
+              <li>Output files: <code>s3://{process.env.S3_TRANSCRIBE_BUCKET}/output/{session?.user?.email}/{sessionId}/</code></li>
+            </ul>
           </div>
-        )}
-        
-        {getCurrentPageTranscriptions().length > 0 ? (
-          <>
-            <div style={{ overflowX: 'auto', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '0.5rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>File Name</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Size</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Date</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {getCurrentPageTranscriptions().map((file, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{file.filename}</td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{formatFileSize(file.size)}</td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                        {new Date(file.lastModified).toLocaleDateString()}
-                      </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                        <a 
-                          href={file.downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.25rem',
-                            color: '#60a5fa',
-                            textDecoration: 'none',
-                            fontWeight: 'bold',
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          <FiDownload /> Download
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* Pagination Controls */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginTop: '1rem',
-              color: '#aaa',
-              fontSize: '0.875rem'
-            }}>
-              <button
-                onClick={() => handlePaginationChange('prev')}
-                disabled={resultsPage <= 1}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.25rem',
-                  padding: '0.5rem',
-                  color: resultsPage <= 1 ? '#6b7280' : '#60a5fa',
-                  background: 'none',
-                  border: 'none',
-                  cursor: resultsPage <= 1 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <FiChevronLeft /> Previous
-              </button>
-              <span>Page {resultsPage}</span>
-              <button
-                onClick={() => handlePaginationChange('next')}
-                disabled={!hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.25rem',
-                  padding: '0.5rem',
-                  color: !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage ? '#6b7280' : '#60a5fa',
-                  background: 'none',
-                  border: 'none',
-                  cursor: !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Next <FiChevronRight />
-              </button>
-            </div>
-          </>
-        ) : (
-          <div style={{ 
-            padding: '3rem', 
-            textAlign: 'center', 
-            color: '#aaa', 
-            backgroundColor: 'rgba(0,0,0,0.2)', 
-            borderRadius: '0.5rem'
-          }}>
-            {isLoadingTranscriptions ? (
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{ 
-                  width: '2rem', 
-                  height: '2rem', 
-                  borderRadius: '9999px', 
-                  borderTop: '2px solid #60a5fa', 
-                  borderRight: '2px solid transparent', 
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-              </div>
-            ) : (
-              "No transcription files found in your output directory for this session."
-            )}
-          </div>
-        )}
-      </div>
-      
-      <div style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', color: '#aaa', fontSize: '0.875rem' }}>
-        <p><strong>Testing Flow:</strong></p>
-        <ol style={{ paddingLeft: '1.5rem' }}>
-          <li>Upload audio files using the form in Step 1</li>
-          <li>Click "Submit Transcription Jobs" in Step 2 to process all files</li>
-          <li>Monitor job status in the table below Step 2</li>
-          <li>Once jobs complete, view and download results in Step 3</li>
-        </ol>
-        <p><strong>Directory Structure:</strong></p>
-        <ul style={{ paddingLeft: '1.5rem' }}>
-          <li>Input files: <code>s3://{process.env.S3_TRANSCRIBE_BUCKET}/input/{session?.user?.email}/{sessionId}/</code></li>
-          <li>Output files: <code>s3://{process.env.S3_TRANSCRIBE_BUCKET}/output/{session?.user?.email}/{sessionId}/</code></li>
-        </ul>
-      </div>
+        </>
+      )}
     </main>
   );
 } 
