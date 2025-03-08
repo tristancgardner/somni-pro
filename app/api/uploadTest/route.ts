@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import AWS from 'aws-sdk';
 import { writeFile } from 'fs/promises';
 import fs from 'fs';
@@ -17,8 +18,37 @@ export async function POST(request: NextRequest) {
   try {
     console.log('Starting file upload process...');
     
-    // Use FormData instead of formidable
+    // Parse form data
     const formData = await request.formData();
+    
+    // Get userEmail and sessionId from form data
+    const userEmail = formData.get('userEmail') as string;
+    const sessionId = formData.get('sessionId') as string;
+    
+    // Validate userEmail and sessionId
+    if (!userEmail || !sessionId) {
+      // Fallback to session if not provided in form data
+      const session = await getServerSession();
+      if (!session) {
+        console.error('No valid session found and no userEmail/sessionId provided');
+        return NextResponse.json(
+          { message: 'Unauthorized - no valid session' },
+          { status: 401 }
+        );
+      }
+      
+      // Use email from session if available
+      if (!userEmail && session.user?.email) {
+        console.log('Using email from session:', session.user.email);
+      }
+    }
+    
+    // Use provided values or fallbacks
+    const userId = userEmail || 'unknown-user';
+    const sId = sessionId || `fallback-${Date.now()}`;
+    
+    console.log('User email for upload:', userId);
+    console.log('Session ID for upload:', sId);
     
     // Get the file from the FormData
     const file = formData.get('testFile') as File;
@@ -45,13 +75,13 @@ export async function POST(request: NextRequest) {
     // Create a file stream from the temp file
     const fileStream = fs.createReadStream(tempFilePath);
 
-    // Upload to S3 (use "input/" folder prefix)
-    const s3Key = `input/${file.name}`;
+    // Build a user-specific S3 key with sessionId
+    const s3Key = `input/${userId}/${sId}/${file.name}`;
     console.log('Starting S3 upload to:', s3Key);
     
     const uploadResult = await s3
       .upload({
-        Bucket: process.env.S3_INPUT_BUCKET!,
+        Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
         Key: s3Key,
         Body: fileStream,
       })
@@ -65,7 +95,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { message: 'File uploaded successfully!', location: uploadResult.Location },
+      { 
+        message: 'File uploaded successfully!', 
+        location: uploadResult.Location,
+        s3Path: `s3://${process.env.S3_TRANSCRIBE_BUCKET!}/${s3Key}`
+      },
       { status: 200 }
     );
   } catch (error: any) {

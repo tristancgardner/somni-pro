@@ -79,6 +79,20 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
+                        pathname === "/batch-submit"
+                            ? "text-[#45b7aa]"
+                            : "text-white"
+                    }
+                >
+                    <Link
+                        href='/batch-submit'
+                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
+                    >
+                        batch transcribe
+                    </Link>
+                </li>
+                <li
+                    className={
                         pathname === "/summaries-storylines"
                             ? "text-[#45b7aa]"
                             : "text-white"
