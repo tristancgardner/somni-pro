@@ -69,13 +69,8 @@ export default function AccountSettingsPage() {
     }
 
     if (session?.user) {
-      // Uncomment when API is ready
-      // loadAccountData();
-      
-      // For demo, simulate API loading
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
+      // Load the actual data from the API
+      loadAccountData();
     }
   }, [session, accountForm]);
 
@@ -83,10 +78,17 @@ export default function AccountSettingsPage() {
   async function onAccountSubmit(values: AccountFormValues) {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch("/api/account/settings/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
       
-      console.log("Account settings:", values);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update account settings");
+      }
+      
       toast.success("Account settings updated successfully");
     } catch (error) {
       console.error("Error updating account settings:", error);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 
 // Validation schema for user settings
 const userSettingsSchema = z.object({
@@ -16,6 +17,10 @@ const userSettingsSchema = z.object({
     marketing: z.boolean().default(false),
     updates: z.boolean().default(false),
   }),
+  language: z.string().optional(),
+  timezone: z.string().optional(),
+  autoSave: z.boolean().optional(),
+  soundEffects: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -43,17 +48,88 @@ export async function PATCH(req: Request) {
       );
     }
     
-    // In a real app, save to database here
-    // For example: await db.user.update({ ... })
+    // Get the user ID
+    const email = session.user.email;
+    if (!email) {
+      return NextResponse.json(
+        { error: "User email not found in session" },
+        { status: 400 }
+      );
+    }
     
-    // Simulated success response
+    // Find or create the user and their account settings
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: { accountSettings: true }
+    });
+    
+    if (!user) {
+      // Create the user if they don't exist
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: session.user.name || "",
+          image: session.user.image || "",
+        },
+        include: { accountSettings: true }
+      });
+    }
+    
+    // Update user's name
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: validated.data.name,
+        // We don't update email here as it might be connected to auth
+      }
+    });
+    
+    // Update account settings
+    const accountSettings = await prisma.accountSettings.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        bio: validated.data.bio || "",
+        language: validated.data.language || "en",
+        timezone: validated.data.timezone || "UTC",
+        autoSave: validated.data.autoSave ?? true,
+        soundEffects: validated.data.soundEffects ?? true
+      },
+      update: {
+        bio: validated.data.bio,
+        language: validated.data.language,
+        timezone: validated.data.timezone,
+        autoSave: validated.data.autoSave,
+        soundEffects: validated.data.soundEffects
+      }
+    });
+    
+    // Update notification settings if provided
+    if (validated.data.notifications) {
+      await prisma.notificationSettings.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          email: validated.data.notifications.email,
+          marketing: validated.data.notifications.marketing,
+          updates: validated.data.notifications.updates
+        },
+        update: {
+          email: validated.data.notifications.email,
+          marketing: validated.data.notifications.marketing,
+          updates: validated.data.notifications.updates
+        }
+      });
+    }
+    
+    // Return updated user data
     return NextResponse.json(
       { 
         message: "Settings updated successfully", 
-        user: { 
-          ...session.user,
-          ...validated.data
-        } 
+        user: {
+          ...validated.data,
+          id: user.id
+        }
       },
       { status: 200 }
     );
@@ -78,19 +154,67 @@ export async function GET() {
       );
     }
     
-    // In a real app, get from database
-    // For example: const userData = await db.user.findUnique({ ... })
+    const email = session.user.email;
+    if (!email) {
+      return NextResponse.json(
+        { error: "User email not found in session" },
+        { status: 400 }
+      );
+    }
     
-    // Mock user data based on session
+    // Find the user and their settings
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { 
+        accountSettings: true,
+        notificationSettings: true
+      }
+    });
+    
+    if (!user) {
+      // Create a default user and return mock data
+      const newUser = await prisma.user.create({
+        data: {
+          email,
+          name: session.user.name || "",
+          image: session.user.image || "",
+        }
+      });
+      
+      const userData = {
+        id: newUser.id,
+        name: newUser.name || "",
+        email: newUser.email,
+        bio: "",
+        notifications: {
+          email: true,
+          marketing: false,
+          updates: true,
+        },
+        language: "en",
+        timezone: "UTC",
+        autoSave: true,
+        soundEffects: true
+      };
+      
+      return NextResponse.json({ user: userData }, { status: 200 });
+    }
+    
+    // Combine user data with settings
     const userData = {
-      name: session.user.name || "",
-      email: session.user.email || "",
-      bio: "Web developer and designer",
+      id: user.id,
+      name: user.name || "",
+      email: user.email,
+      bio: user.accountSettings?.bio || "",
       notifications: {
-        email: true,
-        marketing: false,
-        updates: true,
+        email: user.notificationSettings?.email || false,
+        marketing: user.notificationSettings?.marketing || false,
+        updates: user.notificationSettings?.updates || false,
       },
+      language: user.accountSettings?.language || "en",
+      timezone: user.accountSettings?.timezone || "UTC",
+      autoSave: user.accountSettings?.autoSave || true,
+      soundEffects: user.accountSettings?.soundEffects || true
     };
     
     return NextResponse.json({ user: userData }, { status: 200 });

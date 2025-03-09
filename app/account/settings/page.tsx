@@ -115,6 +115,7 @@ export default function SettingsPage() {
         if (!response.ok) throw new Error("Failed to load user data");
         
         const data = await response.json();
+        console.log("Loaded user data:", data.user);
         form.reset(data.user);
       } catch (error) {
         console.error("Error loading user data:", error);
@@ -123,6 +124,7 @@ export default function SettingsPage() {
     }
 
     if (session?.user) {
+      console.log("Session user:", session.user);
       loadUserData();
     }
   }, [session, form]);
@@ -142,7 +144,20 @@ export default function SettingsPage() {
         throw new Error(errorData.error || "Failed to update settings");
       }
       
+      // Update the session context with the new name if changed
+      if (session?.user && values.name !== session.user.name) {
+        // We can't directly update the session, but we can refresh the data
+        console.log("Name updated from", session.user.name, "to", values.name);
+      }
+      
       toast.success("Settings updated successfully");
+      
+      // Reload user data to ensure we have the latest values
+      const updatedDataResponse = await fetch("/api/account/settings");
+      if (updatedDataResponse.ok) {
+        const updatedData = await updatedDataResponse.json();
+        form.reset(updatedData.user);
+      }
     } catch (error) {
       console.error("Error updating settings:", error);
       toast.error("Failed to update settings");
@@ -155,13 +170,25 @@ export default function SettingsPage() {
   async function onBillingSubmit(values: BillingFormValues) {
     setIsBillingLoading(true);
     try {
-      // In a real app, this would be an API call
-      console.log("Billing settings:", values);
+      const response = await fetch("/api/account/settings/billing", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update billing settings");
+      }
       
       toast.success("Billing settings updated successfully");
+      
+      // Refresh billing data
+      const updatedBillingResponse = await fetch("/api/account/settings/billing");
+      if (updatedBillingResponse.ok) {
+        const data = await updatedBillingResponse.json();
+        billingForm.reset(data.billing.billingSettings);
+      }
     } catch (error) {
       console.error("Error updating billing settings:", error);
       toast.error("Failed to update billing settings");

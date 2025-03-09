@@ -133,7 +133,7 @@ export default function TranscribePage() {
                     {/* Completed Transcriptions Panel */}
                     <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">Completed Transcriptions</h2>
+                            <h2 className="text-xl font-semibold text-white">Transcription Library</h2>
                             <button
                                 onClick={() => loadTranscriptionResults()}
                                 disabled={isLoadingTranscriptions}
