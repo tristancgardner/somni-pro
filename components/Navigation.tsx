@@ -23,20 +23,6 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/file-viewer"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/file-viewer'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        file-viewer
-                    </Link>
-                </li>
-                <li
-                    className={
                         pathname === "/upload-test"
                             ? "text-[#45b7aa]"
                             : "text-white"
@@ -51,6 +37,20 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
+                        pathname === "/file-viewer"
+                            ? "text-[#45b7aa]"
+                            : "text-white"
+                    }
+                >
+                    <Link
+                        href='/file-viewer'
+                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
+                    >
+                        file-viewer
+                    </Link>
+                </li>
+                <li
+                    className={
                         pathname === "/features"
                             ? "text-[#45b7aa]"
                             : "text-white"
@@ -61,48 +61,6 @@ const Navigation = () => {
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         features
-                    </Link>
-                </li>
-                <li
-                    className={
-                        pathname === "/batch-upload"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/batch-upload'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        batch upload
-                    </Link>
-                </li>
-                <li
-                    className={
-                        pathname === "/batch-submit"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/batch-submit'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        batch transcribe
-                    </Link>
-                </li>
-                <li
-                    className={
-                        pathname === "/summaries-storylines"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/summaries-storylines'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        summaries
                     </Link>
                 </li>
             </ul>
