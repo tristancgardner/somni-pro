@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { redirect, useRouter } from "next/navigation";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText } from "react-icons/fi";
 
 type JobStatus = {
   jobId: string;
@@ -26,6 +26,7 @@ type TranscriptionFile = {
 
 export default function BatchSubmitPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
@@ -230,6 +231,11 @@ export default function BatchSubmitPage() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // View transcription function
+  const viewTranscription = (url: string) => {
+    router.push(`/transcription-viewer?url=${encodeURIComponent(url)}`);
+  };
+
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -321,14 +327,22 @@ export default function BatchSubmitPage() {
                           {new Date(file.lastModified).toLocaleDateString()}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                          <a 
-                            href={file.downloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
-                          >
-                            <FiDownload /> Download
-                          </a>
+                          <div className="flex items-center justify-end gap-4">
+                            <button
+                              onClick={() => viewTranscription(file.downloadUrl)}
+                              className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                            >
+                              <FiFileText /> View
+                            </button>
+                            <a 
+                              href={file.downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                            >
+                              <FiDownload /> Download
+                            </a>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -336,7 +350,6 @@ export default function BatchSubmitPage() {
                 </table>
               </div>
               
-              {/* Pagination Controls */}
               <div className="flex justify-between items-center mt-4">
                 <button
                   onClick={() => handlePaginationChange('prev')}
