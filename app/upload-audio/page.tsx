@@ -436,12 +436,32 @@ export default function UploadTestPage() {
                 {/* File Upload Panel */}
                 <div className="bg-black/50 p-6 rounded-lg">
                   <h2 className="text-xl font-semibold mb-4 text-white">Step 1: Upload Audio Files</h2>
+                  <div className="mb-4 text-gray-300">
+                    <p>Upload one or more audio files for transcription. If your narrative content was recorded in-camera rather than with a field recorder, please strip the audio from your video files before uploading.</p>
+                    
+                    {/* Allowed file types container */}
+                    <div className="mt-3 mb-3 p-3 bg-gray-800/50 rounded-md border border-gray-700 inline-block">
+                      <p className="text-sm font-medium mb-1 text-gray-400">Allowed file types:</p>
+                      <div className="flex gap-2">
+                        <span className="px-2 py-1 bg-indigo-900/60 rounded text-xs">.wav</span>
+                        <span className="px-2 py-1 bg-indigo-900/60 rounded text-xs">.mp3</span>
+                        <span className="px-2 py-1 bg-indigo-900/60 rounded text-xs">.m4a</span>
+                      </div>
+                    </div>
+                    
+                    {/* Sample rate tip */}
+                    <div className="mt-2 mb-4 p-3 bg-blue-900/20 border-l-4 border-blue-500 text-blue-300 text-sm">
+                      <p className="font-bold">Tip:</p>
+                      <p>For best results, ensure your audio has a sample rate of 16 kHz or greater - 24 kHz recommended.</p>
+                    </div>
+                  </div>
+                  
                   <div className="mb-6">
                     <label 
                       htmlFor="file-upload" 
                       className="block mb-2 font-bold text-white"
                     >
-                      Select one or more .wav files to upload:
+                      Select audio files to upload:
                     </label>
                     <input 
                       id="file-upload"

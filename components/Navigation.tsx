@@ -23,13 +23,13 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/upload-test"
+                        pathname === "/upload-audio"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/upload-test'
+                        href='/upload-audio'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
                         upload audio
