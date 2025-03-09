@@ -23,32 +23,18 @@ const Navigation = () => {
                 </li>
                 <li
                     className={
-                        pathname === "/transcribe"
+                        pathname === "/file-viewer"
                             ? "text-[#45b7aa]"
                             : "text-white"
                     }
                 >
                     <Link
-                        href='/transcribe'
+                        href='/file-viewer'
                         className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
                     >
-                        transcribe
+                        file-viewer
                     </Link>
                 </li>
-                {/* <li
-                    className={
-                        pathname === "/websocket"
-                            ? "text-[#45b7aa]"
-                            : "text-white"
-                    }
-                >
-                    <Link
-                        href='/websocket'
-                        className='hover:text-[#45b7aa] transition-colors drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)]'
-                    >
-                        websocket
-                    </Link>
-                </li> */}
                 <li
                     className={
                         pathname === "/upload-test"
