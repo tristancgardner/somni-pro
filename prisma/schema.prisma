@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_PRISMA_URL") // Using the Neon PostgreSQL connection string
+  url      = env("POSTGRES_PRISMA_URL")
 }
 
 // Models for various settings types
@@ -25,6 +25,7 @@ model User {
   displaySettings   DisplaySettings?
   notificationSettings NotificationSettings?
   securitySettings  SecuritySettings?
+  projects          Project[]            // New relation to projects
 }
 
 model AccountSettings {
@@ -85,4 +86,30 @@ model SecuritySettings {
   rememberDevice       Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+}
+
+// New models for project organization
+model Project {
+  id          String               @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  userId      String               // Foreign key to User
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files       TranscriptionFile[]  // Relation to files in this project
+}
+
+model TranscriptionFile {
+  id          String   @id @default(uuid())
+  s3Key       String   // The S3 key of the file
+  filename    String
+  size        Int
+  lastModified DateTime
+  projectId   String?  // Optional - file can exist without being in a project
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([s3Key]) // Ensure unique S3 keys
 }

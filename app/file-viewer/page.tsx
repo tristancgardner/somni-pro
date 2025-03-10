@@ -3,10 +3,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus } from "react-icons/fi";
 import AudioWaveform from "@/components/custom/diar-plot";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
+
+type ProjectFile = {
+  id: string;
+  s3Key: string;
+  filename: string;
+  size: number;
+  lastModified: Date;
+  projectId: string | null;
+  projectName: string | null;
+}
 
 type TranscriptionFile = {
   key: string;
@@ -14,6 +24,19 @@ type TranscriptionFile = {
   size: number;
   lastModified: Date;
   downloadUrl: string;
+  projectId: string | null;
+  projectName: string | null;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    files: number;
+  };
 };
 
 export default function TranscribePage() {
@@ -33,6 +56,18 @@ export default function TranscribePage() {
     const [resultsPage, setResultsPage] = useState(1);
     const maxResultsPerPage = 10;
 
+    // Project state
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+    const [newProjectName, setNewProjectName] = useState("");
+    const [newProjectDescription, setNewProjectDescription] = useState("");
+    const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+    const [isSubmittingProject, setIsSubmittingProject] = useState(false);
+    const [projectError, setProjectError] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+
     // Redirect unauthenticated users to login
     if (status === "unauthenticated") {
         redirect("/login");
@@ -50,6 +85,11 @@ export default function TranscribePage() {
             const params = new URLSearchParams();
             if (nextToken) params.append('continuationToken', nextToken);
             params.append('maxResults', maxResultsPerPage.toString());
+            
+            // If we have a selected project, filter by it
+            if (selectedProject) {
+                params.append('projectId', selectedProject.id);
+            }
 
             const res = await fetch(`/api/list-transcriptions?${params.toString()}`);
             const data = await res.json();
@@ -75,7 +115,280 @@ export default function TranscribePage() {
         } finally {
             setIsLoadingTranscriptions(false);
         }
+    }, [status, selectedProject, maxResultsPerPage]);
+
+    // Load projects
+    const loadProjects = useCallback(async () => {
+        if (status !== "authenticated") return;
+        
+        try {
+            setIsLoadingProjects(true);
+            setProjectError("");
+            
+            console.log("Attempting to load projects...");
+            const res = await fetch('/api/projects', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                cache: 'no-store',
+            });
+            
+            console.log("Response status:", res.status);
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to load projects");
+            }
+            
+            setProjects(data.projects || []);
+            console.log("Successfully loaded projects:", data.projects?.length || 0);
+        } catch (err: any) {
+            console.error("Error loading projects:", err);
+            setProjectError(err.message);
+            
+            // If we receive a 404 error, it might be because the route hasn't been registered yet
+            // Let's wait a bit and retry once
+            if (err.message.includes("Failed to load projects")) {
+                setTimeout(() => {
+                    console.log("Retrying project loading after error...");
+                    setProjectError("Retrying...");
+                    fetch('/api/projects', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        cache: 'no-store',
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.projects) {
+                            setProjects(data.projects);
+                            setProjectError("");
+                            console.log("Retry successful, loaded projects:", data.projects.length);
+                        }
+                    })
+                    .catch(retryErr => {
+                        console.error("Retry error:", retryErr);
+                        setProjectError("Could not load projects. Please refresh the page.");
+                    })
+                    .finally(() => {
+                        setIsLoadingProjects(false);
+                    });
+                }, 2000);
+                return;
+            }
+        } finally {
+            setIsLoadingProjects(false);
+        }
     }, [status]);
+
+    // Create a new project
+    const handleCreateProject = async () => {
+        if (!newProjectName.trim()) {
+            setProjectError("Project name is required");
+            return;
+        }
+        
+        try {
+            setIsSubmittingProject(true);
+            setProjectError("");
+            
+            const res = await fetch('/api/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newProjectName.trim(),
+                    description: newProjectDescription.trim() || undefined,
+                }),
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to create project");
+            }
+            
+            // Reset form and close modal
+            setNewProjectName("");
+            setNewProjectDescription("");
+            setShowNewProjectModal(false);
+            
+            // Reload projects
+            await loadProjects();
+        } catch (err: any) {
+            console.error("Error creating project:", err);
+            setProjectError(err.message);
+        } finally {
+            setIsSubmittingProject(false);
+        }
+    };
+
+    // Update project
+    const handleUpdateProject = async () => {
+        if (!selectedProject) return;
+        if (!newProjectName.trim()) {
+            setProjectError("Project name is required");
+            return;
+        }
+        
+        try {
+            setIsSubmittingProject(true);
+            setProjectError("");
+            
+            const res = await fetch(`/api/projects/${selectedProject.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newProjectName.trim(),
+                    description: newProjectDescription.trim() || undefined,
+                }),
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to update project");
+            }
+            
+            // Reset form and close modal
+            setNewProjectName("");
+            setNewProjectDescription("");
+            setShowEditProjectModal(false);
+            
+            // Reload projects and update selected project
+            await loadProjects();
+            
+            // Update the selected project with new data
+            setSelectedProject({
+                ...selectedProject,
+                name: newProjectName.trim(),
+                description: newProjectDescription.trim() || null,
+            });
+            
+        } catch (err: any) {
+            console.error("Error updating project:", err);
+            setProjectError(err.message);
+        } finally {
+            setIsSubmittingProject(false);
+        }
+    };
+
+    // Delete project
+    const handleDeleteProject = async () => {
+        if (!selectedProject) return;
+        
+        if (!confirm(`Are you sure you want to delete the project "${selectedProject.name}"? This will not delete the files, only the project.`)) {
+            return;
+        }
+        
+        try {
+            const res = await fetch(`/api/projects/${selectedProject.id}`, {
+                method: 'DELETE',
+            });
+            
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to delete project");
+            }
+            
+            // Reset selected project and reload projects
+            setSelectedProject(null);
+            await loadProjects();
+            await loadTranscriptionResults();
+            
+        } catch (err: any) {
+            console.error("Error deleting project:", err);
+            setProjectError(err.message);
+        }
+    };
+
+    // Add files to project
+    const handleAddFilesToProject = async () => {
+        if (!selectedProject || selectedFiles.length === 0) return;
+        
+        try {
+            const res = await fetch(`/api/projects/${selectedProject.id}/files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileKeys: selectedFiles,
+                }),
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to add files to project");
+            }
+            
+            // Clear selection and reload data
+            setSelectedFiles([]);
+            await loadTranscriptionResults();
+            
+        } catch (err: any) {
+            console.error("Error adding files to project:", err);
+            setProjectError(err.message);
+        }
+    };
+
+    // Remove file from project
+    const handleRemoveFileFromProject = async (fileId: string) => {
+        if (!selectedProject) return;
+        
+        try {
+            const res = await fetch(`/api/projects/${selectedProject.id}/files`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileId,
+                }),
+            });
+            
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to remove file from project");
+            }
+            
+            // Reload data
+            await loadTranscriptionResults();
+            
+        } catch (err: any) {
+            console.error("Error removing file from project:", err);
+            setProjectError(err.message);
+        }
+    };
+
+    // Edit project
+    const handleEditProject = (project: Project) => {
+        setSelectedProject(project);
+        setNewProjectName(project.name);
+        setNewProjectDescription(project.description || "");
+        setShowEditProjectModal(true);
+    };
+
+    // Select a project to view
+    const handleSelectProject = async (project: Project | null) => {
+        setSelectedProject(project);
+        setResultsPage(1);
+        setContinuationToken(null);
+        
+        // If we have no ongoing operations, load the transcriptions
+        if (!isLoadingTranscriptions) {
+            await loadTranscriptionResults();
+        }
+    };
+
+    // Handle file selection for project assignment
+    const handleFileSelection = (key: string) => {
+        setSelectedFiles(prev => {
+            if (prev.includes(key)) {
+                return prev.filter(k => k !== key);
+            } else {
+                return [...prev, key];
+            }
+        });
+    };
 
     // Page forward/backward for transcription results
     const handlePaginationChange = (direction: 'prev' | 'next') => {
@@ -108,13 +421,14 @@ export default function TranscribePage() {
         router.push(`/transcription-viewer?url=${encodeURIComponent(url)}`);
     };
 
-    // Load transcription results on mount
+    // Load transcription results and projects on mount
     useEffect(() => {
         setIsLoaded(true);
         if (status === "authenticated") {
             loadTranscriptionResults();
+            loadProjects();
         }
-    }, [status, loadTranscriptionResults]);
+    }, [status, loadTranscriptionResults, loadProjects]);
 
     if (status === "loading") {
         return (
@@ -130,10 +444,150 @@ export default function TranscribePage() {
                 <div className='w-full max-w-7xl mx-auto relative'>
                     <PageHeader />
                     
+                    {/* Project Management Section */}
+                    <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-semibold text-white">Project Management</h2>
+                            <button
+                                onClick={() => setShowNewProjectModal(true)}
+                                className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700"
+                            >
+                                <FiFolderPlus /> Create Project
+                            </button>
+                        </div>
+                        
+                        {projectError && (
+                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded">
+                                {projectError}
+                            </div>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-3 mb-4">
+                            <button
+                                onClick={() => handleSelectProject(null)}
+                                className={`flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
+                                    selectedProject === null
+                                    ? "bg-blue-600 hover:bg-blue-700"
+                                    : "bg-black/30 hover:bg-black/50 border border-gray-700"
+                                }`}
+                            >
+                                <FiFolder /> All Files
+                            </button>
+                            
+                            {projects.map(project => (
+                                <button
+                                    key={project.id}
+                                    onClick={() => handleSelectProject(project)}
+                                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded group relative transition-colors ${
+                                        selectedProject?.id === project.id
+                                        ? "bg-blue-600 hover:bg-blue-700"
+                                        : "bg-black/30 hover:bg-black/50 border border-gray-700"
+                                    }`}
+                                >
+                                    <FiFolder />
+                                    {project.name}
+                                    {project._count && (
+                                        <span className="ml-1 bg-black/50 px-1.5 rounded-full text-xs">
+                                            {project._count.files}
+                                        </span>
+                                    )}
+                                    
+                                    {/* Edit/Delete buttons on hover */}
+                                    <div className={`absolute right-0 top-0 bottom-0 flex items-center gap-1 pr-2 ${
+                                        selectedProject?.id === project.id
+                                        ? "opacity-100"
+                                        : "opacity-0 group-hover:opacity-100"
+                                    } transition-opacity`}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEditProject(project);
+                                            }}
+                                            className="p-1 text-blue-400 hover:text-blue-300"
+                                        >
+                                            <FiEdit2 size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteProject();
+                                            }}
+                                            className="p-1 text-red-400 hover:text-red-300"
+                                        >
+                                            <FiDelete size={14} />
+                                        </button>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Selected Files Actions */}
+                    {selectedFiles.length > 0 && (
+                        <div className="bg-black/70 border border-blue-500 rounded-lg p-4 mb-4 flex justify-between items-center">
+                            <div className="text-blue-400">
+                                <span className="mr-2">{selectedFiles.length} files selected</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setSelectedFiles([])}
+                                    className="px-3 py-1 text-sm rounded bg-gray-700 hover:bg-gray-600"
+                                >
+                                    Cancel
+                                </button>
+                                {!selectedProject ? (
+                                    <div className="relative group">
+                                        <button
+                                            className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                                        >
+                                            <FiFolderPlus /> Add to Project
+                                        </button>
+                                        
+                                        {/* Project dropdown */}
+                                        <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                                            {projects.length > 0 ? (
+                                                projects.map(project => (
+                                                    <button
+                                                        key={project.id}
+                                                        onClick={() => {
+                                                            setSelectedProject(project);
+                                                            handleAddFilesToProject();
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2"
+                                                    >
+                                                        <FiFolder size={14} /> {project.name}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-2 text-sm text-gray-400">
+                                                    No projects available
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleAddFilesToProject}
+                                        className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                                    >
+                                        <FiPlus /> Add to {selectedProject.name}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Completed Transcriptions Panel */}
                     <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">Transcription Library</h2>
+                            <h2 className="text-xl font-semibold text-white">
+                                {selectedProject ? `Project: ${selectedProject.name}` : "Transcription Library"}
+                                {selectedProject?.description && (
+                                    <p className="text-sm font-normal text-gray-400 mt-1">
+                                        {selectedProject.description}
+                                    </p>
+                                )}
+                            </h2>
                             <button
                                 onClick={() => loadTranscriptionResults()}
                                 disabled={isLoadingTranscriptions}
@@ -160,19 +614,44 @@ export default function TranscribePage() {
                                     <table className="min-w-full bg-black/70 rounded-lg">
                                         <thead className="border-b border-gray-700">
                                             <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
+                                                    {!selectedProject && (
+                                                        <span className="sr-only">Select</span>
+                                                    )}
+                                                </th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Project</th>
                                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-700">
                                             {getCurrentPageTranscriptions().map((file, index) => (
                                                 <tr key={index} className="hover:bg-gray-800/50">
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        {!selectedProject && (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedFiles.includes(file.key)}
+                                                                onChange={() => handleFileSelection(file.key)}
+                                                                className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                                                            />
+                                                        )}
+                                                    </td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{formatFileSize(file.size)}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
                                                         {new Date(file.lastModified).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                                        {file.projectName ? (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-300">
+                                                                {file.projectName}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-500">None</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                                                         <div className="flex items-center justify-end gap-4">
@@ -190,6 +669,14 @@ export default function TranscribePage() {
                                                             >
                                                                 <FiDownload /> Download
                                                             </a>
+                                                            {selectedProject && file.projectId === selectedProject.id && (
+                                                                <button
+                                                                    onClick={() => handleRemoveFileFromProject(file.key)}
+                                                                    className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
+                                                                >
+                                                                    <FiDelete /> Remove
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -233,11 +720,133 @@ export default function TranscribePage() {
                                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                                     </div>
                                 ) : (
+                                    selectedProject ? 
+                                    "No files found in this project. Add files to get started." :
                                     "No transcription files found in your output directory."
                                 )}
                             </div>
                         )}
                     </div>
+                    
+                    {/* New Project Modal */}
+                    {showNewProjectModal && (
+                        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                            <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
+                                <h3 className="text-xl font-semibold mb-4">Create New Project</h3>
+                                
+                                {projectError && (
+                                    <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
+                                        {projectError}
+                                    </div>
+                                )}
+                                
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium mb-1">Project Name</label>
+                                    <input
+                                        type="text"
+                                        value={newProjectName}
+                                        onChange={(e) => setNewProjectName(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                        placeholder="Enter project name"
+                                    />
+                                </div>
+                                
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                                    <textarea
+                                        value={newProjectDescription}
+                                        onChange={(e) => setNewProjectDescription(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                        placeholder="Enter project description"
+                                        rows={3}
+                                    />
+                                </div>
+                                
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowNewProjectModal(false)}
+                                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleCreateProject}
+                                        disabled={isSubmittingProject}
+                                        className={`px-4 py-2 rounded flex items-center gap-2 ${
+                                            isSubmittingProject
+                                            ? "bg-blue-700 cursor-not-allowed"
+                                            : "bg-blue-600 hover:bg-blue-700"
+                                        }`}
+                                    >
+                                        {isSubmittingProject && (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                        )}
+                                        Create Project
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Edit Project Modal */}
+                    {showEditProjectModal && (
+                        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                            <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
+                                <h3 className="text-xl font-semibold mb-4">Edit Project</h3>
+                                
+                                {projectError && (
+                                    <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
+                                        {projectError}
+                                    </div>
+                                )}
+                                
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium mb-1">Project Name</label>
+                                    <input
+                                        type="text"
+                                        value={newProjectName}
+                                        onChange={(e) => setNewProjectName(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                        placeholder="Enter project name"
+                                    />
+                                </div>
+                                
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                                    <textarea
+                                        value={newProjectDescription}
+                                        onChange={(e) => setNewProjectDescription(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                        placeholder="Enter project description"
+                                        rows={3}
+                                    />
+                                </div>
+                                
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowEditProjectModal(false)}
+                                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleUpdateProject}
+                                        disabled={isSubmittingProject}
+                                        className={`px-4 py-2 rounded flex items-center gap-2 ${
+                                            isSubmittingProject
+                                            ? "bg-blue-700 cursor-not-allowed"
+                                            : "bg-blue-600 hover:bg-blue-700"
+                                        }`}
+                                    >
+                                        {isSubmittingProject && (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                        )}
+                                        Update Project
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     
                     <div className='p-4'>
                         <AudioWaveform />

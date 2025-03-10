@@ -5,8 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:with-db": "node scripts/setup-all-tables.js && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-db": "node scripts/setup-user-table.js && node scripts/setup-database.js && node scripts/setup-user-settings-tables.js",
+    "setup-user-settings": "node scripts/setup-user-settings-tables.js",
+    "setup-all": "node scripts/setup-all-tables.js",
+    "fix-notifications": "node scripts/fix-notification-settings.js"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.10",
@@ -70,6 +75,7 @@
     "eslint-config-next": "14.2.15",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
