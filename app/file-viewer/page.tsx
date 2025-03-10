@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
 import AudioWaveform from "@/components/custom/diar-plot";
 import PageHeader from "@/components/PageHeader";
-import BackgroundWrapper from "@/components/BackgroundWrapper";
+import BackgroundWrapper from "../../components/BackgroundWrapper";
+import { toast } from 'react-hot-toast';
 
 type ProjectFile = {
   id: string;
@@ -68,6 +69,7 @@ export default function TranscribePage() {
     const [isSubmittingProject, setIsSubmittingProject] = useState(false);
     const [projectError, setProjectError] = useState("");
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+    const [selectedFileKey, setSelectedFileKey] = useState<string | null>(null);
 
     // Model selection state
     const [selectedModel, setSelectedModel] = useState<string>("o1");
@@ -77,13 +79,110 @@ export default function TranscribePage() {
     const [activeAgent, setActiveAgent] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
+    // Add new state variables for speaker identification
+    const [speakerMode, setSpeakerMode] = useState<'role_based' | 'context_based'>('context_based');
+    const [intervieweeNames, setIntervieweeNames] = useState<string>('');
+    const [processingStatus, setProcessingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+    const [processingMessage, setProcessingMessage] = useState<string>('');
+    const [numSpeakers, setNumSpeakers] = useState<number | null>(null);
+    const [generateLabels, setGenerateLabels] = useState<boolean>(false);
+
+    // Add the selected transcription state
+    const [selectedTranscription, setSelectedTranscription] = useState<TranscriptionFile | null>(null);
+
+    // Add this function to handle speaker identification
+    const runSpeakerIdentification = async () => {
+        if (!activeAgent) return;
+        
+        // Ensure we have a selected file to process
+        if (!selectedTranscription) {
+            toast.error('Please select a transcription file first');
+            return;
+        }
+        
+        setIsProcessing(true);
+        
+        try {
+            // Fetch the transcription data
+            const response = await fetch(selectedTranscription.downloadUrl);
+            if (!response.ok) {
+                throw new Error('Failed to load transcription data');
+            }
+            
+            const transcriptionData = await response.json();
+            
+            // Check if we have a valid transcript structure
+            if (!transcriptionData.transcript || !Array.isArray(transcriptionData.transcript)) {
+                throw new Error('Invalid transcription format');
+            }
+            
+            // Call our API endpoint
+            const result = await fetch('/api/identify-speakers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    transcript: transcriptionData.transcript,
+                    mode: speakerMode,
+                    numSpeakers,
+                    generateLabels
+                }),
+            });
+            
+            const data = await result.json();
+            
+            if (!result.ok) {
+                throw new Error(data.error || 'Failed to process transcript');
+            }
+            
+            // Update the transcription with identified speakers
+            transcriptionData.transcript = data.result.updatedTranscript;
+            
+            // Create a new Blob with the updated transcription
+            const blob = new Blob([JSON.stringify(transcriptionData, null, 2)], {
+                type: 'application/json',
+            });
+            
+            // Generate a download URL for the updated file
+            const url = URL.createObjectURL(blob);
+            
+            // Trigger download with updated filename
+            const a = document.createElement('a');
+            const originalName = selectedTranscription.filename;
+            const newName = originalName.replace('.json', '_with_speakers.json');
+            
+            a.href = url;
+            a.download = newName;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            toast.success('Speaker identification completed successfully!');
+        } catch (error: any) {
+            console.error('Speaker identification error:', error);
+            toast.error(error.message || 'Failed to identify speakers');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Update your view function to set the selected transcription
+    const viewTranscription = (url: string, file: TranscriptionFile) => {
+        setSelectedTranscription(file);
+        router.push(`/transcription-viewer?url=${encodeURIComponent(url)}`);
+    };
+
     // Redirect unauthenticated users to login
     if (status === "unauthenticated") {
         redirect("/login");
     }
 
-    // Load transcription results
-    const loadTranscriptionResults = useCallback(async (nextToken?: string | null) => {
+    // Load transcription results - modify this to accept an optional project parameter
+    const loadTranscriptionResults = useCallback(async (nextToken?: string | null, projectOverride?: Project | null) => {
         if (status !== "authenticated") return;
         
         try {
@@ -95,9 +194,12 @@ export default function TranscribePage() {
             if (nextToken) params.append('continuationToken', nextToken);
             params.append('maxResults', maxResultsPerPage.toString());
             
+            // Use the project override if provided, otherwise use the state
+            const projectToUse = projectOverride !== undefined ? projectOverride : selectedProject;
+            
             // If we have a selected project, filter by it
-            if (selectedProject) {
-                params.append('projectId', selectedProject.id);
+            if (projectToUse) {
+                params.append('projectId', projectToUse.id);
             }
 
             const res = await fetch(`/api/list-transcriptions?${params.toString()}`);
@@ -376,15 +478,15 @@ export default function TranscribePage() {
         setShowEditProjectModal(true);
     };
 
-    // Select a project to view
+    // Update the select project function to pass the project directly
     const handleSelectProject = async (project: Project | null) => {
         setSelectedProject(project);
         setResultsPage(1);
         setContinuationToken(null);
         
-        // If we have no ongoing operations, load the transcriptions
+        // Pass the project directly to ensure we use the correct value immediately
         if (!isLoadingTranscriptions) {
-            await loadTranscriptionResults();
+            await loadTranscriptionResults(null, project);
         }
     };
 
@@ -407,7 +509,7 @@ export default function TranscribePage() {
             setResultsPage(prev => prev + 1);
             // If we need more results, load them
             if (transcriptions.length < resultsPage * maxResultsPerPage + maxResultsPerPage && continuationToken) {
-                loadTranscriptionResults(continuationToken);
+                loadTranscriptionResults(continuationToken, selectedProject);
             }
         }
     };
@@ -425,40 +527,26 @@ export default function TranscribePage() {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    // View transcription function
-    const viewTranscription = (url: string) => {
-        router.push(`/transcription-viewer?url=${encodeURIComponent(url)}`);
-    };
-
-    // Toggle agent selection
-    const toggleAgent = (agentName: string) => {
-        if (activeAgent === agentName) {
-            setActiveAgent(null);
-        } else {
-            setActiveAgent(agentName);
-        }
-    };
-    
-    // Handle running the agent
-    const runAgent = () => {
-        if (!activeAgent) return;
-        
-        setIsProcessing(true);
-        
-        // Simulate processing time
-        setTimeout(() => {
-            setIsProcessing(false);
-        }, 3000);
-    };
-
     // Load transcription results and projects on mount
     useEffect(() => {
         setIsLoaded(true);
         if (status === "authenticated") {
-            loadTranscriptionResults();
+            loadTranscriptionResults(null, selectedProject);
             loadProjects();
         }
-    }, [status, loadTranscriptionResults, loadProjects]);
+    }, [status, loadTranscriptionResults, loadProjects, selectedProject]);
+
+    // Define the toggleAgent function (if it doesn't exist)
+    const toggleAgent = (agentName: string) => {
+        if (activeAgent === agentName) {
+            setActiveAgent(null);
+            // Reset processing state when closing
+            setProcessingStatus('idle');
+            setProcessingMessage('');
+        } else {
+            setActiveAgent(agentName);
+        }
+    };
 
     if (status === "loading") {
         return (
@@ -505,13 +593,13 @@ export default function TranscribePage() {
                             </button>
                             
                             {projects.map(project => (
-                                <button
+                                <div
                                     key={project.id}
                                     onClick={() => handleSelectProject(project)}
-                                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded group relative transition-colors ${
-                                        selectedProject?.id === project.id
-                                        ? "bg-blue-600 hover:bg-blue-700"
-                                        : "bg-black/30 hover:bg-black/50 border border-gray-700"
+                                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded group relative transition-colors cursor-pointer ${
+                                        selectedProject?.id === project.id 
+                                        ? "bg-blue-700/40"
+                                        : "bg-black/40 hover:bg-black/60"
                                     }`}
                                 >
                                     <FiFolder />
@@ -547,7 +635,7 @@ export default function TranscribePage() {
                                             <FiDelete size={14} />
                                         </button>
                                     </div>
-                                </button>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -567,26 +655,26 @@ export default function TranscribePage() {
                                 </button>
                                 {!selectedProject ? (
                                     <div className="relative group">
-                                        <button
-                                            className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                                        <div
+                                            className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1 cursor-pointer"
                                         >
                                             <FiFolderPlus /> Add to Project
-                                        </button>
+                                        </div>
                                         
                                         {/* Project dropdown */}
                                         <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                                             {projects.length > 0 ? (
                                                 projects.map(project => (
-                                                    <button
+                                                    <div
                                                         key={project.id}
                                                         onClick={() => {
                                                             setSelectedProject(project);
                                                             handleAddFilesToProject();
                                                         }}
-                                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2"
+                                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2 cursor-pointer"
                                                     >
                                                         <FiFolder size={14} /> {project.name}
-                                                    </button>
+                                                    </div>
                                                 ))
                                             ) : (
                                                 <div className="px-4 py-2 text-sm text-gray-400">
@@ -619,7 +707,7 @@ export default function TranscribePage() {
                                 )}
                             </h2>
                             <button
-                                onClick={() => loadTranscriptionResults()}
+                                onClick={() => loadTranscriptionResults(null, selectedProject)}
                                 disabled={isLoadingTranscriptions}
                                 className={`flex items-center gap-2 px-3 py-1 text-sm rounded ${
                                     isLoadingTranscriptions
@@ -686,7 +774,10 @@ export default function TranscribePage() {
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                                                         <div className="flex items-center justify-end gap-4">
                                                             <button
-                                                                onClick={() => viewTranscription(file.downloadUrl)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    viewTranscription(file.downloadUrl, file);
+                                                                }}
                                                                 className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
                                                             >
                                                                 <FiFileText /> View
@@ -701,7 +792,10 @@ export default function TranscribePage() {
                                                             </a>
                                                             {selectedProject && file.projectId === selectedProject.id && (
                                                                 <button
-                                                                    onClick={() => handleRemoveFileFromProject(file.key)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleRemoveFileFromProject(file.key);
+                                                                    }}
                                                                     className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
                                                                 >
                                                                     <FiDelete /> Remove
@@ -956,6 +1050,25 @@ export default function TranscribePage() {
                                         <p className="text-sm mb-4">
                                             This agent analyzes dialog to identify different speakers or personas, even if you don't provide names.
                                         </p>
+                                        
+                                        {/* Show selected file */}
+                                        {(selectedFileKey || selectedFiles.length > 0) && (
+                                            <div className="mb-4 p-2 bg-blue-900/20 border border-blue-800/50 rounded-md">
+                                                <p className="text-sm font-medium text-blue-300 mb-1">Selected File:</p>
+                                                <div className="text-sm">
+                                                    {(() => {
+                                                        const fileKey = selectedFileKey || (selectedFiles.length > 0 ? selectedFiles[0] : null);
+                                                        const selectedFile = fileKey ? transcriptions.find(file => file.key === fileKey) : null;
+                                                        return selectedFile ? (
+                                                            <span>{selectedFile.filename}</span>
+                                                        ) : (
+                                                            <span className="text-yellow-400">No file selected. Please select a file first.</span>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="block text-sm font-medium mb-1">
@@ -967,12 +1080,47 @@ export default function TranscribePage() {
                                                     max="10"
                                                     placeholder="Auto-detect"
                                                     className="w-full p-2 bg-black/40 rounded-md border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                    value={numSpeakers || ''}
+                                                    onChange={(e) => setNumSpeakers(e.target.value ? parseInt(e.target.value) : null)}
                                                 />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">
+                                                    Identification Mode
+                                                </label>
+                                                <div className="flex gap-4">
+                                                    <label className="flex items-center">
+                                                        <input
+                                                            type="radio"
+                                                            name="speakerMode"
+                                                            value="context_based"
+                                                            checked={speakerMode === 'context_based'}
+                                                            onChange={() => setSpeakerMode('context_based')}
+                                                            className="mr-2"
+                                                        />
+                                                        <span className="text-sm">Name-based</span>
+                                                        <span className="text-xs text-gray-400 ml-1">(for conversations)</span>
+                                                    </label>
+                                                    <label className="flex items-center">
+                                                        <input
+                                                            type="radio"
+                                                            name="speakerMode"
+                                                            value="role_based"
+                                                            checked={speakerMode === 'role_based'}
+                                                            onChange={() => setSpeakerMode('role_based')}
+                                                            className="mr-2"
+                                                        />
+                                                        <span className="text-sm">Role-based</span>
+                                                        <span className="text-xs text-gray-400 ml-1">(for interviews)</span>
+                                                    </label>
+                                                </div>
                                             </div>
                                             <div className="flex items-center">
                                                 <input
                                                     type="checkbox"
                                                     id="generateLabels"
+                                                    checked={generateLabels}
+                                                    onChange={(e) => setGenerateLabels(e.target.checked)}
                                                     className="mr-2"
                                                 />
                                                 <label htmlFor="generateLabels" className="text-sm">
@@ -998,7 +1146,7 @@ export default function TranscribePage() {
                                     </button>
                                     <button
                                         className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-sm transition-colors flex items-center gap-2"
-                                        onClick={runAgent}
+                                        onClick={runSpeakerIdentification}
                                         disabled={isProcessing}
                                     >
                                         {isProcessing ? (
