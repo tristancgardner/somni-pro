@@ -47,6 +47,11 @@ export default function TranscriptionViewerPage() {
   const [error, setError] = useState<string | null>(null);
   const [speakerStats, setSpeakerStats] = useState<SpeakerStats[]>([]);
   
+  // State for tracking save operation
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  
   // State for editing speaker info
   const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
   const [editedSpeakers, setEditedSpeakers] = useState<Record<string, { name?: string, role?: string }>>({});
@@ -117,6 +122,52 @@ export default function TranscriptionViewerPage() {
     
     // Exit edit mode
     setEditingSpeaker(null);
+  };
+
+  // Function to save updated transcription back to S3
+  const saveTranscription = async () => {
+    if (!transcription || !url) return;
+    
+    try {
+      setIsSaving(true);
+      setSaveSuccess(null);
+      setSaveMessage(null);
+      
+      const response = await fetch('/api/save-transcription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transcriptionData: transcription,
+          jsonUrl: url,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setSaveSuccess(true);
+        setSaveMessage('Transcription saved successfully');
+      } else {
+        setSaveSuccess(false);
+        setSaveMessage(`Error: ${result.message || 'Failed to save'}`);
+      }
+      
+    } catch (err) {
+      console.error('Error saving transcription:', err);
+      setSaveSuccess(false);
+      setSaveMessage('Failed to save transcription');
+    } finally {
+      setIsSaving(false);
+      
+      // Auto-hide success message after 3 seconds
+      if (saveSuccess) {
+        setTimeout(() => {
+          setSaveMessage(null);
+        }, 3000);
+      }
+    }
   };
 
   // Fetch the transcription data
@@ -193,9 +244,34 @@ export default function TranscriptionViewerPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Transcription Results</h1>
-        <p className="text-gray-400 mt-1">{transcription.file}</p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold">Transcription Results</h1>
+          <p className="text-gray-400 mt-1">{transcription.file}</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {saveMessage && (
+            <div className={`text-sm px-3 py-1 rounded ${saveSuccess ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+              {saveMessage}
+            </div>
+          )}
+          
+          <button 
+            onClick={saveTranscription}
+            disabled={isSaving}
+            className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                Saving...
+              </>
+            ) : (
+              <>Save Changes</>
+            )}
+          </button>
+        </div>
       </div>
       
       {/* File Stats */}
