@@ -1,10 +1,13 @@
-import AWS from 'aws-sdk';
+import { S3Client, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Initialize AWS S3 client
-const s3 = new AWS.S3({
+const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 /**
@@ -13,12 +16,13 @@ const s3 = new AWS.S3({
  * @param expiresIn Time in seconds before the URL expires
  * @returns Pre-signed URL for downloading the file
  */
-export function getFileDownloadUrl(key: string, expiresIn: number = 3600): string {
-  return s3.getSignedUrl('getObject', {
+export async function getFileDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  const command = new GetObjectCommand({
     Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
     Key: key,
-    Expires: expiresIn // Default: 1 hour
   });
+  
+  return getSignedUrl(s3Client, command, { expiresIn });
 }
 
 /**
@@ -28,10 +32,11 @@ export function getFileDownloadUrl(key: string, expiresIn: number = 3600): strin
  */
 export async function checkFileExists(key: string): Promise<boolean> {
   try {
-    await s3.headObject({
+    const command = new HeadObjectCommand({
       Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
       Key: key
-    }).promise();
+    });
+    await s3Client.send(command);
     return true;
   } catch (error) {
     return false;
@@ -43,12 +48,13 @@ export async function checkFileExists(key: string): Promise<boolean> {
  * @param key The S3 object key
  * @returns File metadata or null if file doesn't exist
  */
-export async function getFileMetadata(key: string): Promise<AWS.S3.HeadObjectOutput | null> {
+export async function getFileMetadata(key: string): Promise<any | null> {
   try {
-    return await s3.headObject({
+    const command = new HeadObjectCommand({
       Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
       Key: key
-    }).promise();
+    });
+    return await s3Client.send(command);
   } catch (error) {
     return null;
   }

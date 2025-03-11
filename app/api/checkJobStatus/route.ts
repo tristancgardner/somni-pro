@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import AWS from 'aws-sdk';
+import { BatchClient, DescribeJobsCommand } from '@aws-sdk/client-batch';
 
 // Initialize AWS Batch client
-const batch = new AWS.Batch({
+const batchClient = new BatchClient({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function POST(request: NextRequest) {
@@ -36,8 +38,9 @@ export async function POST(request: NextRequest) {
     const jobStatusRequests = [];
     for (let i = 0; i < jobIds.length; i += 100) {
       const batch100 = jobIds.slice(i, i + 100);
+      const command = new DescribeJobsCommand({ jobs: batch100 });
       jobStatusRequests.push(
-        batch.describeJobs({ jobs: batch100 }).promise()
+        batchClient.send(command)
       );
     }
 

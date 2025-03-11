@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import AWS from 'aws-sdk';
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { BatchClient, SubmitJobCommand } from '@aws-sdk/client-batch';
 
 // Initialize AWS SDK clients
-const s3 = new AWS.S3({
+const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
-const batch = new AWS.Batch({
+const batchClient = new BatchClient({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 // Function to sanitize job name - AWS Batch job names must contain only alphanumeric characters, hyphens, and underscores
@@ -61,7 +66,8 @@ export async function POST(request: NextRequest) {
     };
 
     console.log(`Listing objects in s3://${s3Bucket}/${s3InputPrefix}`);
-    const listedObjects = await s3.listObjectsV2(listParams).promise();
+    const listCommand = new ListObjectsV2Command(listParams);
+    const listedObjects = await s3Client.send(listCommand);
     
     if (!listedObjects.Contents || listedObjects.Contents.length === 0) {
       return NextResponse.json({ 
@@ -112,7 +118,8 @@ export async function POST(request: NextRequest) {
       outputPrefix: s3OutputPrefix
     });
     
-    const jobResponse = await batch.submitJob(jobParams).promise();
+    const submitCommand = new SubmitJobCommand(jobParams);
+    const jobResponse = await batchClient.send(submitCommand);
     console.log(`Job submitted: ${jobResponse.jobId} for ${s3InputPrefix}`);
     
     // Return job info

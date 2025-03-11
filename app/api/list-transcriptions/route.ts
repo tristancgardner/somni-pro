@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import AWS from 'aws-sdk';
+import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '@/lib/prisma';
 
 // Initialize AWS S3 client
-const s3 = new AWS.S3({
+const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function GET(request: NextRequest) {
@@ -66,11 +69,12 @@ export async function GET(request: NextRequest) {
       
       // Generate pre-signed URLs for each file
       const transcriptionFiles = await Promise.all(project.files.map(async (file) => {
-        const downloadUrl = s3.getSignedUrl('getObject', {
+        const getObjectCommand = new GetObjectCommand({
           Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
           Key: file.s3Key,
-          Expires: 3600 // 1 hour
         });
+        
+        const downloadUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 }); // 1 hour
         
         return {
           key: file.s3Key,
@@ -112,7 +116,8 @@ export async function GET(request: NextRequest) {
     };
 
     console.log(`Listing transcriptions in s3://${listParams.Bucket}/${prefix}`);
-    const listedObjects = await s3.listObjectsV2(listParams).promise();
+    const listCommand = new ListObjectsV2Command(listParams);
+    const listedObjects = await s3Client.send(listCommand);
     
     // 5. Format the results and check if they're in projects
     const transcriptionFiles = await Promise.all((listedObjects.Contents || []).map(async (obj) => {
@@ -121,11 +126,12 @@ export async function GET(request: NextRequest) {
       const filename = key.split('/').pop() || key;
       
       // Create a pre-signed URL for downloading the file (valid for 1 hour)
-      const downloadUrl = s3.getSignedUrl('getObject', {
+      const getObjectCommand = new GetObjectCommand({
         Bucket: listParams.Bucket,
         Key: key,
-        Expires: 3600 // 1 hour
       });
+      
+      const downloadUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 }); // 1 hour
       
       // Check if file is in a project
       let projectId = null;

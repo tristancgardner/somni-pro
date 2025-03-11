@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { writeFile } from 'fs/promises';
 import fs from 'fs';
 import path from 'path';
@@ -8,10 +8,12 @@ import { v4 as uuidv4 } from 'uuid';
 import os from 'os';
 
 // Initialize the S3 client with your env variables
-const s3 = new AWS.S3({
+const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function POST(request: NextRequest) {
@@ -79,15 +81,18 @@ export async function POST(request: NextRequest) {
     const s3Key = `input/${userId}/${sId}/${file.name}`;
     console.log('Starting S3 upload to:', s3Key);
     
-    const uploadResult = await s3
-      .upload({
-        Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
-        Key: s3Key,
-        Body: fileStream,
-      })
-      .promise();
+    // Get the file content to upload
+    const fileContent = await fs.promises.readFile(tempFilePath);
+    
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
+      Key: s3Key,
+      Body: fileContent,
+    });
+    
+    const uploadResult = await s3Client.send(uploadCommand);
 
-    console.log('Upload success:', uploadResult.Location);
+    console.log('Upload success to:', s3Key);
     
     // Clean up the temporary file
     fs.promises.unlink(tempFilePath).catch(err => {
@@ -97,7 +102,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         message: 'File uploaded successfully!', 
-        location: uploadResult.Location,
+        location: `https://${process.env.S3_TRANSCRIBE_BUCKET!}.s3.${process.env.AWS_REGION!}.amazonaws.com/${s3Key}`,
         s3Path: `s3://${process.env.S3_TRANSCRIBE_BUCKET!}/${s3Key}`
       },
       { status: 200 }

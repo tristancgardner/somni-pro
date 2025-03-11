@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { parse } from 'url';
 import path from 'path';
 
 // Initialize AWS S3 client
-const s3 = new AWS.S3({
+const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function POST(request: NextRequest) {
@@ -49,14 +51,14 @@ export async function POST(request: NextRequest) {
     console.log(`Saving updated transcription to s3://${bucketName}/${s3Path}`);
     
     // Upload the updated transcription data to S3
-    const uploadResult = await s3
-      .putObject({
-        Bucket: bucketName,
-        Key: s3Path,
-        Body: JSON.stringify(transcriptionData, null, 2),
-        ContentType: 'application/json',
-      })
-      .promise();
+    const putCommand = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: s3Path,
+      Body: JSON.stringify(transcriptionData, null, 2),
+      ContentType: 'application/json',
+    });
+    
+    await s3Client.send(putCommand);
     
     console.log('Transcription update successful');
     

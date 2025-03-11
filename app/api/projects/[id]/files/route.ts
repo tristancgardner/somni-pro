@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import AWS from 'aws-sdk';
+import { S3Client, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getFileDownloadUrl } from '@/lib/s3';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Initialize AWS S3 client
-const s3 = new AWS.S3({
+const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 // Schemas for file operations
@@ -97,7 +100,8 @@ export async function POST(
           Key: key,
         };
         
-        const fileMetadata = await s3.headObject(headParams).promise();
+        const command = new HeadObjectCommand(headParams);
+        const fileMetadata = await s3Client.send(command);
         
         // Check if file already exists in database
         let file = await prisma.transcriptionFile.findUnique({
@@ -284,11 +288,12 @@ export async function GET(
       // Generate URLs for all files in the project
       const filesWithUrls = await Promise.all(
         files.map(async (file) => {
-          const downloadUrl = s3.getSignedUrl('getObject', {
+          const command = new GetObjectCommand({
             Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
             Key: file.s3Key,
-            Expires: 3600 // 1 hour
           });
+          
+          const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
           
           return {
             key: file.s3Key,
@@ -400,11 +405,12 @@ export async function GET(
     const filesWithUrls = await Promise.all(
       files.map(async (file) => {
         // Generate signed URL directly (don't use the imported function as it might have issues)
-        const downloadUrl = s3.getSignedUrl('getObject', {
+        const command = new GetObjectCommand({
           Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
           Key: file.s3Key,
-          Expires: 3600 // 1 hour
         });
+        
+        const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
         
         return {
           key: file.s3Key,
