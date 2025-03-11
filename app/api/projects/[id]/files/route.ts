@@ -224,64 +224,146 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log(`GET /api/projects/${params.id}/files - Starting request`);
+    
     // Authenticate the request
     const session = await getServerSession(authOptions);
     if (!session?.user) {
+      console.log('Authentication failed - no valid user session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the project ID from the URL params
     const { id: projectId } = params;
+    console.log(`Project ID: ${projectId}`);
     
     // Parse the URL to get the search parameters
     const url = new URL(request.url);
     const keysParam = url.searchParams.get('keys');
     
+    // Check if we should provide all project files
     if (!keysParam) {
-      return NextResponse.json({ error: 'No file keys provided' }, { status: 400 });
+      console.log('No keys parameter provided - returning all project files');
+      
+      // Query for all files in this project
+      const files = await prisma.transcriptionFile.findMany({
+        where: { projectId },
+        select: {
+          id: true,
+          s3Key: true,
+          filename: true,
+          size: true,
+          lastModified: true,
+        },
+        orderBy: {
+          filename: 'asc'
+        }
+      });
+      
+      // Get project name
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { name: true, id: true }
+      });
+
+      if (!project) {
+        console.log(`Project not found: ${projectId}`);
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
+
+      console.log(`Found ${files.length} files for project ${project.name}`);
+
+      if (files.length === 0) {
+        return NextResponse.json({
+          projectId: project.id,
+          projectName: project.name,
+          files: []
+        });
+      }
+
+      // Generate URLs for all files in the project
+      const filesWithUrls = await Promise.all(
+        files.map(async (file) => {
+          const downloadUrl = s3.getSignedUrl('getObject', {
+            Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
+            Key: file.s3Key,
+            Expires: 3600 // 1 hour
+          });
+          
+          return {
+            key: file.s3Key,
+            filename: file.filename,
+            size: file.size,
+            downloadUrl,
+            lastModified: file.lastModified,
+          };
+        })
+      );
+
+      console.log(`Generated download URLs for ${filesWithUrls.length} files`);
+
+      return NextResponse.json({
+        projectId: project.id,
+        projectName: project.name,
+        files: filesWithUrls,
+      });
     }
 
     // Parse the keys from the URL parameter - handle decoding carefully
     let fileKeys: string[];
     try {
+      console.log(`Raw keys parameter: ${keysParam}`);
       const decodedParam = decodeURIComponent(keysParam);
+      console.log(`Decoded keys parameter: ${decodedParam}`);
+      
       fileKeys = JSON.parse(decodedParam);
       
       if (!Array.isArray(fileKeys)) {
         throw new Error('Keys parameter is not an array');
       }
       
-      // Handle @ symbols in the file keys
-      fileKeys = fileKeys.map(key => key.replace(/\$40/g, '@'));
+      // Handle @ symbols in the file keys - try multiple possible encodings
+      fileKeys = fileKeys.map(key => {
+        // First unescape any URI components that might be double-encoded
+        let fixedKey = key;
+        
+        // Replace common encodings of @ with the actual symbol
+        fixedKey = fixedKey.replace(/(%40|\$40|%2540)/g, '@');
+        
+        // Log the transformation for debugging
+        if (fixedKey !== key) {
+          console.log(`Transformed key: "${key}" -> "${fixedKey}"`);
+        }
+        
+        return fixedKey;
+      });
       
       console.log('Processed file keys:', fileKeys);
     } catch (error) {
       console.error('Error parsing file keys:', error, keysParam);
-      return NextResponse.json({ error: 'Invalid file keys format' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Invalid file keys format',
+        details: error instanceof Error ? error.message : 'Unknown parsing error'
+      }, { status: 400 });
     }
 
     // Verify the project exists
     const project = await prisma.project.findUnique({
-      where: {
-        id: projectId,
-      },
+      where: { id: projectId },
     });
 
     if (!project) {
+      console.log(`Project not found: ${projectId}`);
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // If no specific keys are provided or the array is empty, get all files from the project
-    const whereClause = fileKeys.length > 0 
-      ? { 
-          s3Key: { in: fileKeys },
-          projectId 
-        } 
-      : { projectId };
-
     // Get the files that match the provided keys and belong to the project
-    const files = await prisma.file.findMany({
-      where: whereClause,
+    console.log(`Querying TranscriptionFile with S3 keys: ${JSON.stringify(fileKeys)}`);
+    const files = await prisma.transcriptionFile.findMany({
+      where: {
+        s3Key: { in: fileKeys },
+        projectId
+      },
       select: {
         id: true,
         s3Key: true,
@@ -294,10 +376,36 @@ export async function GET(
       },
     });
 
+    console.log(`Found ${files.length} matching files in the database`);
+    
+    // Check if we found all the expected files
+    if (files.length === 0) {
+      console.log('No matching files found');
+      return NextResponse.json({ 
+        error: 'No files found matching the provided keys',
+        requestedKeys: fileKeys
+      }, { status: 404 });
+    }
+    
+    if (files.length !== fileKeys.length) {
+      console.log(`Warning: Found ${files.length} files but expected ${fileKeys.length}`);
+      
+      // Log which keys were not found
+      const foundKeys = files.map(f => f.s3Key);
+      const missingKeys = fileKeys.filter(key => !foundKeys.includes(key));
+      console.log('Missing keys:', missingKeys);
+    }
+
     // Generate download URLs for each file
     const filesWithUrls = await Promise.all(
       files.map(async (file) => {
-        const downloadUrl = await getFileDownloadUrl(file.s3Key);
+        // Generate signed URL directly (don't use the imported function as it might have issues)
+        const downloadUrl = s3.getSignedUrl('getObject', {
+          Bucket: process.env.S3_TRANSCRIBE_BUCKET!,
+          Key: file.s3Key,
+          Expires: 3600 // 1 hour
+        });
+        
         return {
           key: file.s3Key,
           filename: file.filename,
@@ -308,6 +416,8 @@ export async function GET(
       })
     );
 
+    console.log(`Generated download URLs for ${filesWithUrls.length} files`);
+
     return NextResponse.json({
       projectId: project.id,
       projectName: project.name,
@@ -316,7 +426,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching project files:', error);
     return NextResponse.json(
-      { error: 'Failed to load project files' },
+      { error: 'Failed to load project files', details: (error as Error).message },
       { status: 500 }
     );
   }

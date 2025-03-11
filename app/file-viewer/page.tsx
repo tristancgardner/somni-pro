@@ -540,12 +540,15 @@ export default function TranscribePage() {
         // If specific files are selected, use those
         if (projectSelectedFiles.length > 0) {
             filesToView = projectSelectedFiles;
+            console.log(`Using ${filesToView.length} selected files`);
         } 
         // Otherwise, get all files from the current project in the current view
         else {
             filesToView = getCurrentPageTranscriptions()
                 .filter(file => file.projectId === selectedProject.id)
                 .map(file => file.key);
+                
+            console.log(`Using ${filesToView.length} files from current page`);
                 
             // If there are no files in the current view, don't proceed
             if (filesToView.length === 0) {
@@ -565,15 +568,20 @@ export default function TranscribePage() {
             });
         }
         
-        // Make sure @ symbols are correctly handled
-        const sanitizedFileKeys = fileKeysToUse.map(key => key.replace('@', '%40'));
+        // Use direct encoding by replacing @ with %40 - this is safer than URL encoding
+        const cleanFileKeys = fileKeysToUse.map(key => key.replace(/@/g, '%40'));
+        console.log('File keys for URL:', cleanFileKeys);
         
-        // Use JSON.stringify but ensure @ symbols are properly encoded
-        const fileKeysParam = encodeURIComponent(JSON.stringify(sanitizedFileKeys));
+        // Use JSON.stringify with the cleaned keys
+        const fileKeysParam = encodeURIComponent(JSON.stringify(cleanFileKeys));
         const projectIdParam = encodeURIComponent(selectedProject.id);
         
+        // Build and log the URL for debugging
+        const url = `/transcription-viewer?projectId=${projectIdParam}&fileKeys=${fileKeysParam}`;
+        console.log('Navigating to URL:', url);
+        
         // Navigate to transcription viewer with parameters
-        router.push(`/transcription-viewer?projectId=${projectIdParam}&fileKeys=${fileKeysParam}`);
+        router.push(url);
     };
 
     // Page forward/backward for transcription results

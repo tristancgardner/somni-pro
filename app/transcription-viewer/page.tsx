@@ -217,15 +217,24 @@ export default function TranscriptionViewerPage() {
       if (!projectId || !fileKeysParam) return;
       
       try {
+        console.log('Loading project files with params:', { projectId, fileKeysParam });
+        
         // Parse file keys from URL parameter
         const parsedFileKeys = JSON.parse(decodeURIComponent(fileKeysParam)) as string[];
         setFileKeys(parsedFileKeys);
         
-        // Handle potential @ symbol encoding issues
-        const processedFileKeys = parsedFileKeys.map(key => key.replace(/\$40/g, '@'));
+        console.log(`Parsed ${parsedFileKeys.length} file keys from URL`);
         
-        // Fetch file data for each key - use the [id] route which we confirmed is working
-        const response = await fetch(`/api/projects/${projectId}/files?keys=${encodeURIComponent(JSON.stringify(processedFileKeys))}`, {
+        // Handle potential @ symbol encoding issues
+        const processedFileKeys = parsedFileKeys.map(key => key.replace(/(\$40|%40)/g, '@'));
+        
+        console.log('Processing file keys to handle @ symbols:', processedFileKeys);
+        
+        // Fetch file data for each key - this should match the API route exactly
+        const apiUrl = `/api/projects/${projectId}/files?keys=${encodeURIComponent(JSON.stringify(processedFileKeys))}`;
+        console.log('Fetching from URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -233,21 +242,34 @@ export default function TranscriptionViewerPage() {
         });
         
         if (!response.ok) {
-          throw new Error(`Failed to load project files: ${response.status}`);
+          console.error('API response error:', response.status, response.statusText);
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error details:', errorData);
+          throw new Error(`Failed to load project files: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log('Loaded project files:', data);
+        console.log('Successfully loaded project files:', data);
+        
+        if (!data.files || !Array.isArray(data.files) || data.files.length === 0) {
+          console.warn('No files returned from API');
+          setError('No files found in this project');
+          setLoading(false);
+          return;
+        }
+        
         setProjectFiles(data.files);
         setProjectName(data.projectName);
         
         // Initialize with the first file if available
         if (data.files.length > 0) {
           setActiveFileIndex(0);
+          console.log('Set active file to index 0:', data.files[0].filename);
         }
       } catch (error) {
         console.error('Error loading project files:', error);
-        setError('Failed to load project files. Please try again.');
+        setError(`Failed to load project files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setLoading(false);
       }
     };
     
