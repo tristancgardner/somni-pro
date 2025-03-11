@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { redirect, useRouter } from "next/navigation";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2 } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
 import AudioWaveform from "@/components/custom/diar-plot";
@@ -44,6 +44,7 @@ type Project = {
 export default function TranscribePage() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLoaded, setIsLoaded] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [transcription, setTranscription] = useState<string>("");
@@ -78,6 +79,9 @@ export default function TranscribePage() {
     // Agent state
     const [activeAgent, setActiveAgent] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+    // Add a ref to track if we've already processed the URL parameters
+    const projectFromUrlProcessed = useRef(false);
 
     // Add new state variables for speaker identification
     const [speakerMode, setSpeakerMode] = useState<'role_based' | 'context_based'>('context_based');
@@ -482,7 +486,7 @@ export default function TranscribePage() {
     };
 
     // Update the select project function to pass the project directly
-    const handleSelectProject = async (project: Project | null) => {
+    const handleSelectProject = useCallback(async (project: Project | null) => {
         setSelectedProject(project);
         setResultsPage(1);
         setContinuationToken(null);
@@ -491,7 +495,7 @@ export default function TranscribePage() {
         if (!isLoadingTranscriptions) {
             await loadTranscriptionResults(null, project);
         }
-    };
+    }, [loadTranscriptionResults, isLoadingTranscriptions]);
 
     // Update the file selection handler to work with both general and project-specific selections
     const handleFileSelection = (key: string) => {
@@ -618,6 +622,24 @@ export default function TranscribePage() {
             loadProjects();
         }
     }, [status, loadTranscriptionResults, loadProjects, selectedProject]);
+
+    // Handle projectId from URL
+    useEffect(() => {
+        const autoSelectProject = async () => {
+            if (status === "authenticated" && projects.length > 0 && !projectFromUrlProcessed.current) {
+                const projectIdFromUrl = searchParams.get('projectId');
+                if (projectIdFromUrl) {
+                    const project = projects.find(p => p.id === projectIdFromUrl);
+                    if (project) {
+                        await handleSelectProject(project);
+                    }
+                }
+                projectFromUrlProcessed.current = true;
+            }
+        };
+        
+        autoSelectProject();
+    }, [status, projects, searchParams]);
 
     // Define the toggleAgent function (if it doesn't exist)
     const toggleAgent = (agentName: string) => {

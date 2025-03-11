@@ -333,7 +333,13 @@ export default function TranscriptionViewerPage() {
 
   // Add back button handler
   const handleBack = () => {
-    router.push('/file-viewer');
+    if (projectId) {
+      // If we have a project ID, go back to that specific project view
+      router.push(`/file-viewer?projectId=${projectId}`);
+    } else {
+      // Otherwise just go to the file viewer
+      router.push('/file-viewer');
+    }
   };
 
   if (loading) {
