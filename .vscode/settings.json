@@ -12,6 +12,11 @@
             "folderPath": "somni-pro/app/file-viewer/",
             "color": "foldercolorizer.color_00cc00",
             "badge": "fv"
+        },
+        {
+            "folderPath": "somni-pro/app/transcription-viewer/",
+            "color": "foldercolorizer.color_00cc00",
+            "badge": "tv"
         }
     ]
 }
