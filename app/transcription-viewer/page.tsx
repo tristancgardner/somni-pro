@@ -92,7 +92,7 @@ export default function TranscriptionViewerPage() {
       
       return {
         speaker,
-        name: segments[0].name || undefined,
+        name: segments[0].name,
         role: segments[0].role,
         segments: segments.length,
         words: wordCount,
@@ -118,8 +118,8 @@ export default function TranscriptionViewerPage() {
         if (segment.speaker === speakerId) {
           return {
             ...segment,
-            name: name !== undefined ? name : segment.name,
-            role: role !== undefined ? role : segment.role
+            name: name,
+            role: role
           };
         }
         return segment;
@@ -546,7 +546,10 @@ export default function TranscriptionViewerPage() {
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <Badge className="bg-[#45b7aa] text-white mb-2">
+                            <Badge 
+                              variant="outline" 
+                              className="bg-teal-800/30 text-teal-300 border-teal-800 hover:bg-teal-800/50"
+                            >
                               {speaker.name || speaker.speaker}
                             </Badge>
                             <button 
@@ -567,7 +570,7 @@ export default function TranscriptionViewerPage() {
                                   defaultValue={speaker.name || ''}
                                   placeholder="Enter name"
                                   onChange={(e) => {
-                                    const newName = e.target.value.trim() || undefined;
+                                    const newName = e.target.value;
                                     setEditedSpeakers(prev => ({
                                       ...prev,
                                       [speaker.speaker]: { 
@@ -586,7 +589,7 @@ export default function TranscriptionViewerPage() {
                                   defaultValue={speaker.role || ''}
                                   placeholder="Enter role"
                                   onChange={(e) => {
-                                    const newRole = e.target.value.trim() || undefined;
+                                    const newRole = e.target.value;
                                     setEditedSpeakers(prev => ({
                                       ...prev,
                                       [speaker.speaker]: { 
@@ -603,8 +606,8 @@ export default function TranscriptionViewerPage() {
                                   const edits = editedSpeakers[speaker.speaker] || {};
                                   updateSpeakerInfo(
                                     speaker.speaker, 
-                                    edits.name !== undefined ? edits.name : speaker.name, 
-                                    edits.role !== undefined ? edits.role : speaker.role
+                                    edits.name, 
+                                    edits.role
                                   );
                                 }}
                               >
@@ -614,9 +617,7 @@ export default function TranscriptionViewerPage() {
                           ) : (
                             <>
                               <div className="text-sm text-gray-400">ID: {speaker.speaker}</div>
-                              {speaker.role && (
-                                <div className="text-sm text-gray-400">{speaker.role}</div>
-                              )}
+                              <div className="text-sm text-gray-400">Role: {speaker.role || ''}</div>
                             </>
                           )}
                         </div>
