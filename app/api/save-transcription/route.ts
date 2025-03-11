@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
     let s3Path = parsedUrl.pathname || '';
     if (s3Path.startsWith('/')) s3Path = s3Path.substring(1);
     
+    // Decode URL-encoded characters (e.g., %40 → @)
+    s3Path = decodeURIComponent(s3Path);
+    
     // Get the bucket name from env (don't try to parse it from the URL as it might be complex)
     const bucketName = process.env.S3_TRANSCRIBE_BUCKET!;
     
