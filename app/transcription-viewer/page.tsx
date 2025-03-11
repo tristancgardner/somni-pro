@@ -19,7 +19,8 @@ interface Segment {
   start: number;
   end: number;
   words: Word[];
-  name: string;
+  role?: string;
+  name?: string;
 }
 
 interface TranscriptData {
@@ -30,7 +31,8 @@ interface TranscriptData {
 
 interface SpeakerStats {
   speaker: string;
-  name: string;
+  name?: string;
+  role?: string;
   segments: number;
   words: number;
   totalDuration: number;
@@ -69,7 +71,8 @@ export default function TranscriptionViewerPage() {
       
       return {
         speaker,
-        name: segments[0].name || "Unknown",
+        name: segments[0].name || undefined,
+        role: segments[0].role,
         segments: segments.length,
         words: wordCount,
         totalDuration,
@@ -194,7 +197,12 @@ export default function TranscriptionViewerPage() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <Badge className="bg-[#45b7aa] text-white mb-2">{speaker.speaker}</Badge>
-                  <h3 className="text-lg font-semibold">Unknown</h3>
+                  {speaker.name && (
+                    <h3 className="text-lg font-semibold">{speaker.name}</h3>
+                  )}
+                  {speaker.role && (
+                    <div className="text-sm text-gray-400">{speaker.role}</div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-gray-400">Segments</div>
@@ -231,6 +239,12 @@ export default function TranscriptionViewerPage() {
                   {formatDuration(segment.start)} - {formatDuration(segment.end)}
                 </span>
               </div>
+              {segment.role && (
+                <div className="text-gray-400 text-sm mb-1">Role: {segment.role}</div>
+              )}
+              {segment.name && (
+                <div className="text-gray-400 text-sm mb-2">Name: {segment.name}</div>
+              )}
               <p className="text-gray-200">{segment.text}</p>
             </div>
           ))}
