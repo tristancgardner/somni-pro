@@ -20,10 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'No URL provided' }, { status: 400 });
     }
     
-    console.log('Fetching transcription from:', jsonUrl);
+    // Fix any encoding issues with @ symbols
+    const fixedUrl = jsonUrl.replace(/\$40/g, '@');
+    
+    console.log('Fetching transcription from:', fixedUrl);
     
     // Fetch the transcription JSON from the provided URL
-    const response = await fetch(jsonUrl, {
+    const response = await fetch(fixedUrl, {
       headers: {
         'Accept': 'application/json',
       },

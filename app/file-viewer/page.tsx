@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2 } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
 import AudioWaveform from "@/components/custom/diar-plot";
 import PageHeader from "@/components/PageHeader";
@@ -89,6 +89,9 @@ export default function TranscribePage() {
 
     // Add the selected transcription state
     const [selectedTranscription, setSelectedTranscription] = useState<TranscriptionFile | null>(null);
+
+    // File selection within a project
+    const [projectSelectedFiles, setProjectSelectedFiles] = useState<string[]>([]);
 
     // Add this function to handle speaker identification
     const runSpeakerIdentification = async () => {
@@ -490,15 +493,87 @@ export default function TranscribePage() {
         }
     };
 
-    // Handle file selection for project assignment
+    // Update the file selection handler to work with both general and project-specific selections
     const handleFileSelection = (key: string) => {
-        setSelectedFiles(prev => {
-            if (prev.includes(key)) {
-                return prev.filter(k => k !== key);
+        if (selectedProject) {
+            // For project view, use projectSelectedFiles
+            if (projectSelectedFiles.includes(key)) {
+                setProjectSelectedFiles(prev => prev.filter(fileKey => fileKey !== key));
             } else {
-                return [...prev, key];
+                setProjectSelectedFiles(prev => [...prev, key]);
             }
-        });
+        } else {
+            // For general view, use selectedFiles (original behavior)
+            if (selectedFiles.includes(key)) {
+                setSelectedFiles(prev => prev.filter(fileKey => fileKey !== key));
+            } else {
+                setSelectedFiles(prev => [...prev, key]);
+            }
+        }
+    };
+
+    // Function to clear all selected files in the current view
+    const clearSelectedFiles = () => {
+        if (selectedProject) {
+            setProjectSelectedFiles([]);
+        } else {
+            setSelectedFiles([]);
+        }
+    };
+
+    // Function to select all files in the current view
+    const selectAllFiles = () => {
+        const currentFiles = getCurrentPageTranscriptions();
+        if (selectedProject) {
+            setProjectSelectedFiles(currentFiles.map(file => file.key));
+        } else {
+            setSelectedFiles(currentFiles.map(file => file.key));
+        }
+    };
+
+    // Function to view all selected files in a project
+    const viewAllProjectFiles = () => {
+        if (!selectedProject) return;
+        
+        let filesToView: string[];
+        
+        // If specific files are selected, use those
+        if (projectSelectedFiles.length > 0) {
+            filesToView = projectSelectedFiles;
+        } 
+        // Otherwise, get all files from the current project in the current view
+        else {
+            filesToView = getCurrentPageTranscriptions()
+                .filter(file => file.projectId === selectedProject.id)
+                .map(file => file.key);
+                
+            // If there are no files in the current view, don't proceed
+            if (filesToView.length === 0) {
+                toast.error('No files found in this project');
+                return;
+            }
+        }
+        
+        // Encode the file keys and project ID to pass as URL parameters
+        // Only pass the first 20 files to avoid URL length issues
+        const fileKeysToUse = filesToView.slice(0, 20);
+        
+        if (fileKeysToUse.length < filesToView.length) {
+            toast(`Viewing the first ${fileKeysToUse.length} files out of ${filesToView.length} total`, {
+                icon: '🔍',
+                duration: 4000,
+            });
+        }
+        
+        // Make sure @ symbols are correctly handled
+        const sanitizedFileKeys = fileKeysToUse.map(key => key.replace('@', '%40'));
+        
+        // Use JSON.stringify but ensure @ symbols are properly encoded
+        const fileKeysParam = encodeURIComponent(JSON.stringify(sanitizedFileKeys));
+        const projectIdParam = encodeURIComponent(selectedProject.id);
+        
+        // Navigate to transcription viewer with parameters
+        router.push(`/transcription-viewer?projectId=${projectIdParam}&fileKeys=${fileKeysParam}`);
     };
 
     // Page forward/backward for transcription results
@@ -641,7 +716,7 @@ export default function TranscribePage() {
                     </div>
                     
                     {/* Selected Files Actions */}
-                    {selectedFiles.length > 0 && (
+                    {selectedFiles.length > 0 && !selectedProject && (
                         <div className="bg-black/70 border border-blue-500 rounded-lg p-4 mb-4 flex justify-between items-center">
                             <div className="text-blue-400">
                                 <span className="mr-2">{selectedFiles.length} files selected</span>
@@ -653,44 +728,67 @@ export default function TranscribePage() {
                                 >
                                     Cancel
                                 </button>
-                                {!selectedProject ? (
-                                    <div className="relative group">
-                                        <div
-                                            className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1 cursor-pointer"
-                                        >
-                                            <FiFolderPlus /> Add to Project
-                                        </div>
-                                        
-                                        {/* Project dropdown */}
-                                        <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                                            {projects.length > 0 ? (
-                                                projects.map(project => (
-                                                    <div
-                                                        key={project.id}
-                                                        onClick={() => {
-                                                            setSelectedProject(project);
-                                                            handleAddFilesToProject();
-                                                        }}
-                                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2 cursor-pointer"
-                                                    >
-                                                        <FiFolder size={14} /> {project.name}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="px-4 py-2 text-sm text-gray-400">
-                                                    No projects available
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleAddFilesToProject}
-                                        className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                                <div className="relative group">
+                                    <div
+                                        className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1 cursor-pointer"
                                     >
-                                        <FiPlus /> Add to {selectedProject.name}
-                                    </button>
-                                )}
+                                        <FiFolderPlus /> Add to Project
+                                    </div>
+                                    
+                                    {/* Project dropdown */}
+                                    <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                                        {projects.length > 0 ? (
+                                            projects.map(project => (
+                                                <div
+                                                    key={project.id}
+                                                    onClick={() => {
+                                                        setSelectedProject(project);
+                                                        handleAddFilesToProject();
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2 cursor-pointer"
+                                                >
+                                                    <FiFolder size={14} /> {project.name}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="px-4 py-2 text-sm text-gray-400">
+                                                No projects available
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Selected Files Within Project Actions */}
+                    {projectSelectedFiles.length > 0 && selectedProject && (
+                        <div className="bg-black/70 border border-green-500 rounded-lg p-4 mb-4 flex justify-between items-center">
+                            <div className="text-green-400">
+                                <span className="mr-2">{projectSelectedFiles.length} files selected from {selectedProject.name}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setProjectSelectedFiles([])}
+                                    className="px-3 py-1 text-sm rounded bg-gray-700 hover:bg-gray-600"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={viewAllProjectFiles}
+                                    className="px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700 flex items-center gap-1"
+                                >
+                                    <FiColumns /> View Selected
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        projectSelectedFiles.forEach(fileKey => handleRemoveFileFromProject(fileKey));
+                                        setProjectSelectedFiles([]);
+                                    }}
+                                    className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
+                                >
+                                    <FiTrash2 /> Remove From Project
+                                </button>
                             </div>
                         </div>
                     )}
@@ -706,18 +804,31 @@ export default function TranscribePage() {
                                     </p>
                                 )}
                             </h2>
-                            <button
-                                onClick={() => loadTranscriptionResults(null, selectedProject)}
-                                disabled={isLoadingTranscriptions}
-                                className={`flex items-center gap-2 px-3 py-1 text-sm rounded ${
-                                    isLoadingTranscriptions
-                                    ? "bg-gray-600 cursor-not-allowed"
-                                    : "bg-blue-600 hover:bg-blue-700"
-                                }`}
-                            >
-                                <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
-                                Refresh
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {selectedProject && (
+                                    <button
+                                        onClick={viewAllProjectFiles}
+                                        className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700"
+                                    >
+                                        <FiColumns />
+                                        {projectSelectedFiles.length > 0 
+                                            ? `View Selected (${projectSelectedFiles.length})` 
+                                            : "View All Files"}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => loadTranscriptionResults(null, selectedProject)}
+                                    disabled={isLoadingTranscriptions}
+                                    className={`flex items-center gap-2 px-3 py-1 text-sm rounded ${
+                                        isLoadingTranscriptions
+                                        ? "bg-gray-600 cursor-not-allowed"
+                                        : "bg-blue-600 hover:bg-blue-700"
+                                    }`}
+                                >
+                                    <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                         
                         {transcriptionError && (
@@ -733,9 +844,21 @@ export default function TranscribePage() {
                                         <thead className="border-b border-gray-700">
                                             <tr>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
-                                                    {!selectedProject && (
-                                                        <span className="sr-only">Select</span>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={(selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length && getCurrentPageTranscriptions().length > 0}
+                                                            onChange={() => {
+                                                                if ((selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length) {
+                                                                    clearSelectedFiles();
+                                                                } else {
+                                                                    selectAllFiles();
+                                                                }
+                                                            }}
+                                                            className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                                                        />
+                                                        <span className="sr-only">Select All</span>
+                                                    </div>
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
@@ -748,14 +871,14 @@ export default function TranscribePage() {
                                             {getCurrentPageTranscriptions().map((file, index) => (
                                                 <tr key={index} className="hover:bg-gray-800/50">
                                                     <td className="px-4 py-3 whitespace-nowrap">
-                                                        {!selectedProject && (
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedFiles.includes(file.key)}
-                                                                onChange={() => handleFileSelection(file.key)}
-                                                                className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
-                                                            />
-                                                        )}
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedProject 
+                                                                ? projectSelectedFiles.includes(file.key) 
+                                                                : selectedFiles.includes(file.key)}
+                                                            onChange={() => handleFileSelection(file.key)}
+                                                            className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{formatFileSize(file.size)}</td>

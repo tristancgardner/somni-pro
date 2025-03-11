@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Clock, Users } from 'lucide-react';
+import { FileText, Clock, Users, ArrowLeft, Save, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
 
 // Define the types based on the transcription data
 interface Word {
@@ -40,7 +42,17 @@ interface SpeakerStats {
 
 export default function TranscriptionViewerPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const url = searchParams.get('url');
+  const projectId = searchParams.get('projectId');
+  const fileKeysParam = searchParams.get('fileKeys');
+  
+  // Parse file keys if provided
+  const [fileKeys, setFileKeys] = useState<string[]>([]);
+  const [projectFiles, setProjectFiles] = useState<{ key: string, filename: string, downloadUrl: string }[]>([]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
+  const [projectName, setProjectName] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
   
   const [transcription, setTranscription] = useState<TranscriptData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +138,15 @@ export default function TranscriptionViewerPage() {
 
   // Function to save updated transcription back to S3
   const saveTranscription = async () => {
-    if (!transcription || !url) return;
+    if (!transcription) return;
+    
+    // Determine which URL to use for saving
+    const sourceUrl = url || projectFiles[activeFileIndex]?.downloadUrl;
+    if (!sourceUrl) {
+      setSaveSuccess(false);
+      setSaveMessage('No source URL available for saving');
+      return;
+    }
     
     try {
       setIsSaving(true);
@@ -140,7 +160,7 @@ export default function TranscriptionViewerPage() {
         },
         body: JSON.stringify({
           transcriptionData: transcription,
-          jsonUrl: url,
+          jsonUrl: sourceUrl,
         }),
       });
       
@@ -170,25 +190,98 @@ export default function TranscriptionViewerPage() {
     }
   };
 
-  // Fetch the transcription data
+  // Function to change the active file
+  const changeActiveFile = (index: number) => {
+    if (index >= 0 && index < projectFiles.length) {
+      setActiveFileIndex(index);
+      setLoading(true);
+      setError(null);
+      
+      // Save current edits before switching if needed
+      if (transcription && Object.keys(editedSpeakers).length > 0) {
+        // Optional: prompt user to save changes or auto-save
+        // For simplicity, we'll just switch without saving
+      }
+      
+      // Reset states for the new file
+      setEditedSpeakers({});
+      setEditingSpeaker(null);
+      setSaveSuccess(null);
+      setSaveMessage(null);
+    }
+  };
+
+  // Load project files
+  useEffect(() => {
+    const loadProjectFiles = async () => {
+      if (!projectId || !fileKeysParam) return;
+      
+      try {
+        // Parse file keys from URL parameter
+        const parsedFileKeys = JSON.parse(decodeURIComponent(fileKeysParam)) as string[];
+        setFileKeys(parsedFileKeys);
+        
+        // Handle potential @ symbol encoding issues
+        const processedFileKeys = parsedFileKeys.map(key => key.replace(/\$40/g, '@'));
+        
+        // Fetch file data for each key - use the [id] route which we confirmed is working
+        const response = await fetch(`/api/projects/${projectId}/files?keys=${encodeURIComponent(JSON.stringify(processedFileKeys))}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load project files: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Loaded project files:', data);
+        setProjectFiles(data.files);
+        setProjectName(data.projectName);
+        
+        // Initialize with the first file if available
+        if (data.files.length > 0) {
+          setActiveFileIndex(0);
+        }
+      } catch (error) {
+        console.error('Error loading project files:', error);
+        setError('Failed to load project files. Please try again.');
+      }
+    };
+    
+    if (projectId && fileKeysParam) {
+      loadProjectFiles();
+    }
+  }, [projectId, fileKeysParam]);
+
+  // Load a single transcription from URL param
   useEffect(() => {
     const fetchTranscription = async () => {
-      if (!url) {
-        setError('No URL provided');
+      if (!url && !(projectFiles.length > 0 && activeFileIndex >= 0)) {
         setLoading(false);
         return;
       }
       
       try {
         setLoading(true);
+        setError(null);
         
-        // Fetch the transcription through the API proxy
+        // Determine the source URL to fetch
+        const sourceUrl = url || projectFiles[activeFileIndex]?.downloadUrl;
+        
+        if (!sourceUrl) {
+          throw new Error('No transcription URL available');
+        }
+        
+        // IMPORTANT: Use our API proxy to avoid CORS issues with S3
         const response = await fetch('/api/fetch-transcription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ jsonUrl: url }),
+          body: JSON.stringify({ jsonUrl: sourceUrl }),
         });
         
         if (!response.ok) {
@@ -211,7 +304,15 @@ export default function TranscriptionViewerPage() {
     };
 
     fetchTranscription();
-  }, [url]);
+  }, [url, activeFileIndex, projectFiles]);
+
+  // If we're in project view (with multiple files)
+  const isProjectView = projectId !== null && projectFiles.length > 0;
+
+  // Add back button handler
+  const handleBack = () => {
+    router.push('/file-viewer');
+  };
 
   if (loading) {
     return (
@@ -243,197 +344,312 @@ export default function TranscriptionViewerPage() {
     : 0;
 
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold">Transcription Results</h1>
-          <p className="text-gray-400 mt-1">{transcription.file}</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {saveMessage && (
-            <div className={`text-sm px-3 py-1 rounded ${saveSuccess ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
-              {saveMessage}
-            </div>
-          )}
-          
-          <button 
-            onClick={saveTranscription}
-            disabled={isSaving}
-            className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                Saving...
-              </>
-            ) : (
-              <>Save Changes</>
+    <div className="flex flex-col h-screen">
+      {/* Navigation header */}
+      <div className="bg-black/80 p-4 border-b border-gray-800 flex justify-between items-center">
+        <button 
+          onClick={handleBack}
+          className="flex items-center gap-2 text-gray-400 hover:text-white"
+        >
+          <ArrowLeft size={16} /> Back to Files
+        </button>
+        {projectName && (
+          <div className="text-lg font-semibold">
+            Project: {projectName} 
+            {isProjectView && (
+              <span className="ml-2 text-sm text-gray-400">
+                ({activeFileIndex + 1} of {projectFiles.length} files)
+              </span>
             )}
-          </button>
+          </div>
+        )}
+        <div>
+          {isProjectView && (
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="bg-gray-800 hover:bg-gray-700 p-2 rounded text-sm"
+            >
+              {showSidebar ? 'Hide Sidebar' : 'Show Sidebar'}
+            </button>
+          )}
         </div>
       </div>
       
-      {/* File Stats */}
-      <div className="bg-black bg-opacity-80 rounded-lg p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center space-x-3">
-            <Clock className="h-5 w-5 text-gray-400" />
+      <div className="flex flex-1 overflow-hidden">
+        {/* File sidebar (only shown in project view) */}
+        {isProjectView && showSidebar && (
+          <div className="w-64 bg-black/70 border-r border-gray-800 flex flex-col overflow-hidden">
+            <div className="p-3 border-b border-gray-800 text-sm font-medium">
+              Files ({projectFiles.length})
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {projectFiles.map((file, index) => (
+                <div 
+                  key={file.key}
+                  onClick={() => changeActiveFile(index)}
+                  className={`p-3 flex items-center gap-2 cursor-pointer hover:bg-black/50 ${
+                    index === activeFileIndex ? 'bg-blue-900/30 border-l-2 border-blue-500' : ''
+                  }`}
+                >
+                  <FileText size={16} className="text-gray-400" />
+                  <div className="truncate text-sm">
+                    {file.filename}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Navigation buttons */}
+            {projectFiles.length > 1 && (
+              <div className="p-3 border-t border-gray-800 flex justify-between">
+                <button
+                  onClick={() => changeActiveFile(activeFileIndex - 1)}
+                  disabled={activeFileIndex === 0}
+                  className={`p-2 rounded ${
+                    activeFileIndex === 0 
+                      ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                  }`}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <div className="text-sm flex items-center">
+                  {activeFileIndex + 1} / {projectFiles.length}
+                </div>
+                <button
+                  onClick={() => changeActiveFile(activeFileIndex + 1)}
+                  disabled={activeFileIndex === projectFiles.length - 1}
+                  className={`p-2 rounded ${
+                    activeFileIndex === projectFiles.length - 1
+                      ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                  }`}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Main content with transcription */}
+        <div className={`flex-1 p-6 overflow-y-auto ${isProjectView && showSidebar ? 'ml-0' : ''}`}>
+          {/* Existing transcription content */}
+          <div className="mb-6 flex justify-between items-start">
             <div>
-              <div className="text-sm text-gray-400">Duration</div>
-              <div className="text-2xl font-bold">{formatDuration(fileDuration)}</div>
+              <h1 className="text-2xl font-bold">Transcription Results</h1>
+              <p className="text-gray-400 mt-1">
+                {transcription ? transcription.file : (projectFiles[activeFileIndex]?.filename || '')}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {saveMessage && (
+                <div className={`text-sm px-3 py-1 rounded ${saveSuccess ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+                  {saveMessage}
+                </div>
+              )}
+              
+              <button 
+                onClick={saveTranscription}
+                disabled={isSaving}
+                className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Save Changes
+                  </>
+                )}
+              </button>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
-            <Users className="h-5 w-5 text-gray-400" />
-            <div>
-              <div className="text-sm text-gray-400">Speakers</div>
-              <div className="text-2xl font-bold">{transcription.num_speakers}</div>
+          {/* Loading, error, and content states */}
+          {loading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <FileText className="h-5 w-5 text-gray-400" />
-            <div>
-              <div className="text-sm text-gray-400">Segments</div>
-              <div className="text-2xl font-bold">{transcription.transcript.length}</div>
+          ) : error ? (
+            <div className="p-6 bg-red-900/30 border border-red-600 text-red-400 rounded-lg">
+              <h2 className="text-xl font-bold mb-2">Error</h2>
+              <p>{error}</p>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Speaker Analysis */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-4">Speaker Analysis</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {speakerStats.map((speaker, index) => (
-            <div key={index} className="bg-black bg-opacity-80 rounded-lg p-6">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-[#45b7aa] text-white mb-2">
-                      {speaker.name || speaker.speaker}
-                    </Badge>
-                    <button 
-                      onClick={() => setEditingSpeaker(editingSpeaker === speaker.speaker ? null : speaker.speaker)}
-                      className="text-xs text-gray-400 hover:text-white"
-                    >
-                      {editingSpeaker === speaker.speaker ? 'Cancel' : 'Edit'}
-                    </button>
+          ) : !transcription ? (
+            <div className="p-6 bg-gray-800 rounded-lg">
+              <p className="text-gray-400">No transcription data available</p>
+            </div>
+          ) : (
+            <>
+              {/* File Stats */}
+              <div className="bg-black bg-opacity-80 rounded-lg p-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <Clock className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <div className="text-sm text-gray-400">Duration</div>
+                      <div className="text-2xl font-bold">{formatDuration(fileDuration)}</div>
+                    </div>
                   </div>
                   
-                  {editingSpeaker === speaker.speaker ? (
-                    <div className="space-y-2 mt-2">
-                      <div>
-                        <label className="text-xs text-gray-400 block">Name:</label>
-                        <input 
-                          type="text"
-                          className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
-                          defaultValue={speaker.name || ''}
-                          placeholder="Enter name"
-                          onChange={(e) => {
-                            const newName = e.target.value.trim() || undefined;
-                            setEditedSpeakers(prev => ({
-                              ...prev,
-                              [speaker.speaker]: { 
-                                ...prev[speaker.speaker], 
-                                name: newName 
-                              }
-                            }));
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400 block">Role:</label>
-                        <input 
-                          type="text"
-                          className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
-                          defaultValue={speaker.role || ''}
-                          placeholder="Enter role"
-                          onChange={(e) => {
-                            const newRole = e.target.value.trim() || undefined;
-                            setEditedSpeakers(prev => ({
-                              ...prev,
-                              [speaker.speaker]: { 
-                                ...prev[speaker.speaker], 
-                                role: newRole 
-                              }
-                            }));
-                          }}
-                        />
-                      </div>
-                      <button 
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
-                        onClick={() => {
-                          const edits = editedSpeakers[speaker.speaker] || {};
-                          updateSpeakerInfo(
-                            speaker.speaker, 
-                            edits.name !== undefined ? edits.name : speaker.name, 
-                            edits.role !== undefined ? edits.role : speaker.role
-                          );
-                        }}
-                      >
-                        Save
-                      </button>
+                  <div className="flex items-center space-x-3">
+                    <Users className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <div className="text-sm text-gray-400">Speakers</div>
+                      <div className="text-2xl font-bold">{transcription.num_speakers}</div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="text-sm text-gray-400">ID: {speaker.speaker}</div>
-                      {speaker.role && (
-                        <div className="text-sm text-gray-400">{speaker.role}</div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <div className="text-sm text-gray-400">Segments</div>
+                      <div className="text-2xl font-bold">{transcription.transcript.length}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Speaker Analysis */}
+              <div className="mb-6">
+                <h2 className="text-xl font-bold mb-4">Speaker Analysis</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {speakerStats.map((speaker, index) => (
+                    <div key={index} className="bg-black bg-opacity-80 rounded-lg p-6">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-[#45b7aa] text-white mb-2">
+                              {speaker.name || speaker.speaker}
+                            </Badge>
+                            <button 
+                              onClick={() => setEditingSpeaker(editingSpeaker === speaker.speaker ? null : speaker.speaker)}
+                              className="text-xs text-gray-400 hover:text-white"
+                            >
+                              {editingSpeaker === speaker.speaker ? 'Cancel' : 'Edit'}
+                            </button>
+                          </div>
+                          
+                          {editingSpeaker === speaker.speaker ? (
+                            <div className="space-y-2 mt-2">
+                              <div>
+                                <label className="text-xs text-gray-400 block">Name:</label>
+                                <input 
+                                  type="text"
+                                  className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                                  defaultValue={speaker.name || ''}
+                                  placeholder="Enter name"
+                                  onChange={(e) => {
+                                    const newName = e.target.value.trim() || undefined;
+                                    setEditedSpeakers(prev => ({
+                                      ...prev,
+                                      [speaker.speaker]: { 
+                                        ...prev[speaker.speaker], 
+                                        name: newName 
+                                      }
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-400 block">Role:</label>
+                                <input 
+                                  type="text"
+                                  className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                                  defaultValue={speaker.role || ''}
+                                  placeholder="Enter role"
+                                  onChange={(e) => {
+                                    const newRole = e.target.value.trim() || undefined;
+                                    setEditedSpeakers(prev => ({
+                                      ...prev,
+                                      [speaker.speaker]: { 
+                                        ...prev[speaker.speaker], 
+                                        role: newRole 
+                                      }
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <button 
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+                                onClick={() => {
+                                  const edits = editedSpeakers[speaker.speaker] || {};
+                                  updateSpeakerInfo(
+                                    speaker.speaker, 
+                                    edits.name !== undefined ? edits.name : speaker.name, 
+                                    edits.role !== undefined ? edits.role : speaker.role
+                                  );
+                                }}
+                              >
+                                Save
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-sm text-gray-400">ID: {speaker.speaker}</div>
+                              {speaker.role && (
+                                <div className="text-sm text-gray-400">{speaker.role}</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-400">Segments</div>
+                          <div className="text-sm font-medium">{speaker.segments}</div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-sm text-gray-400">Words</div>
+                          <div className="text-sm font-medium">{speaker.words}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-400">Duration</div>
+                          <div className="text-sm font-medium">{formatDuration(speaker.totalDuration)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Transcript Timeline */}
+              <div>
+                <h2 className="text-xl font-bold mb-4">Transcript Timeline</h2>
+                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                  {transcription.transcript.map((segment) => (
+                    <div
+                      key={segment.segment_id}
+                      className="p-5 rounded-lg border border-gray-800 bg-black bg-opacity-80"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <Badge className="bg-[#45b7aa] text-white">
+                          {segment.name || segment.speaker}
+                        </Badge>
+                        <span className="text-sm text-gray-400">
+                          {formatDuration(segment.start)} - {formatDuration(segment.end)}
+                        </span>
+                      </div>
+                      
+                      {segment.speaker !== segment.name && segment.name && (
+                        <div className="text-gray-400 text-sm mb-1">Speaker ID: {segment.speaker}</div>
                       )}
-                    </>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-400">Segments</div>
-                  <div className="text-sm font-medium">{speaker.segments}</div>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm text-gray-400">Words</div>
-                  <div className="text-sm font-medium">{speaker.words}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-400">Duration</div>
-                  <div className="text-sm font-medium">{formatDuration(speaker.totalDuration)}</div>
+                      {segment.role && (
+                        <div className="text-gray-400 text-sm mb-1">Role: {segment.role}</div>
+                      )}
+                      
+                      <p className="text-gray-200">{segment.text}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Transcript Timeline */}
-      <div>
-        <h2 className="text-xl font-bold mb-4">Transcript Timeline</h2>
-        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-          {transcription.transcript.map((segment) => (
-            <div
-              key={segment.segment_id}
-              className="p-5 rounded-lg border border-gray-800 bg-black bg-opacity-80"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Badge className="bg-[#45b7aa] text-white">
-                  {segment.name || segment.speaker}
-                </Badge>
-                <span className="text-sm text-gray-400">
-                  {formatDuration(segment.start)} - {formatDuration(segment.end)}
-                </span>
-              </div>
-              
-              {segment.speaker !== segment.name && segment.name && (
-                <div className="text-gray-400 text-sm mb-1">Speaker ID: {segment.speaker}</div>
-              )}
-              {segment.role && (
-                <div className="text-gray-400 text-sm mb-1">Role: {segment.role}</div>
-              )}
-              
-              <p className="text-gray-200">{segment.text}</p>
-            </div>
-          ))}
+            </>
+          )}
         </div>
       </div>
     </div>

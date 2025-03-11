@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import AWS from 'aws-sdk';
+import { getFileDownloadUrl } from '@/lib/s3';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Initialize AWS S3 client
 const s3 = new AWS.S3({
@@ -214,5 +216,108 @@ export async function DELETE(
       message: 'Failed to remove file from project', 
       error: error.message 
     }, { status: 500 });
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Authenticate the request
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get the project ID from the URL params
+    const { id: projectId } = params;
+    
+    // Parse the URL to get the search parameters
+    const url = new URL(request.url);
+    const keysParam = url.searchParams.get('keys');
+    
+    if (!keysParam) {
+      return NextResponse.json({ error: 'No file keys provided' }, { status: 400 });
+    }
+
+    // Parse the keys from the URL parameter - handle decoding carefully
+    let fileKeys: string[];
+    try {
+      const decodedParam = decodeURIComponent(keysParam);
+      fileKeys = JSON.parse(decodedParam);
+      
+      if (!Array.isArray(fileKeys)) {
+        throw new Error('Keys parameter is not an array');
+      }
+      
+      // Handle @ symbols in the file keys
+      fileKeys = fileKeys.map(key => key.replace(/\$40/g, '@'));
+      
+      console.log('Processed file keys:', fileKeys);
+    } catch (error) {
+      console.error('Error parsing file keys:', error, keysParam);
+      return NextResponse.json({ error: 'Invalid file keys format' }, { status: 400 });
+    }
+
+    // Verify the project exists
+    const project = await prisma.project.findUnique({
+      where: {
+        id: projectId,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // If no specific keys are provided or the array is empty, get all files from the project
+    const whereClause = fileKeys.length > 0 
+      ? { 
+          s3Key: { in: fileKeys },
+          projectId 
+        } 
+      : { projectId };
+
+    // Get the files that match the provided keys and belong to the project
+    const files = await prisma.file.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        s3Key: true,
+        filename: true,
+        size: true,
+        lastModified: true,
+      },
+      orderBy: {
+        filename: 'asc', // Sort files alphabetically by filename
+      },
+    });
+
+    // Generate download URLs for each file
+    const filesWithUrls = await Promise.all(
+      files.map(async (file) => {
+        const downloadUrl = await getFileDownloadUrl(file.s3Key);
+        return {
+          key: file.s3Key,
+          filename: file.filename,
+          size: file.size,
+          downloadUrl,
+          lastModified: file.lastModified,
+        };
+      })
+    );
+
+    return NextResponse.json({
+      projectId: project.id,
+      projectName: project.name,
+      files: filesWithUrls,
+    });
+  } catch (error) {
+    console.error('Error fetching project files:', error);
+    return NextResponse.json(
+      { error: 'Failed to load project files' },
+      { status: 500 }
+    );
   }
 } 
