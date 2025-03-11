@@ -1215,9 +1215,9 @@ export default function TranscribePage() {
                         )}
                     </div>
                     
-                    <div className='p-4'>
+                    {/* <div className='p-4'>
                         <AudioWaveform />
-                    </div>
+                    </div> */}
                 </div>
             </main>
         </BackgroundWrapper>
