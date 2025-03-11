@@ -46,7 +46,11 @@ export default function TranscriptionViewerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [speakerStats, setSpeakerStats] = useState<SpeakerStats[]>([]);
-
+  
+  // State for editing speaker info
+  const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
+  const [editedSpeakers, setEditedSpeakers] = useState<Record<string, { name?: string, role?: string }>>({});
+  
   // Format duration from seconds to mm:ss
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -78,6 +82,41 @@ export default function TranscriptionViewerPage() {
         totalDuration,
       };
     });
+  };
+
+  // Apply speaker edits to all segments with the same speaker ID
+  const updateSpeakerInfo = (speakerId: string, name?: string, role?: string) => {
+    if (!transcription) return;
+    
+    // Update edited speakers record
+    setEditedSpeakers(prev => ({
+      ...prev,
+      [speakerId]: { name, role }
+    }));
+    
+    // Apply edits to transcription data
+    const updatedTranscript = {
+      ...transcription,
+      transcript: transcription.transcript.map(segment => {
+        if (segment.speaker === speakerId) {
+          return {
+            ...segment,
+            name: name !== undefined ? name : segment.name,
+            role: role !== undefined ? role : segment.role
+          };
+        }
+        return segment;
+      })
+    };
+    
+    setTranscription(updatedTranscript);
+    
+    // Update speaker stats
+    const stats = calculateSpeakerStats(updatedTranscript);
+    setSpeakerStats(stats);
+    
+    // Exit edit mode
+    setEditingSpeaker(null);
   };
 
   // Fetch the transcription data
@@ -195,13 +234,80 @@ export default function TranscriptionViewerPage() {
           {speakerStats.map((speaker, index) => (
             <div key={index} className="bg-black bg-opacity-80 rounded-lg p-6">
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <Badge className="bg-[#45b7aa] text-white mb-2">{speaker.speaker}</Badge>
-                  {speaker.name && (
-                    <h3 className="text-lg font-semibold">{speaker.name}</h3>
-                  )}
-                  {speaker.role && (
-                    <div className="text-sm text-gray-400">{speaker.role}</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-[#45b7aa] text-white mb-2">
+                      {speaker.name || speaker.speaker}
+                    </Badge>
+                    <button 
+                      onClick={() => setEditingSpeaker(editingSpeaker === speaker.speaker ? null : speaker.speaker)}
+                      className="text-xs text-gray-400 hover:text-white"
+                    >
+                      {editingSpeaker === speaker.speaker ? 'Cancel' : 'Edit'}
+                    </button>
+                  </div>
+                  
+                  {editingSpeaker === speaker.speaker ? (
+                    <div className="space-y-2 mt-2">
+                      <div>
+                        <label className="text-xs text-gray-400 block">Name:</label>
+                        <input 
+                          type="text"
+                          className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                          defaultValue={speaker.name || ''}
+                          placeholder="Enter name"
+                          onChange={(e) => {
+                            const newName = e.target.value.trim() || undefined;
+                            setEditedSpeakers(prev => ({
+                              ...prev,
+                              [speaker.speaker]: { 
+                                ...prev[speaker.speaker], 
+                                name: newName 
+                              }
+                            }));
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 block">Role:</label>
+                        <input 
+                          type="text"
+                          className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                          defaultValue={speaker.role || ''}
+                          placeholder="Enter role"
+                          onChange={(e) => {
+                            const newRole = e.target.value.trim() || undefined;
+                            setEditedSpeakers(prev => ({
+                              ...prev,
+                              [speaker.speaker]: { 
+                                ...prev[speaker.speaker], 
+                                role: newRole 
+                              }
+                            }));
+                          }}
+                        />
+                      </div>
+                      <button 
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+                        onClick={() => {
+                          const edits = editedSpeakers[speaker.speaker] || {};
+                          updateSpeakerInfo(
+                            speaker.speaker, 
+                            edits.name !== undefined ? edits.name : speaker.name, 
+                            edits.role !== undefined ? edits.role : speaker.role
+                          );
+                        }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm text-gray-400">ID: {speaker.speaker}</div>
+                      {speaker.role && (
+                        <div className="text-sm text-gray-400">{speaker.role}</div>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="text-right">
@@ -234,17 +340,21 @@ export default function TranscriptionViewerPage() {
               className="p-5 rounded-lg border border-gray-800 bg-black bg-opacity-80"
             >
               <div className="flex items-center gap-3 mb-2">
-                <Badge className="bg-[#45b7aa] text-white">{segment.speaker}</Badge>
+                <Badge className="bg-[#45b7aa] text-white">
+                  {segment.name || segment.speaker}
+                </Badge>
                 <span className="text-sm text-gray-400">
                   {formatDuration(segment.start)} - {formatDuration(segment.end)}
                 </span>
               </div>
+              
+              {segment.speaker !== segment.name && segment.name && (
+                <div className="text-gray-400 text-sm mb-1">Speaker ID: {segment.speaker}</div>
+              )}
               {segment.role && (
                 <div className="text-gray-400 text-sm mb-1">Role: {segment.role}</div>
               )}
-              {segment.name && (
-                <div className="text-gray-400 text-sm mb-2">Name: {segment.name}</div>
-              )}
+              
               <p className="text-gray-200">{segment.text}</p>
             </div>
           ))}
