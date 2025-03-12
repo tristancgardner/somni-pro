@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from "next-auth/react";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiUpload, FiPlay, FiCheck, FiX, FiFileText } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiUpload, FiPlay, FiCheck, FiX, FiFileText, FiMic } from "react-icons/fi";
 import { v4 as uuidv4 } from 'uuid';
 import TranscriptionViewer from '@/components/TranscriptionViewer';
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
+import * as HeadlessUI from '@headlessui/react';
 
 type JobStatus = {
   jobId: string;
@@ -17,6 +18,12 @@ type JobStatus = {
   stoppedAt?: Date;
   exitCode?: number;
   reason?: string;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  description?: string;
 };
 
 type TranscriptionFile = {
@@ -62,6 +69,23 @@ export default function UploadTestPage() {
   // Transcription viewer state
   const [selectedTranscription, setSelectedTranscription] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Project info modal state
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [newProjectName, setNewProjectName] = useState("");
+  const [fileDescription, setFileDescription] = useState("");
+  const [isListeningForDictation, setIsListeningForDictation] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+
+  // State to track headlessui loading
+  const [dialogLoaded, setDialogLoaded] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
+  // State to track different modal approaches - default to native modal
+  const [useNativeModal, setUseNativeModal] = useState(true);
 
   // Generate a sessionId once when the component mounts
   useEffect(() => {
@@ -203,6 +227,143 @@ export default function UploadTestPage() {
     }
   }, [status, sessionId, loadTranscriptionResults]);
 
+  // Load user's projects
+  const loadProjects = useCallback(async () => {
+    if (status !== "authenticated") return;
+    
+    try {
+      setIsLoadingProjects(true);
+      const res = await fetch('/api/projects');
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to load projects");
+      }
+      
+      setProjects(data.projects || []);
+      
+      // Set default selected project if available
+      if (data.projects.length > 0) {
+        setSelectedProjectId(data.projects[0].id);
+      }
+    } catch (err: any) {
+      console.error("Error loading projects:", err);
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  }, [status]);
+
+  // Load projects on mount
+  useEffect(() => {
+    if (status === "authenticated") {
+      loadProjects();
+    }
+  }, [status, loadProjects]);
+
+  // Handle creating a new project
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim() || !session?.user?.email) return;
+    
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newProjectName,
+          description: fileDescription
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create project");
+      }
+      
+      // Add new project to list and select it
+      setProjects(prev => [...prev, data.project]);
+      setSelectedProjectId(data.project.id);
+      setNewProjectName("");
+      setIsCreatingProject(false);
+    } catch (err: any) {
+      console.error("Error creating project:", err);
+    }
+  };
+
+  // Handle dictation for the description field
+  const handleStartDictation = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Your browser doesn't support speech recognition. Try Chrome.");
+      return;
+    }
+    
+    const recognition = new (window as any).webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    
+    recognition.onstart = () => {
+      setIsListeningForDictation(true);
+    };
+    
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0])
+        .map((result: any) => result.transcript)
+        .join('');
+      
+      setFileDescription(transcript);
+    };
+    
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListeningForDictation(false);
+    };
+    
+    recognition.onend = () => {
+      setIsListeningForDictation(false);
+    };
+    
+    recognition.start();
+  };
+
+  // Save file information and project association
+  const handleSaveProjectInfo = async () => {
+    if (!session?.user?.email) return;
+    
+    try {
+      const res = await fetch('/api/associate-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: uploadStatuses
+            .filter(status => status.status === 'success' && status.location)
+            .map(status => ({
+              s3Key: status.location,
+              filename: status.filename
+            })),
+          projectId: selectedProjectId,
+          description: fileDescription,
+          sessionId: sessionId
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to save file information");
+      }
+      
+      // Close the modal and reset description
+      setShowProjectModal(false);
+      setFileDescription("");
+      
+      // Proceed with regular upload completion actions
+      // No need to actually do anything as the files are already uploaded
+    } catch (err: any) {
+      console.error("Error saving file information:", err);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const fileArray = Array.from(e.target.files);
@@ -215,6 +376,10 @@ export default function UploadTestPage() {
           status: 'pending'
         }))
       );
+      
+      // For testing - uncomment this to show the modal immediately after file selection
+      // console.log("Showing project modal directly after file selection");
+      // setShowProjectModal(true);
     }
   };
 
@@ -282,6 +447,16 @@ export default function UploadTestPage() {
     }
     
     setIsUploading(false);
+    
+    // Show the project info modal after uploads are complete
+    // Only show if there's at least one successful upload
+    const successfulUploads = uploadStatuses.filter(status => status.status === 'success');
+    if (successfulUploads.length > 0) {
+      console.log("Upload completed successfully. Showing project modal.", successfulUploads);
+      setShowProjectModal(true);
+    } else {
+      console.log("No successful uploads. Not showing project modal.");
+    }
   };
 
   const handleSubmitJobs = async () => {
@@ -353,6 +528,318 @@ export default function UploadTestPage() {
   const viewTranscription = (url: string) => {
     setSelectedTranscription(url);
     setViewerOpen(true);
+  };
+
+  // Check if Dialog component is available
+  useEffect(() => {
+    try {
+      // Check if we can access Dialog through HeadlessUI
+      if (HeadlessUI && typeof HeadlessUI.Dialog === 'function') {
+        console.log('HeadlessUI Dialog component found successfully');
+        setDialogLoaded(true);
+        setDialogError(null);
+      } else {
+        console.error('HeadlessUI Dialog component is not available:', HeadlessUI);
+        setDialogLoaded(false);
+        setDialogError('HeadlessUI Dialog component not loaded properly');
+      }
+    } catch (err: any) {
+      console.error('Error checking HeadlessUI Dialog component:', err);
+      setDialogLoaded(false);
+      setDialogError(err.message);
+    }
+  }, []);
+
+  // Debug function to toggle between Dialog and native modal
+  const toggleModalType = () => {
+    setUseNativeModal(!useNativeModal);
+    console.log("Switched to", useNativeModal ? "Dialog component" : "native modal");
+  };
+
+  // Native modal rendering function
+  const renderNativeModal = () => {
+    if (!showProjectModal) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70" onClick={() => setShowProjectModal(false)} />
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="w-full max-w-lg bg-gray-900 p-6 rounded-lg shadow-xl relative">
+            <h2 className="text-xl font-semibold mb-4 text-white">
+              While we're waiting, tell us about these files
+            </h2>
+            
+            <div className="space-y-4">
+              {/* Project selection */}
+              <div>
+                <label className="block mb-2 text-sm font-bold text-gray-300">
+                  Select Project
+                </label>
+                
+                {isLoadingProjects ? (
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <div className="w-5 h-5 border-t-2 border-r-2 border-blue-400 rounded-full animate-spin mr-2"></div>
+                    Loading projects...
+                  </div>
+                ) : isCreatingProject ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="Enter new project name"
+                      className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCreateProject}
+                        disabled={!newProjectName.trim()}
+                        className={`px-3 py-2 rounded text-sm ${
+                          !newProjectName.trim()
+                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        Create Project
+                      </button>
+                      <button
+                        onClick={() => setIsCreatingProject(false)}
+                        className="px-3 py-2 rounded text-sm bg-gray-700 text-white hover:bg-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId(e.target.value)}
+                      className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                      {projects.length === 0 ? (
+                        <option value="">No projects available</option>
+                      ) : (
+                        projects.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <button
+                      onClick={() => setIsCreatingProject(true)}
+                      className="px-3 py-2 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700"
+                    >
+                      New Project
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Description input */}
+              <div>
+                <label className="block mb-2 text-sm font-bold text-gray-300">
+                  Brief Description
+                </label>
+                <div className="flex gap-2">
+                  <textarea
+                    value={fileDescription}
+                    onChange={(e) => setFileDescription(e.target.value)}
+                    placeholder="Give a brief description of the project or files"
+                    rows={4}
+                    className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={handleStartDictation}
+                    className={`self-start p-2 rounded ${
+                      isListeningForDictation
+                        ? 'bg-red-600 text-white animate-pulse'
+                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                    }`}
+                    title="Dictate description"
+                  >
+                    <FiMic />
+                  </button>
+                </div>
+                {isListeningForDictation && (
+                  <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
+                )}
+              </div>
+              
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setShowProjectModal(false)}
+                  className="px-4 py-2 rounded text-gray-300 hover:text-white"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleSaveProjectInfo}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  disabled={isCreatingProject}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Show appropriate modal based on settings
+  const renderModal = () => {
+    if (!showProjectModal) return null;
+    
+    if (useNativeModal || !dialogLoaded) {
+      return renderNativeModal();
+    } else {
+      // Only use HeadlessUI Dialog if available
+      const Dialog = HeadlessUI.Dialog;
+      const DialogPanel = Dialog.Panel;
+      const DialogTitle = Dialog.Title;
+      
+      return (
+        <Dialog
+          open={showProjectModal}
+          onClose={() => {
+            console.log("Dialog onClose triggered");
+            setShowProjectModal(false);
+          }}
+          className="relative z-50"
+        >
+          {/* This makes sure we can see the modal */}
+          <div className="fixed inset-0 bg-black/70" aria-hidden="true" />
+          
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <DialogPanel className="w-full max-w-lg rounded-lg bg-gray-900 p-6 shadow-xl">
+              <DialogTitle className="text-xl font-semibold mb-4 text-white">
+                While we're waiting, tell us about these files
+              </DialogTitle>
+              
+              <div className="space-y-4">
+                {/* Project selection */}
+                <div>
+                  <label className="block mb-2 text-sm font-bold text-gray-300">
+                    Select Project
+                  </label>
+                  
+                  {isLoadingProjects ? (
+                    <div className="flex items-center text-gray-400 text-sm">
+                      <div className="w-5 h-5 border-t-2 border-r-2 border-blue-400 rounded-full animate-spin mr-2"></div>
+                      Loading projects...
+                    </div>
+                  ) : isCreatingProject ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={newProjectName}
+                        onChange={(e) => setNewProjectName(e.target.value)}
+                        placeholder="Enter new project name"
+                        className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCreateProject}
+                          disabled={!newProjectName.trim()}
+                          className={`px-3 py-2 rounded text-sm ${
+                            !newProjectName.trim()
+                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                        >
+                          Create Project
+                        </button>
+                        <button
+                          onClick={() => setIsCreatingProject(false)}
+                          className="px-3 py-2 rounded text-sm bg-gray-700 text-white hover:bg-gray-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        {projects.length === 0 ? (
+                          <option value="">No projects available</option>
+                        ) : (
+                          projects.map((project) => (
+                            <option key={project.id} value={project.id}>
+                              {project.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <button
+                        onClick={() => setIsCreatingProject(true)}
+                        className="px-3 py-2 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700"
+                      >
+                        New Project
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Description input */}
+                <div>
+                  <label className="block mb-2 text-sm font-bold text-gray-300">
+                    Brief Description
+                  </label>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={fileDescription}
+                      onChange={(e) => setFileDescription(e.target.value)}
+                      placeholder="Give a brief description of the project or files"
+                      rows={4}
+                      className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={handleStartDictation}
+                      className={`self-start p-2 rounded ${
+                        isListeningForDictation
+                          ? 'bg-red-600 text-white animate-pulse'
+                          : 'bg-gray-700 text-white hover:bg-gray-600'
+                      }`}
+                      title="Dictate description"
+                    >
+                      <FiMic />
+                    </button>
+                  </div>
+                  {isListeningForDictation && (
+                    <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
+                  )}
+                </div>
+                
+                {/* Buttons */}
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={() => setShowProjectModal(false)}
+                    className="px-4 py-2 rounded text-gray-300 hover:text-white"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={handleSaveProjectInfo}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    disabled={isCreatingProject}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </DialogPanel>
+          </div>
+        </Dialog>
+      );
+    }
   };
 
   // Show a login message if not authenticated
@@ -438,6 +925,25 @@ export default function UploadTestPage() {
                   <h2 className="text-xl font-semibold mb-4 text-white">Step 1: Upload Audio Files</h2>
                   <div className="mb-4 text-gray-300">
                     <p>Upload one or more audio files for transcription. If your narrative content was recorded in-camera rather than with a field recorder, please strip the audio from your video files before uploading.</p>
+                    
+                    {/* Debug button to test modal */}
+                    <div className="mt-2 flex gap-2">
+                      <button 
+                        onClick={() => {
+                          console.log("Debug: Manually showing project modal");
+                          setShowProjectModal(true);
+                        }}
+                        className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded"
+                      >
+                        Debug: Test Modal
+                      </button>
+                      <button 
+                        onClick={toggleModalType}
+                        className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded"
+                      >
+                        {useNativeModal ? "Use Dialog Component" : "Use Native Modal"}
+                      </button>
+                    </div>
                     
                     {/* Container wrapper - making them horizontally aligned */}
                     <div className="mt-3 mb-3 flex flex-col md:flex-row gap-4">
@@ -756,6 +1262,17 @@ export default function UploadTestPage() {
                   <li>Output files: <code className="bg-black/30 px-1 py-0.5 rounded">s3://{process.env.S3_TRANSCRIBE_BUCKET}/output/{session?.user?.email}/{sessionId}/</code></li>
                 </ul>
               </div>
+              
+              {/* Debug information */}
+              {dialogError && (
+                <div className="mt-4 p-3 bg-red-900/20 border-l-4 border-red-500 text-red-300">
+                  <p className="font-bold">Dialog Error:</p>
+                  <p>{dialogError}</p>
+                </div>
+              )}
+              
+              {/* Use the new renderModal function */}
+              {renderModal()}
             </div>
           )}
         </div>
