@@ -251,6 +251,9 @@ export default function IdentifySpeakersAgent({
 
     try {
       setIsProcessing(true);
+      
+      console.log("Original transcript segment example:", currentTranscript.transcript[0]);
+      console.log("Speaker labels to apply:", editMode ? editedSpeakerLabels : speakerLabels);
 
       // Create a temporary version of the transcript with labels applied
       const tempTranscript = {
@@ -258,15 +261,23 @@ export default function IdentifySpeakersAgent({
         transcript: currentTranscript.transcript.map((segment: any) => {
           const speakerLabel = editMode ? editedSpeakerLabels[segment.speaker] : speakerLabels[segment.speaker];
           if (speakerLabel) {
+            // Explicitly ensure both role and name are set for every segment
             return {
               ...segment,
-              role: speakerLabel.role,
-              name: speakerLabel.name
+              role: speakerLabel.role || "Unknown",
+              name: speakerLabel.name || segment.speaker
             };
           }
-          return segment;
+          return {
+            ...segment,
+            role: "Unknown",  // Default fallback values
+            name: segment.speaker
+          };
         })
       };
+
+      // Log the processed transcript to verify it has the right structure
+      console.log("Preview transcript with applied labels:", tempTranscript.transcript[0]);
 
       // Save this temporarily to localStorage to avoid URL length limitations
       const tempId = `temp_transcript_${Date.now()}`;
@@ -274,10 +285,14 @@ export default function IdentifySpeakersAgent({
         transcript: tempTranscript,
         speakerLabels: editMode ? editedSpeakerLabels : speakerLabels
       }));
+      
+      console.log("Saved to localStorage with tempId:", tempId);
 
       // Open the transcript viewer with a reference to the temp storage
       const file = selectedFiles[currentFileIndex];
-      window.open(`/transcription-viewer?url=${encodeURIComponent(file.downloadUrl)}&tempId=${tempId}`, '_blank');
+      const viewerUrl = `/transcription-viewer?url=${encodeURIComponent(file.downloadUrl)}&tempId=${tempId}`;
+      console.log("Opening transcript viewer URL:", viewerUrl);
+      window.open(viewerUrl, '_blank');
     } catch (err: any) {
       console.error('Error preparing transcript for viewing:', err);
       toast.error("Failed to prepare transcript for viewing");

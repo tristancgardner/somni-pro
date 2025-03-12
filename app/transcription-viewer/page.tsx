@@ -110,15 +110,27 @@ export default function TranscriptionViewerPage() {
       if (!tempId) return;
       
       try {
+        console.log("Checking for temporary transcript with ID:", tempId);
         const tempDataStr = localStorage.getItem(tempId);
         if (!tempDataStr) {
           console.log('No temporary transcript data found with ID:', tempId);
           return;
         }
         
+        console.log("Found temporary data in localStorage");
         const tempData = JSON.parse(tempDataStr);
         
         if (tempData.transcript) {
+          // Log the first segment to verify labels are present
+          console.log("First segment in temp transcript:", tempData.transcript.transcript[0]);
+          
+          // Skip the normal fetch since we have data already
+          setLoading(false);
+          
+          // Clear any previous error
+          setError(null);
+          
+          // Set the transcription state with the temporary transcript
           setTranscription(tempData.transcript);
           
           // Calculate speaker statistics for the temp transcript
@@ -139,9 +151,6 @@ export default function TranscriptionViewerPage() {
           
           // Show a notice that this is a preview
           toast.success('Viewing transcript with temporary speaker labels applied. Save to make permanent.');
-          
-          // Skip the normal fetch since we have data already
-          setLoading(false);
         }
         
         // Clean up the temporary data after it's been used
@@ -149,6 +158,7 @@ export default function TranscriptionViewerPage() {
         // localStorage.removeItem(tempId);
       } catch (error) {
         console.error('Error parsing temporary transcript data:', error);
+        toast.error('Failed to load transcript preview');
       }
     };
     
@@ -351,6 +361,12 @@ export default function TranscriptionViewerPage() {
   // Load a single transcription from URL param
   useEffect(() => {
     const fetchTranscription = async () => {
+      // Skip if we're using a temporary transcript
+      if (searchParams.get('tempId')) {
+        console.log("Skipping regular fetch because we're using a temporary transcript");
+        return;
+      }
+      
       if (!url && !(projectFiles.length > 0 && activeFileIndex >= 0)) {
         setLoading(false);
         return;
@@ -396,7 +412,7 @@ export default function TranscriptionViewerPage() {
     };
 
     fetchTranscription();
-  }, [url, activeFileIndex, projectFiles]);
+  }, [url, activeFileIndex, projectFiles, searchParams]);
 
   // If we're in project view (with multiple files)
   const isProjectView = projectId !== null && projectFiles.length > 0;
@@ -778,9 +794,8 @@ export default function TranscriptionViewerPage() {
                         </span>
                       </div>
                       
-                      {segment.speaker !== segment.name && segment.name && (
-                        <div className="text-gray-400 text-sm mb-1">Speaker ID: {segment.speaker}</div>
-                      )}
+                      <div className="text-gray-400 text-sm mb-1">Speaker ID: {segment.speaker}</div>
+                      
                       {segment.role && (
                         <div className="text-gray-400 text-sm mb-1">Role: {segment.role}</div>
                       )}
