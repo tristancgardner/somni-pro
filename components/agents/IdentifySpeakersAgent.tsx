@@ -185,14 +185,59 @@ export default function IdentifySpeakersAgent({
     setIsSaving(true);
 
     try {
-      // Apply speaker labels to the transcript segments
+      // Group speakers with the same name and role
+      const speakerGroups: Record<string, string[]> = {};
+      const uniqueSpeakers: Record<string, SpeakerLabel> = {};
+      
+      // First pass: identify groups of speakers with the same name and role
+      Object.entries(editedSpeakerLabels).forEach(([speakerId, info]) => {
+        // Create a key based on name and role
+        const groupKey = `${info.name}|${info.role}`;
+        
+        if (!speakerGroups[groupKey]) {
+          speakerGroups[groupKey] = [];
+          uniqueSpeakers[groupKey] = info;
+        }
+        
+        speakerGroups[groupKey].push(speakerId);
+      });
+      
+      console.log("Speaker groups identified:", speakerGroups);
+      
+      // Create a mapping of original speakerIds to their new "primary" speakerId
+      const speakerIdMap: Record<string, string> = {};
+      Object.entries(speakerGroups).forEach(([groupKey, speakerIds]) => {
+        // Use the first speaker ID as the primary ID for this group
+        const primarySpeakerId = speakerIds[0];
+        
+        // Map all speakers in this group to the primary ID
+        speakerIds.forEach(id => {
+          speakerIdMap[id] = primarySpeakerId;
+        });
+      });
+      
+      console.log("Speaker ID mapping:", speakerIdMap);
+
+      // Create a consolidated version of the speaker labels
+      const consolidatedLabels: Record<string, SpeakerLabel> = {};
+      Object.entries(uniqueSpeakers).forEach(([groupKey, info]) => {
+        const primarySpeakerId = speakerGroups[groupKey][0];
+        consolidatedLabels[primarySpeakerId] = info;
+      });
+
+      // Apply speaker labels to the transcript segments and combine same speakers
       const updatedTranscript = {
         ...currentTranscript,
         transcript: currentTranscript.transcript.map((segment: any) => {
           const speakerLabel = editedSpeakerLabels[segment.speaker];
           if (speakerLabel) {
+            // Get primary speaker ID from the mapping
+            const primarySpeakerId = speakerIdMap[segment.speaker] || segment.speaker;
+            
+            // Explicitly ensure both role and name are set for every segment
             return {
               ...segment,
+              speaker: primarySpeakerId, // Use the primary speaker ID
               role: speakerLabel.role,
               name: speakerLabel.name
             };
@@ -253,17 +298,64 @@ export default function IdentifySpeakersAgent({
       setIsProcessing(true);
       
       console.log("Original transcript segment example:", currentTranscript.transcript[0]);
-      console.log("Speaker labels to apply:", editMode ? editedSpeakerLabels : speakerLabels);
+      
+      // Get current labels based on edit mode
+      const currentLabels = editMode ? editedSpeakerLabels : speakerLabels;
+      console.log("Speaker labels to apply:", currentLabels);
+      
+      // Group speakers with the same name and role
+      const speakerGroups: Record<string, string[]> = {};
+      const uniqueSpeakers: Record<string, SpeakerLabel> = {};
+      
+      // First pass: identify groups of speakers with the same name and role
+      Object.entries(currentLabels).forEach(([speakerId, info]) => {
+        // Create a key based on name and role
+        const groupKey = `${info.name}|${info.role}`;
+        
+        if (!speakerGroups[groupKey]) {
+          speakerGroups[groupKey] = [];
+          uniqueSpeakers[groupKey] = info;
+        }
+        
+        speakerGroups[groupKey].push(speakerId);
+      });
+      
+      console.log("Speaker groups identified:", speakerGroups);
+      
+      // Create a mapping of original speakerIds to their new "primary" speakerId
+      const speakerIdMap: Record<string, string> = {};
+      Object.entries(speakerGroups).forEach(([groupKey, speakerIds]) => {
+        // Use the first speaker ID as the primary ID for this group
+        const primarySpeakerId = speakerIds[0];
+        
+        // Map all speakers in this group to the primary ID
+        speakerIds.forEach(id => {
+          speakerIdMap[id] = primarySpeakerId;
+        });
+      });
+      
+      console.log("Speaker ID mapping:", speakerIdMap);
+      
+      // Create a consolidated version of the speaker labels
+      const consolidatedLabels: Record<string, SpeakerLabel> = {};
+      Object.entries(uniqueSpeakers).forEach(([groupKey, info]) => {
+        const primarySpeakerId = speakerGroups[groupKey][0];
+        consolidatedLabels[primarySpeakerId] = info;
+      });
 
       // Create a temporary version of the transcript with labels applied
       const tempTranscript = {
         ...currentTranscript,
         transcript: currentTranscript.transcript.map((segment: any) => {
-          const speakerLabel = editMode ? editedSpeakerLabels[segment.speaker] : speakerLabels[segment.speaker];
+          const speakerLabel = currentLabels[segment.speaker];
           if (speakerLabel) {
+            // Get primary speaker ID from the mapping
+            const primarySpeakerId = speakerIdMap[segment.speaker] || segment.speaker;
+            
             // Explicitly ensure both role and name are set for every segment
             return {
               ...segment,
+              speaker: primarySpeakerId, // Use the primary speaker ID
               role: speakerLabel.role || "Unknown",
               name: speakerLabel.name || segment.speaker
             };
@@ -283,7 +375,7 @@ export default function IdentifySpeakersAgent({
       const tempId = `temp_transcript_${Date.now()}`;
       localStorage.setItem(tempId, JSON.stringify({
         transcript: tempTranscript,
-        speakerLabels: editMode ? editedSpeakerLabels : speakerLabels
+        speakerLabels: consolidatedLabels // Use the consolidated labels
       }));
       
       console.log("Saved to localStorage with tempId:", tempId);
@@ -313,14 +405,53 @@ export default function IdentifySpeakersAgent({
           const { tempId, edits } = event.data;
           
           if (tempId && edits) {
-            // Update our edited speaker labels with the changes from the transcript viewer
-            setEditedSpeakerLabels(prevLabels => ({
-              ...prevLabels,
-              ...edits
-            }));
+            console.log("Received updated speaker labels from transcript viewer:", edits);
             
-            setEditMode(true); // Show in edit mode to make changes visible
+            // The edits may already be consolidated, so we'll just replace our current labels
+            setEditedSpeakerLabels(edits as Record<string, SpeakerLabel>);
+            
+            // Show in edit mode to make changes visible
+            setEditMode(true);
             toast.success('Speaker labels updated from transcript viewer');
+            
+            // If we have the current transcript, update it with the consolidated speaker IDs
+            if (currentTranscript) {
+              // Create a mapping from old speaker IDs to new ones based on edits
+              const speakerIdMap: Record<string, string> = {};
+              
+              // For each speaker in the original transcript
+              currentTranscript.transcript.forEach((segment: any) => {
+                const speakerId = segment.speaker;
+                // If this speaker's ID is not in the edits, it might have been consolidated
+                if (speakerId && !(edits as Record<string, SpeakerLabel>)[speakerId]) {
+                  // Look for a matching name+role in the edits
+                  Object.entries(edits as Record<string, SpeakerLabel>).forEach(([editedId, info]) => {
+                    if (info.name === segment.name && info.role === segment.role) {
+                      speakerIdMap[speakerId] = editedId;
+                    }
+                  });
+                }
+              });
+              
+              console.log("Created speaker ID mapping for consolidated speakers:", speakerIdMap);
+              
+              // Update the current transcript with consolidated speaker IDs
+              if (Object.keys(speakerIdMap).length > 0) {
+                setCurrentTranscript({
+                  ...currentTranscript,
+                  transcript: currentTranscript.transcript.map((segment: any) => {
+                    if (speakerIdMap[segment.speaker]) {
+                      return {
+                        ...segment,
+                        speaker: speakerIdMap[segment.speaker]
+                      };
+                    }
+                    return segment;
+                  })
+                });
+                console.log("Updated transcript with consolidated speaker IDs");
+              }
+            }
           }
         } catch (error) {
           console.error('Error handling message from transcript viewer:', error);
@@ -335,7 +466,7 @@ export default function IdentifySpeakersAgent({
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [currentTranscript]);
 
   return (
     <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">

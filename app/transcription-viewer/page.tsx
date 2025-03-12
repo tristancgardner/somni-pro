@@ -175,10 +175,28 @@ export default function TranscriptionViewerPage() {
       [speakerId]: { name, role }
     }));
     
+    // Check for existing speakers with the same name and role
+    const speakersWithSameInfo: string[] = [];
+    
+    if (name && role) {
+      transcription.transcript.forEach(segment => {
+        if (segment.speaker !== speakerId && 
+            segment.name === name && 
+            segment.role === role) {
+          if (!speakersWithSameInfo.includes(segment.speaker)) {
+            speakersWithSameInfo.push(segment.speaker);
+          }
+        }
+      });
+    }
+    
+    console.log(`Found ${speakersWithSameInfo.length} other speakers with name=${name} and role=${role}`);
+    
     // Apply edits to transcription data
     const updatedTranscript = {
       ...transcription,
       transcript: transcription.transcript.map(segment => {
+        // Update the current speaker
         if (segment.speaker === speakerId) {
           return {
             ...segment,
@@ -186,6 +204,18 @@ export default function TranscriptionViewerPage() {
             role: role
           };
         }
+        
+        // If we want to combine speakers with the same info, we can update other segments too
+        // This will make all segments from matching speakers use the first speaker's ID
+        if (speakersWithSameInfo.includes(segment.speaker)) {
+          return {
+            ...segment,
+            speaker: speakerId,  // Consolidate to use the current speaker ID
+            name: name,
+            role: role
+          };
+        }
+        
         return segment;
       })
     };
@@ -208,6 +238,14 @@ export default function TranscriptionViewerPage() {
           const tempData = JSON.parse(tempDataStr);
           tempData.speakerLabels = tempData.speakerLabels || {};
           tempData.speakerLabels[speakerId] = { name, role };
+          
+          // If we consolidated speakers, remove the other speakers from the labels
+          if (speakersWithSameInfo.length > 0) {
+            speakersWithSameInfo.forEach(otherSpeakerId => {
+              delete tempData.speakerLabels[otherSpeakerId];
+            });
+          }
+          
           localStorage.setItem(tempId, JSON.stringify(tempData));
         }
       } catch (error) {
@@ -233,13 +271,71 @@ export default function TranscriptionViewerPage() {
       setSaveSuccess(null);
       setSaveMessage(null);
       
+      // Group speakers with the same name and role 
+      const speakerGroups: Record<string, string[]> = {};
+      const uniqueLabels: Record<string, { name?: string, role?: string }> = {};
+      
+      // First pass: gather all unique name+role combinations
+      transcription.transcript.forEach(segment => {
+        if (segment.name && segment.role) {
+          const groupKey = `${segment.name}|${segment.role}`;
+          
+          if (!speakerGroups[groupKey]) {
+            speakerGroups[groupKey] = [];
+            uniqueLabels[groupKey] = { 
+              name: segment.name, 
+              role: segment.role 
+            };
+          }
+          
+          if (!speakerGroups[groupKey].includes(segment.speaker)) {
+            speakerGroups[groupKey].push(segment.speaker);
+          }
+        }
+      });
+      
+      console.log("Speaker groups identified:", speakerGroups);
+      
+      // Create a mapping of original speakerIds to their primary speakerId
+      const speakerIdMap: Record<string, string> = {};
+      Object.entries(speakerGroups).forEach(([groupKey, speakerIds]) => {
+        // Use the first speaker ID as the primary ID for this group
+        const primarySpeakerId = speakerIds[0];
+        
+        // Map all speakers in this group to the primary ID
+        speakerIds.forEach(id => {
+          speakerIdMap[id] = primarySpeakerId;
+        });
+      });
+      
+      console.log("Speaker ID mapping:", speakerIdMap);
+      
+      // Apply the mapping to consolidate speakers
+      const consolidatedTranscript = {
+        ...transcription,
+        transcript: transcription.transcript.map(segment => {
+          // If this speaker is part of a group, replace with the primary ID
+          if (segment.name && segment.role && speakerIdMap[segment.speaker]) {
+            return {
+              ...segment,
+              speaker: speakerIdMap[segment.speaker]
+            };
+          }
+          return segment;
+        })
+      };
+      
+      // Recalculate speaker stats with the consolidated transcript
+      const updatedStats = calculateSpeakerStats(consolidatedTranscript);
+      setSpeakerStats(updatedStats);
+      
       const response = await fetch('/api/save-transcription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          transcriptionData: transcription,
+          transcriptionData: consolidatedTranscript,
           jsonUrl: sourceUrl,
         }),
       });
@@ -249,6 +345,8 @@ export default function TranscriptionViewerPage() {
       if (response.ok) {
         setSaveSuccess(true);
         setSaveMessage('Transcription saved successfully');
+        // Update the local transcription state with the consolidated version
+        setTranscription(consolidatedTranscript);
       } else {
         setSaveSuccess(false);
         setSaveMessage(`Error: ${result.message || 'Failed to save'}`);
