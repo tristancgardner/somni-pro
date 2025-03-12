@@ -84,13 +84,6 @@ async function labelSpeakers(
 
   try {
     const roleData = JSON.parse(jsonStr);
-    // roleData might look like:
-    // {
-    //   "MyInterview.json": {
-    //     "SPEAKER_00": "Interviewee",
-    //     "SPEAKER_01": "Interviewer"
-    //   }
-    // }
     return roleData[fileName] || {};
   } catch (error) {
     console.error("Failed parsing role JSON:", error);
@@ -104,8 +97,10 @@ async function inferNames(
   transcriptWithRoles: any[],
   userContext?: string
 ): Promise<Record<string, string>> {
+  // We build each segment line
   const lines = transcriptWithRoles.map((seg, i) => {
-    const speaker = seg.speaker || "Unknown";
+    // If the speaker label is "UNKNOWN", we still include it—GPT might rename it.
+    const speaker = seg.speaker || "UNKNOWN_SPEAKER";
     const role = seg.role || "Unknown";
     const text = seg.text || "";
     return `Segment ${i}\n${speaker} (${role}): ${text}`;
@@ -113,6 +108,7 @@ async function inferNames(
   
   const fullTranscriptStr = lines.join("\n\n");
 
+  // We add stronger instructions about ignoring "UNKNOWN" speaker labels
   const contextBlock = userContext
     ? `Additional context about the speakers:\n${userContext}\n\n`
     : '';
@@ -122,14 +118,20 @@ async function inferNames(
 
     ${contextBlock}
 
+    IMPORTANT: 
+    - If you see a speaker label named "UNKNOWN" (or "UNKNOWN_SPEAKER"), do NOT assume it must remain Unknown. 
+      Use the context above to see if this speaker might be "Michael Smith," "Tristan G," or any other known name.
+    - Only leave a name as "Unknown" if there is truly not enough information to identify it.
+
     Your task:
       - Determine the real name of each speaker if it can be inferred from context or user instructions.
-      - If unknown, use "Unknown".
+      - If truly unknown, use "Unknown".
 
     Return only valid JSON. For example:
     {
       "SPEAKER_00": "Michael",
-      "SPEAKER_01": "Unknown"
+      "UNKNOWN_SPEAKER": "Tristan G",
+      "SPEAKER_02": "Unknown"
     }
 
     Transcript:
@@ -156,13 +158,7 @@ async function inferNames(
   }
 
   try {
-    const nameData = JSON.parse(jsonStr);
-    // nameData might look like:
-    // {
-    //   "SPEAKER_00": "Michael",
-    //   "SPEAKER_01": "Unknown"
-    // }
-    return nameData;
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error("Failed parsing name JSON:", error);
     return {};
@@ -170,7 +166,6 @@ async function inferNames(
 }
 
 // Combine roles + names into a single object
-// e.g. { "SPEAKER_00": { role:"Interviewee", name:"Michael" }, ... }
 function buildSpeakerMap(
   fileName: string,
   transcript: any[],
@@ -179,8 +174,7 @@ function buildSpeakerMap(
 ): Record<string, { role: string; name: string }> {
   const map: Record<string, { role: string; name: string }> = {};
 
-  // We can just look at the set of speaker labels in the transcript
-  // or the keys in speakerRoles/speakerNames
+  // Gather unique speaker labels
   const uniqueSpeakers = new Set<string>();
   transcript.forEach((seg) => uniqueSpeakers.add(seg.speaker));
 
@@ -188,11 +182,10 @@ function buildSpeakerMap(
     const role = speakerRoles[label] || "Other";
     let name = speakerNames[label] || "Unknown";
 
-    // Optional override: if role is "Interviewer", name can be forced to "Interviewer"
+    // If role is "Interviewer", forcibly set name to "Interviewer" if GPT didn't
     if (role.toLowerCase() === "interviewer") {
       name = "Interviewer";
     }
-
     map[label] = { role, name };
   });
 
@@ -206,16 +199,16 @@ export async function POST(request: Request) {
 
     if (!fileName || !transcript || !Array.isArray(transcript)) {
       return NextResponse.json(
-        { error: "Invalid request data. Must provide fileName and transcript array." },
+        { error: "Invalid request data. Must provide fileName + transcript array." },
         { status: 400 }
       );
     }
-    
+  
     // 1) Role inference
     const speakerRoles = await labelSpeakers(fileName, transcript, userContext);
     console.log("speakerRoles:", speakerRoles);
 
-    // 2) Build a quick "transcript with roles"
+    // 2) Build a "transcript with roles"
     const transcriptWithRoles = transcript.map((seg: any) => ({
       ...seg,
       role: speakerRoles[seg.speaker] || "Other"
