@@ -24,74 +24,91 @@ export async function POST(req: NextRequest) {
     // Parse request body
     const { files, projectId, description, sessionId } = await req.json();
     
-    // Validate request
-    if (!files || !Array.isArray(files) || files.length === 0) {
+    // Validate request - now projectId is the minimum required
+    if (!projectId) {
       return NextResponse.json(
-        { error: 'No files provided' },
+        { error: 'Project ID is required' },
         { status: 400 }
       );
     }
     
-    // If projectId is provided, verify it exists and belongs to the user
-    if (projectId) {
-      const project = await prisma.project.findUnique({
-        where: {
-          id: projectId,
-          userId: user.id,
-        },
-      });
-      
-      if (!project) {
-        return NextResponse.json(
-          { error: 'Project not found or unauthorized' },
-          { status: 404 }
-        );
-      }
-      
-      // If description is provided and different from current, update project description
-      if (description && description !== project.description) {
-        await prisma.project.update({
-          where: { id: projectId },
-          data: { description },
-        });
-      }
+    // Verify project exists and belongs to the user
+    const project = await prisma.project.findUnique({
+      where: {
+        id: projectId,
+        userId: user.id,
+      },
+    });
+    
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Project not found or unauthorized' },
+        { status: 404 }
+      );
     }
     
-    // Associate files with the project
-    const createdFiles = await Promise.all(
-      files.map(async (file: { s3Key: string; filename: string }) => {
-        // Check if the file already exists in the database (by s3Key)
-        const existingFile = await prisma.transcriptionFile.findUnique({
-          where: { s3Key: file.s3Key },
-        });
-        
-        if (existingFile) {
-          // Update existing file with project association
-          return prisma.transcriptionFile.update({
-            where: { id: existingFile.id },
-            data: { 
-              projectId: projectId || null,
-              // Update other fields if needed
-            },
+    // If description is provided and different from current, update project description
+    if (description && description !== project.description) {
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { description },
+      });
+    }
+    
+    // We're storing the session-project relationship in the project description for now
+    // This is a temporary workaround until we can properly migrate the database
+    let updatedDescription = project.description || '';
+    if (sessionId && !updatedDescription.includes(`Session ID: ${sessionId}`)) {
+      updatedDescription = `${updatedDescription}\nSession ID: ${sessionId}`;
+      
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { 
+          description: updatedDescription 
+        },
+      });
+    }
+    
+    // If files are provided, associate them with the project
+    let createdFiles = [];
+    if (files && Array.isArray(files) && files.length > 0) {
+      createdFiles = await Promise.all(
+        files.map(async (file: { s3Key: string; filename: string }) => {
+          // Check if the file already exists in the database (by s3Key)
+          const existingFile = await prisma.transcriptionFile.findUnique({
+            where: { s3Key: file.s3Key },
           });
-        } else {
-          // Create new file record
-          return prisma.transcriptionFile.create({
-            data: {
-              s3Key: file.s3Key,
-              filename: file.filename,
-              size: 0, // This would ideally be set from the actual file size
-              lastModified: new Date(),
-              projectId: projectId || null,
-            },
-          });
-        }
-      })
-    );
+          
+          if (existingFile) {
+            // Update existing file with project association
+            return prisma.transcriptionFile.update({
+              where: { id: existingFile.id },
+              data: { 
+                projectId: projectId,
+                // Update other fields if needed
+              },
+            });
+          } else {
+            // Create new file record
+            return prisma.transcriptionFile.create({
+              data: {
+                s3Key: file.s3Key,
+                filename: file.filename,
+                size: 0, // This would ideally be set from the actual file size
+                lastModified: new Date(),
+                projectId: projectId,
+              },
+            });
+          }
+        })
+      );
+    }
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Files associated with project successfully',
+      message: files?.length > 0 
+        ? 'Files associated with project successfully' 
+        : 'Project information saved for session',
       files: createdFiles 
     });
   } catch (error) {

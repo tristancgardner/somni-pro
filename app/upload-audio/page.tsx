@@ -324,20 +324,31 @@ export default function UploadTestPage() {
     if (!session?.user?.email) return;
     
     try {
+      // Determine what we're saving based on context - if this was after file upload or job submission
+      const successfulUploads = uploadStatuses
+        .filter(status => status.status === 'success' && status.location)
+        .map(status => ({
+          s3Key: status.location,
+          filename: status.filename
+        }));
+      
+      // If we have successful uploads, associate those files
+      // Otherwise, just save the project and description for this session
+      const payload = {
+        sessionId: sessionId,
+        projectId: selectedProjectId,
+        description: fileDescription
+      };
+      
+      // Only include files if we have successful uploads
+      if (successfulUploads.length > 0) {
+        Object.assign(payload, { files: successfulUploads });
+      }
+      
       const res = await fetch('/api/associate-files', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          files: uploadStatuses
-            .filter(status => status.status === 'success' && status.location)
-            .map(status => ({
-              s3Key: status.location,
-              filename: status.filename
-            })),
-          projectId: selectedProjectId,
-          description: fileDescription,
-          sessionId: sessionId
-        }),
+        body: JSON.stringify(payload),
       });
       
       const data = await res.json();
@@ -350,10 +361,16 @@ export default function UploadTestPage() {
       setShowProjectModal(false);
       setFileDescription("");
       
-      // Proceed with regular upload completion actions
-      // No need to actually do anything as the files are already uploaded
+      // Show confirmation message
+      if (successfulUploads.length > 0) {
+        setJobMessage("Files associated with project successfully!");
+      } else {
+        setJobMessage("Project information saved. Files will be associated when processing completes.");
+      }
+      
     } catch (err: any) {
       console.error("Error saving file information:", err);
+      setJobError(`Error saving project information: ${err.message}`);
     }
   };
 
@@ -485,6 +502,10 @@ export default function UploadTestPage() {
       
       // Enable auto-refresh by default when jobs are submitted
       setAutoRefresh(true);
+      
+      // Show the project info modal after successful job submission
+      console.log("Jobs submitted successfully. Showing project modal.");
+      setShowProjectModal(true);
     } catch (err: any) {
       setJobError(`Error: ${err.message}`);
       setJobMessage("");
