@@ -525,11 +525,19 @@ export default function TranscribePage() {
     };
 
     // Add files to project
-    const handleAddFilesToProject = async () => {
-        if (!selectedProject || selectedFiles.length === 0) return;
+    const handleAddFilesToProject = async (projectIdToUse?: string) => {
+        // Use the passed project ID if available, otherwise use the selectedProject
+        const effectiveProjectId = projectIdToUse || (selectedProject?.id);
+        
+        if (!effectiveProjectId || selectedFiles.length === 0) {
+            toast.error("No project or files selected");
+            return;
+        }
+        
+        toast.loading("Adding files to project...");
         
         try {
-            const res = await fetch(`/api/projects/${selectedProject.id}/files`, {
+            const res = await fetch(`/api/projects/${effectiveProjectId}/files`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -545,11 +553,26 @@ export default function TranscribePage() {
             
             // Clear selection and reload data
             setSelectedFiles([]);
-            await loadTranscriptionResults();
             
+            // Find the project name for the success message
+            const projectName = projects.find(p => p.id === effectiveProjectId)?.name || "project";
+            toast.success(`Added ${selectedFiles.length} file(s) to ${projectName}`);
+            
+            // If this was from the dropdown, set the project as selected
+            if (projectIdToUse && (!selectedProject || selectedProject.id !== projectIdToUse)) {
+                const project = projects.find(p => p.id === projectIdToUse);
+                if (project) {
+                    setSelectedProject(project);
+                }
+            }
+            
+            await loadTranscriptionResults();
         } catch (err: any) {
             console.error("Error adding files to project:", err);
             setProjectError(err.message);
+            toast.error(`Failed to add files: ${err.message}`);
+        } finally {
+            toast.dismiss();
         }
     };
 
@@ -875,8 +898,9 @@ export default function TranscribePage() {
                                                 <div
                                                     key={project.id}
                                                     onClick={() => {
-                                                        setSelectedProject(project);
-                                                        handleAddFilesToProject();
+                                                        // Instead of setting state and immediately calling the function,
+                                                        // pass the project ID directly to a modified function
+                                                        handleAddFilesToProject(project.id);
                                                     }}
                                                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2 cursor-pointer"
                                                 >
