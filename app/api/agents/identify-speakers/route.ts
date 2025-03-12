@@ -6,45 +6,44 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Count tokens to avoid overflows
+// Count tokens
 function approximateTokenCount(text: string): number {
   try {
     return encode(text).length;
   } catch (error) {
     console.error('Error calculating token count:', error);
-    // Fallback if encoding fails
+    // Fallback
     return Math.ceil(text.length / 4);
   }
 }
 
-// Safely extract JSON from GPT response text
+// Extract JSON
 function extractJson(rawText: string): string | null {
   rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-  // Regex for a JSON object
   const match = rawText.match(/(\{[\s\S]*\})/);
   return match ? match[1].trim() : null;
 }
 
-// 1) Role inference (Interviewer, Interviewee, Other)
+// 1) Role inference
 async function labelSpeakers(
   fileName: string, 
   transcript: any[],
   userContext?: string
 ): Promise<Record<string, string>> {
   const simplifiedSegments = transcript.map((seg) => ({
-    speaker: seg.speaker,
+    speaker: seg.speaker || "UNKNOWN_SPEAKER",
     text: seg.text,
   }));
   
   const segmentsStr = JSON.stringify(simplifiedSegments, null, 2);
 
   const contextBlock = userContext
-    ? `Additional context about the interview or speakers:\n${userContext}\n\n`
+    ? `Additional context about possible speakers:\n${userContext}\n\n`
     : '';
 
   const prompt = `
     You are analyzing a JSON transcript of a video interview with multiple speakers (SPEAKER_00, SPEAKER_01, etc.).
-
+    
     ${contextBlock}
 
     Your task: assign exactly one of these roles to each speaker:
@@ -57,11 +56,11 @@ async function labelSpeakers(
 
     Return it in this format:
     {
-        "${fileName}": {
-            "SPEAKER_00": "Interviewee",
-            "SPEAKER_01": "Interviewer",
-            "SPEAKER_02": "Other"
-        }
+      "${fileName}": {
+        "SPEAKER_00": "Interviewee",
+        "SPEAKER_01": "Interviewer",
+        "SPEAKER_02": "Other"
+      }
     }
   `.trim();
 
@@ -91,15 +90,14 @@ async function labelSpeakers(
   }
 }
 
-// 2) Name inference after we have roles assigned
+// 2) Name inference
 async function inferNames(
   fileName: string,
   transcriptWithRoles: any[],
   userContext?: string
 ): Promise<Record<string, string>> {
-  // We build each segment line
+  // Build lines
   const lines = transcriptWithRoles.map((seg, i) => {
-    // If the speaker label is "UNKNOWN", we still include it—GPT might rename it.
     const speaker = seg.speaker || "UNKNOWN_SPEAKER";
     const role = seg.role || "Unknown";
     const text = seg.text || "";
@@ -108,26 +106,25 @@ async function inferNames(
   
   const fullTranscriptStr = lines.join("\n\n");
 
-  // We add stronger instructions about ignoring "UNKNOWN" speaker labels
+  // Simpler prompt that references userContext for known people
   const contextBlock = userContext
-    ? `Additional context about the speakers:\n${userContext}\n\n`
+    ? `We know these possible speakers or roles:\n${userContext}\n\n`
     : '';
 
   const prompt = `
-    We have a full transcript of a video interview, including speaker labels, roles, and their text.
+    We have a transcript of a video interview, including speaker labels, roles, and text.
 
     ${contextBlock}
 
-    IMPORTANT: 
-    - If you see a speaker label named "UNKNOWN" (or "UNKNOWN_SPEAKER"), do NOT assume it must remain Unknown. 
-      Use the context above to see if this speaker might be "Michael Smith," "Tristan G," or any other known name.
-    - Only leave a name as "Unknown" if there is truly not enough information to identify it.
+    If you see a speaker labeled "UNKNOWN" or "UNKNOWN_SPEAKER", 
+    it might match one of the known individuals above, 
+    or it may remain "Unknown" if there's insufficient info.
 
     Your task:
       - Determine the real name of each speaker if it can be inferred from context or user instructions.
       - If truly unknown, use "Unknown".
 
-    Return only valid JSON. For example:
+    Return valid JSON like:
     {
       "SPEAKER_00": "Michael",
       "UNKNOWN_SPEAKER": "Tristan G",
@@ -165,7 +162,7 @@ async function inferNames(
   }
 }
 
-// Combine roles + names into a single object
+// Combine roles + names
 function buildSpeakerMap(
   fileName: string,
   transcript: any[],
@@ -174,7 +171,6 @@ function buildSpeakerMap(
 ): Record<string, { role: string; name: string }> {
   const map: Record<string, { role: string; name: string }> = {};
 
-  // Gather unique speaker labels
   const uniqueSpeakers = new Set<string>();
   transcript.forEach((seg) => uniqueSpeakers.add(seg.speaker));
 
@@ -182,7 +178,7 @@ function buildSpeakerMap(
     const role = speakerRoles[label] || "Other";
     let name = speakerNames[label] || "Unknown";
 
-    // If role is "Interviewer", forcibly set name to "Interviewer" if GPT didn't
+    // Force Interviewer => "Interviewer" name
     if (role.toLowerCase() === "interviewer") {
       name = "Interviewer";
     }
@@ -204,24 +200,24 @@ export async function POST(request: Request) {
       );
     }
   
-    // 1) Role inference
+    // 1) Role
     const speakerRoles = await labelSpeakers(fileName, transcript, userContext);
     console.log("speakerRoles:", speakerRoles);
 
-    // 2) Build a "transcript with roles"
+    // 2) Build transcript with roles
     const transcriptWithRoles = transcript.map((seg: any) => ({
       ...seg,
       role: speakerRoles[seg.speaker] || "Other"
     }));
 
-    // 3) Name inference
+    // 3) Names
     const speakerNames = await inferNames(fileName, transcriptWithRoles, userContext);
     console.log("speakerNames:", speakerNames);
 
-    // 4) Combine into one speaker mapping
+    // 4) Combine
     const speakerLabels = buildSpeakerMap(fileName, transcript, speakerRoles, speakerNames);
 
-    // 5) Return only the minimal mapping: SPEAKER_XX -> { role, name }
+    // 5) Return minimal mapping
     return NextResponse.json({
       success: true,
       speakerLabels

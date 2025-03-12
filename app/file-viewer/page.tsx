@@ -422,6 +422,108 @@ export default function TranscribePage() {
         }
     };
 
+    // Delete file completely
+    const handleDeleteFile = async (fileKey: string) => {
+        if (!confirm("Are you sure you want to permanently delete this file? This action cannot be undone.")) {
+            return;
+        }
+        
+        try {
+            console.log(`Attempting to delete file: ${fileKey}`);
+            
+            const res = await fetch(`/api/files/${encodeURIComponent(fileKey)}`, {
+                method: 'DELETE',
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to delete file");
+            }
+            
+            toast.success("File deleted successfully");
+            
+            // Remove file from selections if it was selected
+            if (selectedFiles.includes(fileKey)) {
+                setSelectedFiles(prev => prev.filter(key => key !== fileKey));
+            }
+            if (projectSelectedFiles.includes(fileKey)) {
+                setProjectSelectedFiles(prev => prev.filter(key => key !== fileKey));
+            }
+            
+            // Reload transcription list
+            await loadTranscriptionResults();
+            
+        } catch (err: any) {
+            console.error("Error deleting file:", err);
+            toast.error(`Failed to delete file: ${err.message || "Unknown error"}`);
+        }
+    };
+
+    // Handle bulk file deletion
+    const handleBulkDeleteFiles = async () => {
+        const filesToDelete = selectedProject ? projectSelectedFiles : selectedFiles;
+        
+        if (filesToDelete.length === 0) {
+            toast.error("No files selected for deletion");
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to permanently delete ${filesToDelete.length} file(s)? This action cannot be undone.`)) {
+            return;
+        }
+        
+        toast.loading(`Deleting ${filesToDelete.length} files...`, { id: 'bulk-delete' });
+        
+        let successCount = 0;
+        let errorCount = 0;
+        let errors: string[] = [];
+        
+        for (const fileKey of filesToDelete) {
+            try {
+                console.log(`Attempting to delete file (bulk): ${fileKey}`);
+                
+                const res = await fetch(`/api/files/${encodeURIComponent(fileKey)}`, {
+                    method: 'DELETE',
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    errors.push(`${fileKey}: ${data.message || "Unknown error"}`);
+                }
+            } catch (err: any) {
+                errorCount++;
+                errors.push(`${fileKey}: ${err.message || "Unknown error"}`);
+            }
+        }
+        
+        // Clear selections
+        if (selectedProject) {
+            setProjectSelectedFiles([]);
+        } else {
+            setSelectedFiles([]);
+        }
+        
+        // Show result message
+        toast.dismiss('bulk-delete');
+        if (successCount > 0 && errorCount === 0) {
+            toast.success(`Successfully deleted ${successCount} file(s)`);
+        } else if (successCount > 0 && errorCount > 0) {
+            toast.success(`Deleted ${successCount} file(s), but failed to delete ${errorCount} file(s)`);
+            console.error("Bulk delete errors:", errors);
+        } else {
+            toast.error(`Failed to delete all ${errorCount} file(s)`);
+            console.error("Bulk delete errors:", errors);
+        }
+        
+        // Reload transcription list
+        await loadTranscriptionResults();
+    };
+
     // Add files to project
     const handleAddFilesToProject = async () => {
         if (!selectedProject || selectedFiles.length === 0) return;
@@ -788,6 +890,12 @@ export default function TranscribePage() {
                                         )}
                                     </div>
                                 </div>
+                                <button
+                                    onClick={handleBulkDeleteFiles}
+                                    className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
+                                >
+                                    <FiTrash2 /> Delete Files
+                                </button>
                             </div>
                         </div>
                     )}
@@ -816,9 +924,15 @@ export default function TranscribePage() {
                                         projectSelectedFiles.forEach(fileKey => handleRemoveFileFromProject(fileKey));
                                         setProjectSelectedFiles([]);
                                     }}
-                                    className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
+                                    className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
                                 >
                                     <FiTrash2 /> Remove From Project
+                                </button>
+                                <button
+                                    onClick={handleBulkDeleteFiles}
+                                    className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
+                                >
+                                    <FiTrash2 /> Delete Files
                                 </button>
                             </div>
                         </div>
@@ -950,11 +1064,20 @@ export default function TranscribePage() {
                                                                         e.stopPropagation();
                                                                         handleRemoveFileFromProject(file.key);
                                                                     }}
-                                                                    className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
+                                                                    className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
                                                                 >
                                                                     <FiDelete /> Remove
                                                                 </button>
                                                             )}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteFile(file.key);
+                                                                }}
+                                                                className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
+                                                            >
+                                                                <FiTrash2 /> Delete
+                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
