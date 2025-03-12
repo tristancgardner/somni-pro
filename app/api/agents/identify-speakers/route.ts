@@ -22,8 +22,8 @@ function extractJson(rawText: string): string | null {
   // Clean up the response text to extract JSON
   rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
   
-  // Find JSON object within the text
-  const match = rawText.match(/(\{.*\})/s);
+  // Find JSON object within the text - using a compatible regex without the 's' flag
+  const match = rawText.match(/(\{[\s\S]*\})/);
   if (match) {
     return match[1].trim();
   }

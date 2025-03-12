@@ -1199,10 +1199,6 @@ export default function TranscribePage() {
                         {/* Expanded Agent Content */}
                         {activeAgent === 'identify-speakers' && (
                             <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
-                                <p className="text-sm mb-4">
-                                    This agent analyzes dialog to identify different speakers or personas, even if you don't provide names.
-                                </p>
-
                                 <IdentifySpeakersAgent
                                     selectedFiles={
                                         // Case 1: We have a directly selected transcription
@@ -1277,10 +1273,6 @@ export default function TranscribePage() {
                             </div>
                         )}
                     </div>
-                    
-                    {/* <div className='p-4'>
-                        <AudioWaveform />
-                    </div> */}
                 </div>
             </main>
         </BackgroundWrapper>

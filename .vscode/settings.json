@@ -17,6 +17,10 @@
             "folderPath": "somni-pro/app/transcription-viewer/",
             "color": "foldercolorizer.color_00cc00",
             "badge": "tv"
+        },
+        {
+            "folderPath": "somni-pro/app/api/agents/identify-speakers/",
+            "color": "foldercolorizer.color_00cc00"
         }
     ]
 }
