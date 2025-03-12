@@ -5,9 +5,9 @@ import { useSession } from "next-auth/react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2 } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
-import AudioWaveform from "@/components/custom/diar-plot";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "../../components/BackgroundWrapper";
+import IdentifySpeakersAgent from "@/components/agents/IdentifySpeakersAgent"; 
 import { toast } from 'react-hot-toast';
 
 type ProjectFile = {
@@ -97,7 +97,8 @@ export default function TranscribePage() {
     // File selection within a project
     const [projectSelectedFiles, setProjectSelectedFiles] = useState<string[]>([]);
 
-    // Add this function to handle speaker identification
+    // DEPRECATED: This function is no longer used since we migrated to the IdentifySpeakersAgent component
+    // It's kept for reference in case we need to revert or understand the old logic
     const runSpeakerIdentification = async () => {
         if (!activeAgent) return;
         
@@ -1183,7 +1184,7 @@ export default function TranscribePage() {
                                             <li
                                                 className="px-4 py-2 hover:bg-gray-800 cursor-pointer"
                                                 onClick={() => {
-                                                    setSelectedModel("o1");
+                                                    setSelectedModel("4o");
                                                     setIsModelDropdownOpen(false);
                                                 }}
                                             >
@@ -1198,122 +1199,31 @@ export default function TranscribePage() {
                         {/* Expanded Agent Content */}
                         {activeAgent === 'identify-speakers' && (
                             <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
-                                <div className="flex flex-col md:flex-row gap-4 mb-4">
-                                    <div className="flex-1">
-                                        <p className="text-sm mb-4">
-                                            This agent analyzes dialog to identify different speakers or personas, even if you don't provide names.
-                                        </p>
-                                        
-                                        {/* Show selected file */}
-                                        {(selectedFileKey || selectedFiles.length > 0) && (
-                                            <div className="mb-4 p-2 bg-blue-900/20 border border-blue-800/50 rounded-md">
-                                                <p className="text-sm font-medium text-blue-300 mb-1">Selected File:</p>
-                                                <div className="text-sm">
-                                                    {(() => {
-                                                        const fileKey = selectedFileKey || (selectedFiles.length > 0 ? selectedFiles[0] : null);
-                                                        const selectedFile = fileKey ? transcriptions.find(file => file.key === fileKey) : null;
-                                                        return selectedFile ? (
-                                                            <span>{selectedFile.filename}</span>
-                                                        ) : (
-                                                            <span className="text-yellow-400">No file selected. Please select a file first.</span>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        )}
-                                        
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Number of speakers (optional)
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="2"
-                                                    max="10"
-                                                    placeholder="Auto-detect"
-                                                    className="w-full p-2 bg-black/40 rounded-md border border-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                    value={numSpeakers || ''}
-                                                    onChange={(e) => setNumSpeakers(e.target.value ? parseInt(e.target.value) : null)}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Identification Mode
-                                                </label>
-                                                <div className="flex gap-4">
-                                                    <label className="flex items-center">
-                                                        <input
-                                                            type="radio"
-                                                            name="speakerMode"
-                                                            value="context_based"
-                                                            checked={speakerMode === 'context_based'}
-                                                            onChange={() => setSpeakerMode('context_based')}
-                                                            className="mr-2"
-                                                        />
-                                                        <span className="text-sm">Name-based</span>
-                                                        <span className="text-xs text-gray-400 ml-1">(for conversations)</span>
-                                                    </label>
-                                                    <label className="flex items-center">
-                                                        <input
-                                                            type="radio"
-                                                            name="speakerMode"
-                                                            value="role_based"
-                                                            checked={speakerMode === 'role_based'}
-                                                            onChange={() => setSpeakerMode('role_based')}
-                                                            className="mr-2"
-                                                        />
-                                                        <span className="text-sm">Role-based</span>
-                                                        <span className="text-xs text-gray-400 ml-1">(for interviews)</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    id="generateLabels"
-                                                    checked={generateLabels}
-                                                    onChange={(e) => setGenerateLabels(e.target.checked)}
-                                                    className="mr-2"
-                                                />
-                                                <label htmlFor="generateLabels" className="text-sm">
-                                                    Generate speaker labels
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="w-full md:w-1/3 flex items-center justify-center rounded-lg overflow-hidden">
-                                        <img 
-                                            src="/images/video_grid_timeline.png" 
-                                            alt="Speaker identification visualization" 
-                                            className="w-full h-auto object-cover"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <button
-                                        className="px-4 py-2 rounded-md bg-gray-800 hover:bg-gray-700 text-sm transition-colors"
-                                        onClick={() => toggleAgent('identify-speakers')}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-sm transition-colors flex items-center gap-2"
-                                        onClick={runSpeakerIdentification}
-                                        disabled={isProcessing}
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <span className="animate-spin">
-                                                    <FiLoader size={14} />
-                                                </span>
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            'Run Agent'
-                                        )}
-                                    </button>
-                                </div>
+                                <p className="text-sm mb-4">
+                                    This agent analyzes dialog to identify different speakers or personas, even if you don't provide names.
+                                </p>
+
+                                <IdentifySpeakersAgent
+                                    selectedFiles={
+                                        // Case 1: We have a directly selected transcription
+                                        selectedTranscription ? [selectedTranscription] :
+                                        // Case 2: We're in a project and have project-specific selections
+                                        // Case 3: Otherwise, use the general selectedFiles
+                                        (selectedProject && projectSelectedFiles.length > 0 
+                                            ? projectSelectedFiles 
+                                            : selectedFiles).map((fileKey) => {
+                                                const match = transcriptions.find(t => t.key === fileKey);
+                                                return match
+                                                    ? {
+                                                        key: match.key,
+                                                        filename: match.filename,
+                                                        downloadUrl: match.downloadUrl
+                                                    }
+                                                    : null;
+                                            }).filter(Boolean) as TranscriptionFile[]
+                                    }
+                                    onClose={() => setActiveAgent(null)}
+                                />
                             </div>
                         )}
                         
