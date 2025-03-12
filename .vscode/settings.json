@@ -4,11 +4,6 @@
     },
     "folder-color.pathColors": [
         {
-            "folderPath": "somni-pro/app/api/",
-            "badge": "🌐",
-            "color": "foldercolorizer.color_3399ff"
-        },
-        {
             "folderPath": "somni-pro/app/file-viewer/",
             "color": "foldercolorizer.color_00cc00",
             "badge": "fv"

@@ -577,15 +577,24 @@ export default function TranscribePage() {
     };
 
     // Remove file from project
-    const handleRemoveFileFromProject = async (fileId: string) => {
+    const handleRemoveFileFromProject = async (fileKey: string) => {
         if (!selectedProject) return;
         
         try {
-            const res = await fetch(`/api/projects/${selectedProject.id}/files`, {
-                method: 'DELETE',
+            // Find the file object to verify it exists
+            const fileToRemove = transcriptions.find((file: TranscriptionFile) => file.key === fileKey);
+            
+            if (!fileToRemove) {
+                toast.error(`File not found for removal. Key: ${fileKey}`);
+                return;
+            }
+            
+            // Use the file key directly
+            const res = await fetch(`/api/projects/${selectedProject.id}/files/remove-by-key`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    fileId,
+                    fileKey: fileKey,
                 }),
             });
             
@@ -594,12 +603,14 @@ export default function TranscribePage() {
                 throw new Error(data.message || "Failed to remove file from project");
             }
             
+            toast.success("File removed from project successfully");
+            
             // Reload data
             await loadTranscriptionResults();
             
         } catch (err: any) {
             console.error("Error removing file from project:", err);
-            setProjectError(err.message);
+            toast.error(`Failed to remove file: ${err.message}`);
         }
     };
 

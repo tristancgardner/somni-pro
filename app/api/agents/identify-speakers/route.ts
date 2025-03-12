@@ -38,7 +38,7 @@ async function labelSpeakers(
   const segmentsStr = JSON.stringify(simplifiedSegments, null, 2);
 
   const contextBlock = userContext
-    ? `Additional context about possible speakers:\n${userContext}\n\n`
+    ? `Additional context about potential speakers in this file:\n${userContext}\n\n Not all of these will be present in the transcript, but you can use them to help determine roles.`
     : '';
 
   const prompt = `
@@ -51,10 +51,13 @@ async function labelSpeakers(
       - "Interviewer"
       - "Other"
 
-    Below is the JSON transcript. Return only valid JSON with no extra text:
-    ${segmentsStr}
+    Important, - it's possible for there to be more than one speaker label that applies to a certain role, so use the natural flow of the conversation to determine the role. The interviewer usually talks the least and asks the questions. 
 
-    Return it in this format:
+    Below are ordered segments from the transcript: 
+    
+    ${segmentsStr}
+    
+    Return only valid JSON with no extra text - return it in this format:
     {
       "${fileName}": {
         "SPEAKER_00": "Interviewee",
@@ -108,7 +111,7 @@ async function inferNames(
 
   // Simpler prompt that references userContext for known people
   const contextBlock = userContext
-    ? `We know these possible speakers or roles:\n${userContext}\n\n`
+    ? `We know these possible speakers or roles:\n${userContext}\n\n Not all of these will be present in the transcript, but you can use them to help determine roles.`
     : '';
 
   const prompt = `
@@ -116,19 +119,21 @@ async function inferNames(
 
     ${contextBlock}
 
+    If the user included the name of the INTERVIEWER, make sure to apply that given name to the speaker who has the role "Interviewer".
+
     If you see a speaker labeled "UNKNOWN" or "UNKNOWN_SPEAKER", 
     it might match one of the known individuals above, 
     or it may remain "Unknown" if there's insufficient info.
 
     Your task:
-      - Determine the real name of each speaker if it can be inferred from context or user instructions.
+      - Determine the real name of each speaker if it can be inferred from context or user instructions, and if not, from the natural flow of the conversation, using a change in speaker label as a clue.
       - If truly unknown, use "Unknown".
 
     Return valid JSON like:
     {
       "SPEAKER_00": "Michael",
-      "UNKNOWN_SPEAKER": "Tristan G",
-      "SPEAKER_02": "Unknown"
+      "SPEAKER_01": "Tristan G",
+      "SPEAKER_02": "Michael"
     }
 
     Transcript:

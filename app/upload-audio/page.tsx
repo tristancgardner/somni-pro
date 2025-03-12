@@ -366,7 +366,11 @@ export default function UploadTestPage() {
     try {
       // Determine what we're saving based on context - if this was after file upload or job submission
       const successfulUploads = uploadStatuses
-        .filter(status => status.status === 'success' && status.location)
+        .filter(status => 
+          status.status === 'success' && 
+          status.location && 
+          !status.filename.toLowerCase().endsWith('.wav') // Filter out WAV files
+        )
         .map(status => ({
           s3Key: status.location,
           filename: status.filename
