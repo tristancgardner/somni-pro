@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import TranscriptionViewer from '@/components/TranscriptionViewer';
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
-import * as HeadlessUI from '@headlessui/react';
+import Modal from '@/components/Modal';
 
 type JobStatus = {
   jobId: string;
@@ -79,13 +79,6 @@ export default function UploadTestPage() {
   const [fileDescription, setFileDescription] = useState("");
   const [isListeningForDictation, setIsListeningForDictation] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-
-  // State to track headlessui loading
-  const [dialogLoaded, setDialogLoaded] = useState(false);
-  const [dialogError, setDialogError] = useState<string | null>(null);
-
-  // State to track different modal approaches - default to native modal
-  const [useNativeModal, setUseNativeModal] = useState(true);
 
   // Generate a sessionId once when the component mounts
   useEffect(() => {
@@ -530,316 +523,133 @@ export default function UploadTestPage() {
     setViewerOpen(true);
   };
 
-  // Check if Dialog component is available
-  useEffect(() => {
-    try {
-      // Check if we can access Dialog through HeadlessUI
-      if (HeadlessUI && typeof HeadlessUI.Dialog === 'function') {
-        console.log('HeadlessUI Dialog component found successfully');
-        setDialogLoaded(true);
-        setDialogError(null);
-      } else {
-        console.error('HeadlessUI Dialog component is not available:', HeadlessUI);
-        setDialogLoaded(false);
-        setDialogError('HeadlessUI Dialog component not loaded properly');
-      }
-    } catch (err: any) {
-      console.error('Error checking HeadlessUI Dialog component:', err);
-      setDialogLoaded(false);
-      setDialogError(err.message);
-    }
-  }, []);
-
-  // Debug function to toggle between Dialog and native modal
-  const toggleModalType = () => {
-    setUseNativeModal(!useNativeModal);
-    console.log("Switched to", useNativeModal ? "Dialog component" : "native modal");
-  };
-
-  // Native modal rendering function
-  const renderNativeModal = () => {
-    if (!showProjectModal) return null;
-    
-    return (
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="fixed inset-0 bg-black/70" onClick={() => setShowProjectModal(false)} />
-        <div className="flex items-center justify-center min-h-screen p-4">
-          <div className="w-full max-w-lg bg-gray-900 p-6 rounded-lg shadow-xl relative">
-            <h2 className="text-xl font-semibold mb-4 text-white">
-              While we're waiting, tell us about these files
-            </h2>
-            
-            <div className="space-y-4">
-              {/* Project selection */}
-              <div>
-                <label className="block mb-2 text-sm font-bold text-gray-300">
-                  Select Project
-                </label>
-                
-                {isLoadingProjects ? (
-                  <div className="flex items-center text-gray-400 text-sm">
-                    <div className="w-5 h-5 border-t-2 border-r-2 border-blue-400 rounded-full animate-spin mr-2"></div>
-                    Loading projects...
-                  </div>
-                ) : isCreatingProject ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      placeholder="Enter new project name"
-                      className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleCreateProject}
-                        disabled={!newProjectName.trim()}
-                        className={`px-3 py-2 rounded text-sm ${
-                          !newProjectName.trim()
-                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                            : 'bg-green-600 text-white hover:bg-green-700'
-                        }`}
-                      >
-                        Create Project
-                      </button>
-                      <button
-                        onClick={() => setIsCreatingProject(false)}
-                        className="px-3 py-2 rounded text-sm bg-gray-700 text-white hover:bg-gray-600"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <select
-                      value={selectedProjectId}
-                      onChange={(e) => setSelectedProjectId(e.target.value)}
-                      className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    >
-                      {projects.length === 0 ? (
-                        <option value="">No projects available</option>
-                      ) : (
-                        projects.map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                    <button
-                      onClick={() => setIsCreatingProject(true)}
-                      className="px-3 py-2 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700"
-                    >
-                      New Project
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              {/* Description input */}
-              <div>
-                <label className="block mb-2 text-sm font-bold text-gray-300">
-                  Brief Description
-                </label>
-                <div className="flex gap-2">
-                  <textarea
-                    value={fileDescription}
-                    onChange={(e) => setFileDescription(e.target.value)}
-                    placeholder="Give a brief description of the project or files"
-                    rows={4}
-                    className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={handleStartDictation}
-                    className={`self-start p-2 rounded ${
-                      isListeningForDictation
-                        ? 'bg-red-600 text-white animate-pulse'
-                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                    }`}
-                    title="Dictate description"
-                  >
-                    <FiMic />
-                  </button>
-                </div>
-                {isListeningForDictation && (
-                  <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
-                )}
-              </div>
-              
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => setShowProjectModal(false)}
-                  className="px-4 py-2 rounded text-gray-300 hover:text-white"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={handleSaveProjectInfo}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                  disabled={isCreatingProject}
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Show appropriate modal based on settings
   const renderModal = () => {
     if (!showProjectModal) return null;
     
-    if (useNativeModal || !dialogLoaded) {
-      return renderNativeModal();
-    } else {
-      // Only use HeadlessUI Dialog if available
-      const Dialog = HeadlessUI.Dialog;
-      const DialogPanel = Dialog.Panel;
-      const DialogTitle = Dialog.Title;
-      
-      return (
-        <Dialog
-          open={showProjectModal}
-          onClose={() => {
-            console.log("Dialog onClose triggered");
-            setShowProjectModal(false);
-          }}
-          className="relative z-50"
-        >
-          {/* This makes sure we can see the modal */}
-          <div className="fixed inset-0 bg-black/70" aria-hidden="true" />
-          
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <DialogPanel className="w-full max-w-lg rounded-lg bg-gray-900 p-6 shadow-xl">
-              <DialogTitle className="text-xl font-semibold mb-4 text-white">
-                While we're waiting, tell us about these files
-              </DialogTitle>
-              
-              <div className="space-y-4">
-                {/* Project selection */}
-                <div>
-                  <label className="block mb-2 text-sm font-bold text-gray-300">
-                    Select Project
-                  </label>
-                  
-                  {isLoadingProjects ? (
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <div className="w-5 h-5 border-t-2 border-r-2 border-blue-400 rounded-full animate-spin mr-2"></div>
-                      Loading projects...
-                    </div>
-                  ) : isCreatingProject ? (
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                        placeholder="Enter new project name"
-                        className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleCreateProject}
-                          disabled={!newProjectName.trim()}
-                          className={`px-3 py-2 rounded text-sm ${
-                            !newProjectName.trim()
-                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                              : 'bg-green-600 text-white hover:bg-green-700'
-                          }`}
-                        >
-                          Create Project
-                        </button>
-                        <button
-                          onClick={() => setIsCreatingProject(false)}
-                          className="px-3 py-2 rounded text-sm bg-gray-700 text-white hover:bg-gray-600"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedProjectId}
-                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                        className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      >
-                        {projects.length === 0 ? (
-                          <option value="">No projects available</option>
-                        ) : (
-                          projects.map((project) => (
-                            <option key={project.id} value={project.id}>
-                              {project.name}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                      <button
-                        onClick={() => setIsCreatingProject(true)}
-                        className="px-3 py-2 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700"
-                      >
-                        New Project
-                      </button>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Description input */}
-                <div>
-                  <label className="block mb-2 text-sm font-bold text-gray-300">
-                    Brief Description
-                  </label>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={fileDescription}
-                      onChange={(e) => setFileDescription(e.target.value)}
-                      placeholder="Give a brief description of the project or files"
-                      rows={4}
-                      className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                    <button
-                      onClick={handleStartDictation}
-                      className={`self-start p-2 rounded ${
-                        isListeningForDictation
-                          ? 'bg-red-600 text-white animate-pulse'
-                          : 'bg-gray-700 text-white hover:bg-gray-600'
-                      }`}
-                      title="Dictate description"
-                    >
-                      <FiMic />
-                    </button>
-                  </div>
-                  {isListeningForDictation && (
-                    <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
-                  )}
-                </div>
-                
-                {/* Buttons */}
-                <div className="flex justify-end gap-3 pt-4">
+    return (
+      <Modal show={showProjectModal} onClose={() => setShowProjectModal(false)}>
+        <h2 className="text-xl font-semibold mb-4 text-white">
+          While we're waiting, tell us about these files
+        </h2>
+        
+        <div className="space-y-4">
+          {/* Project selection */}
+          <div>
+            <label className="block mb-2 text-sm font-bold text-gray-300">
+              Select Project
+            </label>
+            
+            {isLoadingProjects ? (
+              <div className="flex items-center text-gray-400 text-sm">
+                <div className="w-5 h-5 border-t-2 border-r-2 border-blue-400 rounded-full animate-spin mr-2"></div>
+                Loading projects...
+              </div>
+            ) : isCreatingProject ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="Enter new project name"
+                  className="w-full px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <div className="flex gap-2">
                   <button
-                    onClick={() => setShowProjectModal(false)}
-                    className="px-4 py-2 rounded text-gray-300 hover:text-white"
+                    onClick={handleCreateProject}
+                    disabled={!newProjectName.trim()}
+                    className={`px-3 py-2 rounded text-sm ${
+                      !newProjectName.trim()
+                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                   >
-                    Skip
+                    Create Project
                   </button>
                   <button
-                    onClick={handleSaveProjectInfo}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    disabled={isCreatingProject}
+                    onClick={() => setIsCreatingProject(false)}
+                    className="px-3 py-2 rounded text-sm bg-gray-700 text-white hover:bg-gray-600"
                   >
-                    Save
+                    Cancel
                   </button>
                 </div>
               </div>
-            </DialogPanel>
+            ) : (
+              <div className="flex gap-2">
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  {projects.length === 0 ? (
+                    <option value="">No projects available</option>
+                  ) : (
+                    projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <button
+                  onClick={() => setIsCreatingProject(true)}
+                  className="px-3 py-2 rounded text-sm bg-indigo-600 text-white hover:bg-indigo-700"
+                >
+                  New Project
+                </button>
+              </div>
+            )}
           </div>
-        </Dialog>
-      );
-    }
+          
+          {/* Description input */}
+          <div>
+            <label className="block mb-2 text-sm font-bold text-gray-300">
+              Brief Description
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                value={fileDescription}
+                onChange={(e) => setFileDescription(e.target.value)}
+                placeholder="Give a brief description of the project or files"
+                rows={4}
+                className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <button
+                onClick={handleStartDictation}
+                className={`self-start p-2 rounded ${
+                  isListeningForDictation
+                    ? 'bg-red-600 text-white animate-pulse'
+                    : 'bg-gray-700 text-white hover:bg-gray-600'
+                }`}
+                title="Dictate description"
+              >
+                <FiMic />
+              </button>
+            </div>
+            {isListeningForDictation && (
+              <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
+            )}
+          </div>
+          
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              onClick={() => setShowProjectModal(false)}
+              className="px-4 py-2 rounded text-gray-300 hover:text-white"
+            >
+              Skip
+            </button>
+            <button
+              onClick={handleSaveProjectInfo}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              disabled={isCreatingProject}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
   };
 
   // Show a login message if not authenticated
@@ -936,12 +746,6 @@ export default function UploadTestPage() {
                         className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded"
                       >
                         Debug: Test Modal
-                      </button>
-                      <button 
-                        onClick={toggleModalType}
-                        className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded"
-                      >
-                        {useNativeModal ? "Use Dialog Component" : "Use Native Modal"}
                       </button>
                     </div>
                     
@@ -1262,14 +1066,6 @@ export default function UploadTestPage() {
                   <li>Output files: <code className="bg-black/30 px-1 py-0.5 rounded">s3://{process.env.S3_TRANSCRIBE_BUCKET}/output/{session?.user?.email}/{sessionId}/</code></li>
                 </ul>
               </div>
-              
-              {/* Debug information */}
-              {dialogError && (
-                <div className="mt-4 p-3 bg-red-900/20 border-l-4 border-red-500 text-red-300">
-                  <p className="font-bold">Dialog Error:</p>
-                  <p>{dialogError}</p>
-                </div>
-              )}
               
               {/* Use the new renderModal function */}
               {renderModal()}
