@@ -56,6 +56,7 @@ export default function UploadTestPage() {
   const [jobError, setJobError] = useState("");
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [allJobsSucceeded, setAllJobsSucceeded] = useState(false);
   
   // Transcription results state
   const [transcriptions, setTranscriptions] = useState<TranscriptionFile[]>([]);
@@ -83,10 +84,33 @@ export default function UploadTestPage() {
   // Generate a sessionId once when the component mounts
   useEffect(() => {
     if (sessionId === "") {
-      // Generate a unique session ID (timestamp + uuid)
-      const newSessionId = `${Date.now()}-${uuidv4().substring(0, 8)}`;
-      setSessionId(newSessionId);
-      console.log("Generated session ID:", newSessionId);
+      // Check if we have a stored session in localStorage
+      const storedSession = localStorage.getItem('transcriptionSessionId');
+      const storedJobs = localStorage.getItem('transcriptionJobs');
+      
+      if (storedSession) {
+        setSessionId(storedSession);
+        console.log("Restored session ID from storage:", storedSession);
+        
+        // Restore jobs if available
+        if (storedJobs) {
+          try {
+            const parsedJobs = JSON.parse(storedJobs);
+            setJobs(parsedJobs);
+            // When restoring a session, enable auto-refresh
+            setAutoRefresh(true);
+          } catch (err) {
+            console.error("Error parsing stored jobs:", err);
+          }
+        }
+      } else {
+        // Generate a unique session ID (timestamp + uuid)
+        const newSessionId = `${Date.now()}-${uuidv4().substring(0, 8)}`;
+        setSessionId(newSessionId);
+        console.log("Generated session ID:", newSessionId);
+        // Store in localStorage
+        localStorage.setItem('transcriptionSessionId', newSessionId);
+      }
     }
   }, [sessionId]);
 
@@ -175,6 +199,13 @@ export default function UploadTestPage() {
       
       setJobStatuses(data.jobs || []);
       
+      // Check if all jobs are successful
+      const allSucceeded = data.jobs && 
+        data.jobs.length > 0 && 
+        data.jobs.every((job: JobStatus) => job.status === 'SUCCEEDED');
+      
+      setAllJobsSucceeded(allSucceeded);
+      
       // If we have jobs that are SUCCEEDED or FAILED, refresh transcription results
       const completedJobs = data.jobs.filter(
         (job: JobStatus) => job.status === 'SUCCEEDED' || job.status === 'FAILED'
@@ -183,6 +214,15 @@ export default function UploadTestPage() {
       if (completedJobs.length > 0) {
         // Refresh transcription list when jobs complete
         loadTranscriptionResults();
+      }
+      
+      // If all jobs are completed (either succeeded or failed), we can turn off auto-refresh
+      const allCompleted = data.jobs && 
+        data.jobs.length > 0 && 
+        data.jobs.every((job: JobStatus) => job.status === 'SUCCEEDED' || job.status === 'FAILED');
+      
+      if (allCompleted) {
+        setAutoRefresh(false);
       }
     } catch (err: any) {
       console.error("Error checking job status:", err);
@@ -458,14 +498,14 @@ export default function UploadTestPage() {
     
     setIsUploading(false);
     
-    // Show the project info modal after uploads are complete
-    // Only show if there's at least one successful upload
+    // Check if there's at least one successful upload
     const successfulUploads = uploadStatuses.filter(status => status.status === 'success');
     if (successfulUploads.length > 0) {
-      console.log("Upload completed successfully. Showing project modal.", successfulUploads);
-      setShowProjectModal(true);
+      console.log("Upload completed successfully. Automatically submitting jobs.");
+      // Automatically submit jobs instead of showing the project modal
+      handleSubmitJobs();
     } else {
-      console.log("No successful uploads. Not showing project modal.");
+      console.log("No successful uploads. Not submitting jobs.");
     }
   };
 
@@ -480,6 +520,7 @@ export default function UploadTestPage() {
     setJobError("");
     setJobs([]);
     setJobStatuses([]);
+    setAllJobsSucceeded(false);
 
     try {
       const res = await fetch("/api/submitJobsForUser", {
@@ -497,7 +538,12 @@ export default function UploadTestPage() {
         throw new Error(data.message || data.error || "Job submission failed");
       }
       
-      setJobs(data.jobIds || []);
+      const jobsData = data.jobIds || [];
+      setJobs(jobsData);
+      
+      // Store jobs in localStorage for persistence
+      localStorage.setItem('transcriptionJobs', JSON.stringify(jobsData));
+      
       setJobMessage(data.message || "Jobs submitted successfully!");
       
       // Enable auto-refresh by default when jobs are submitted
@@ -671,6 +717,14 @@ export default function UploadTestPage() {
         </div>
       </Modal>
     );
+  };
+
+  // Navigate to file viewer for the project
+  const navigateToFileViewer = () => {
+    // Navigate to the project view with the selected project ID
+    if (selectedProjectId) {
+      window.location.href = `/projects/${selectedProjectId}`;
+    }
   };
 
   // Show a login message if not authenticated
@@ -871,24 +925,38 @@ export default function UploadTestPage() {
                 
                 {/* Batch Transcription Panel */}
                 <div className="bg-black/50 p-6 rounded-lg">
-                  <h2 className="text-xl font-semibold mb-4 text-white">Step 2: Process All Files</h2>
+                  <h2 className="text-xl font-semibold mb-4 text-white">Step 2: Process Files</h2>
                   <p className="mb-6 text-gray-400">
-                    This will find all audio files in your input directory for this session and submit them for transcription.
+                    After uploading files, transcription jobs are automatically submitted. You can track their status below.
                   </p>
                   
-                  <button 
-                    onClick={handleSubmitJobs}
-                    disabled={isSubmitting}
-                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-md font-bold transition-colors ${
-                      isSubmitting 
-                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed' 
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    <FiPlay />
-                    {isSubmitting ? 'Submitting...' : 'Submit Transcription Jobs'}
-                  </button>
+                  {/* Show file viewer button when all jobs succeed */}
+                  {allJobsSucceeded && selectedProjectId && (
+                    <button 
+                      onClick={navigateToFileViewer}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-md font-bold bg-green-600 text-white hover:bg-green-700 mb-4"
+                    >
+                      Open in File Viewer <FiChevronRight />
+                    </button>
+                  )}
                   
+                  {/* Show the manual submit button only when there are no jobs yet */}
+                  {jobs.length === 0 && (
+                    <button 
+                      onClick={handleSubmitJobs}
+                      disabled={isSubmitting}
+                      className={`w-full flex items-center justify-center gap-2 py-3 rounded-md font-bold transition-colors ${
+                        isSubmitting 
+                          ? 'bg-gray-600 text-gray-300 cursor-not-allowed' 
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      <FiPlay />
+                      {isSubmitting ? 'Submitting...' : 'Submit Transcription Jobs Manually'}
+                    </button>
+                  )}
+                  
+                  {/* Status messages remain the same */}
                   {jobMessage && (
                     <div className="mt-6 p-4 rounded bg-green-900/20 border-l-4 border-green-600 text-green-400">
                       <p className="m-0 font-bold">{jobMessage}</p>
@@ -1077,9 +1145,9 @@ export default function UploadTestPage() {
                 <p><strong>Testing Flow:</strong></p>
                 <ol className="pl-6 list-decimal">
                   <li>Upload audio files using the form in Step 1</li>
-                  <li>Click "Submit Transcription Jobs" in Step 2 to process all files</li>
+                  <li>Jobs will be automatically submitted after upload completes</li>
                   <li>Monitor job status in the table below Step 2</li>
-                  <li>Once jobs complete, view and download results in Step 3</li>
+                  <li>Once jobs complete, you can open the project in File Viewer or view/download results in Step 3</li>
                 </ol>
                 <p className="mt-2"><strong>Directory Structure:</strong></p>
                 <ul className="pl-6 list-disc">
