@@ -101,7 +101,61 @@ export default function TranscriptionViewerPage() {
     });
   };
 
-  // Apply speaker edits to all segments with the same speaker ID
+  // Add useEffect to check for temporary transcript data
+  useEffect(() => {
+    const checkForTempTranscript = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const tempId = searchParams.get('tempId');
+      if (!tempId) return;
+      
+      try {
+        const tempDataStr = localStorage.getItem(tempId);
+        if (!tempDataStr) {
+          console.log('No temporary transcript data found with ID:', tempId);
+          return;
+        }
+        
+        const tempData = JSON.parse(tempDataStr);
+        
+        if (tempData.transcript) {
+          setTranscription(tempData.transcript);
+          
+          // Calculate speaker statistics for the temp transcript
+          const stats = calculateSpeakerStats(tempData.transcript);
+          setSpeakerStats(stats);
+          
+          // Store speaker labels for potential editing
+          if (tempData.speakerLabels) {
+            const initialEdits: Record<string, { name?: string, role?: string }> = {};
+            Object.entries(tempData.speakerLabels).forEach(([speaker, info]) => {
+              initialEdits[speaker] = { 
+                name: (info as any).name, 
+                role: (info as any).role 
+              };
+            });
+            setEditedSpeakers(initialEdits);
+          }
+          
+          // Show a notice that this is a preview
+          toast.success('Viewing transcript with temporary speaker labels applied. Save to make permanent.');
+          
+          // Skip the normal fetch since we have data already
+          setLoading(false);
+        }
+        
+        // Clean up the temporary data after it's been used
+        // Uncomment this if you want it to be one-time use only
+        // localStorage.removeItem(tempId);
+      } catch (error) {
+        console.error('Error parsing temporary transcript data:', error);
+      }
+    };
+    
+    checkForTempTranscript();
+  }, [searchParams]);
+
+  // Enhance updateSpeakerInfo to handle the preview scenario
   const updateSpeakerInfo = (speakerId: string, name?: string, role?: string) => {
     if (!transcription) return;
     
@@ -134,6 +188,22 @@ export default function TranscriptionViewerPage() {
     
     // Exit edit mode
     setEditingSpeaker(null);
+    
+    // If this was opened from the identify-speakers agent, update the temp storage
+    const tempId = searchParams.get('tempId');
+    if (tempId) {
+      try {
+        const tempDataStr = localStorage.getItem(tempId);
+        if (tempDataStr) {
+          const tempData = JSON.parse(tempDataStr);
+          tempData.speakerLabels = tempData.speakerLabels || {};
+          tempData.speakerLabels[speakerId] = { name, role };
+          localStorage.setItem(tempId, JSON.stringify(tempData));
+        }
+      } catch (error) {
+        console.error('Error updating temporary transcript data:', error);
+      }
+    }
   };
 
   // Function to save updated transcription back to S3
@@ -342,6 +412,25 @@ export default function TranscriptionViewerPage() {
     }
   };
 
+  // After saveTranscription function, add new function to return to the agent
+  const returnToIdentifySpeakersAgent = () => {
+    // Get the temp ID
+    const tempId = searchParams.get('tempId');
+    if (!tempId) return;
+    
+    const sourceUrl = url || projectFiles[activeFileIndex]?.downloadUrl;
+    if (!sourceUrl) return;
+    
+    // Go back to the file viewer with parameters to reopen the agent
+    window.close(); // Close this tab/window
+    window.opener?.postMessage({ 
+      type: 'RETURN_TO_IDENTIFY_SPEAKERS', 
+      tempId, 
+      sourceUrl,
+      edits: editedSpeakers  
+    }, window.location.origin);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[600px]">
@@ -462,6 +551,19 @@ export default function TranscriptionViewerPage() {
         
         {/* Main content with transcription */}
         <div className={`flex-1 p-6 overflow-y-auto ${isProjectView && showSidebar ? 'ml-0' : ''}`}>
+          {/* Add notification banner when viewing a temporary transcript */}
+          {searchParams.get('tempId') && (
+            <div className="mb-4 bg-indigo-900/30 border border-indigo-500 text-indigo-300 p-4 rounded-lg flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Preview Mode with Speaker Labels</p>
+                <p className="text-sm">You're viewing the transcript with temporarily applied speaker labels. These changes won't be permanent until you save them.</p>
+              </div>
+            </div>
+          )}
+          
           {/* Existing transcription content */}
           <div className="mb-6 flex justify-between items-start">
             <div>
@@ -495,6 +597,17 @@ export default function TranscriptionViewerPage() {
                   </>
                 )}
               </button>
+
+              {/* Add Return to Agent button if we're in agent workflow */}
+              {searchParams.get('tempId') && (
+                <button
+                  onClick={returnToIdentifySpeakersAgent}
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded mr-3 flex items-center gap-2"
+                >
+                  <ArrowLeft size={16} />
+                  Return to Speaker Identification
+                </button>
+              )}
             </div>
           </div>
           

@@ -77,7 +77,7 @@ export default function TranscribePage() {
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
 
     // Agent state
-    const [activeAgent, setActiveAgent] = useState<string | null>(null);
+    const [activeAgent, setActiveAgent] = useState<'identify-speakers' | 'summarize' | 'sort-dialog' | null>(null);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
     // Add a ref to track if we've already processed the URL parameters
@@ -643,7 +643,7 @@ export default function TranscribePage() {
     }, [status, projects, searchParams]);
 
     // Define the toggleAgent function (if it doesn't exist)
-    const toggleAgent = (agentName: string) => {
+    const toggleAgent = (agentName: 'identify-speakers' | 'summarize' | 'sort-dialog') => {
         if (activeAgent === agentName) {
             setActiveAgent(null);
             // Reset processing state when closing
@@ -1239,11 +1239,6 @@ export default function TranscribePage() {
                                     >
                                         Cancel
                                     </button>
-                                    <button
-                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white"
-                                    >
-                                        Run Agent
-                                    </button>
                                 </div>
                             </div>
                         )}
@@ -1263,11 +1258,6 @@ export default function TranscribePage() {
                                         onClick={() => setActiveAgent(null)}
                                     >
                                         Cancel
-                                    </button>
-                                    <button
-                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white"
-                                    >
-                                        Run Agent
                                     </button>
                                 </div>
                             </div>
