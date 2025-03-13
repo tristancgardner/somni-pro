@@ -16,6 +16,11 @@
         {
             "folderPath": "somni-pro/app/api/agents/identify-speakers/",
             "color": "foldercolorizer.color_00cc00"
+        },
+        {
+            "folderPath": "somni-pro/components/agents/IdentifySpeakersAgent.tsx/",
+            "color": "foldercolorizer.color_ff9999",
+            "badge": "IS"
         }
     ]
 }

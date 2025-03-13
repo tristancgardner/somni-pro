@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2, FiMoreVertical } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2, FiMoreVertical, FiMenu, FiChevronsLeft, FiChevronsRight } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "../../components/BackgroundWrapper";
@@ -49,6 +49,9 @@ export default function TranscribePage() {
     const [file, setFile] = useState<File | null>(null);
     const [transcription, setTranscription] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Add sidebar state
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
     
     // Transcription results state
     const [transcriptions, setTranscriptions] = useState<TranscriptionFile[]>([]);
@@ -907,111 +910,165 @@ export default function TranscribePage() {
 
     return (
         <BackgroundWrapper imagePath="/images/electric_timeline.png">
-            <main className='flex min-h-screen'>
-                {/* Sidebar for Projects */}
-                <div className="w-80 bg-black/70 h-screen flex flex-col p-4 overflow-y-auto border-r border-gray-800">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-white">Projects</h2>
+            {/* Page Header at the top */}
+            <PageHeader />
+            
+            <main className='flex min-h-screen pt-4'>
+                {/* Projects Sidebar (Collapsible) */}
+                <div 
+                    className={`bg-black/70 flex flex-col overflow-y-auto border-r border-gray-800 transition-all duration-300 ease-in-out ${
+                        isSidebarExpanded ? "w-80" : "w-16"
+                    }`}
+                >
+                    <div className="sticky top-0 z-10 bg-black/80 py-3 px-4 flex items-center justify-between border-b border-gray-800">
+                        {isSidebarExpanded ? (
+                            <h2 className="text-xl font-semibold text-white">Projects</h2>
+                        ) : (
+                            <FiFolder className="mx-auto text-white text-xl" />
+                        )}
+                        
                         <button
-                            onClick={() => setShowNewProjectModal(true)}
-                            className="flex items-center gap-2 p-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
-                            title="Create Project"
+                            onClick={() => setIsSidebarExpanded(prev => !prev)}
+                            className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                            title={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
                         >
-                            <FiPlus />
+                            {isSidebarExpanded ? <FiChevronsLeft /> : <FiChevronsRight />}
                         </button>
                     </div>
                     
-                    {projectError && (
-                        <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded text-sm">
-                            {projectError}
-                        </div>
-                    )}
-                    
-                    {isLoadingProjects ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                        </div>
-                    ) : projects.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                            No projects found. Create your first project to get started.
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {projects.map(project => (
-                                <div
-                                    key={project.id}
-                                    onClick={() => handleSelectProject(project)}
-                                    className={`flex items-center p-3 text-base rounded-lg group relative transition-colors cursor-pointer ${
-                                        selectedProject?.id === project.id 
-                                        ? "bg-blue-700/60"
-                                        : "bg-black/40 hover:bg-black/60"
-                                    }`}
+                    <div className="flex-1 p-4">
+                        {isSidebarExpanded && (
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-base font-medium text-gray-300">My Projects</h3>
+                                <button
+                                    onClick={() => setShowNewProjectModal(true)}
+                                    className="flex items-center gap-2 p-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
+                                    title="Create Project"
                                 >
-                                    <FiFolder className="mr-3 flex-shrink-0" />
-                                    <div className="flex-1 overflow-hidden">
-                                        <div className="font-medium">{project.name}</div>
-                                        {project.description && (
-                                            <div className="text-xs text-gray-400 truncate">
-                                                {project.description}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {project._count && (
-                                        <span className="ml-1 bg-black/50 px-1.5 rounded-full text-xs">
-                                            {project._count.files}
-                                        </span>
-                                    )}
-                                    
-                                    {/* 3-dot menu */}
-                                    <div className="relative">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // Toggle dropdown for this project
-                                                const currentMenuOpen = projectMenuOpen === project.id ? null : project.id;
-                                                setProjectMenuOpen(currentMenuOpen);
-                                            }}
-                                            className="p-1.5 text-gray-400 hover:text-gray-200 rounded-full hover:bg-black/40"
-                                        >
-                                            <FiMoreVertical size={16} />
-                                        </button>
-                                        
-                                        {/* Dropdown menu */}
-                                        {projectMenuOpen === project.id && (
-                                            <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
-                                                <div 
-                                                    className="px-4 py-2 text-sm hover:bg-gray-800 cursor-pointer flex items-center"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setProjectMenuOpen(null);
-                                                        handleEditProject(project);
-                                                    }}
-                                                >
-                                                    <FiEdit2 className="mr-2" size={14} /> Rename
-                                                </div>
-                                                <div 
-                                                    className="px-4 py-2 text-sm text-red-400 hover:bg-gray-800 cursor-pointer flex items-center"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setProjectMenuOpen(null);
-                                                        showDeleteConfirmation(project);
-                                                    }}
-                                                >
-                                                    <FiDelete className="mr-2" size={14} /> Delete Project
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <FiPlus />
+                                </button>
+                            </div>
+                        )}
+                        
+                        {!isSidebarExpanded && (
+                            <div className="flex justify-center mb-6">
+                                <button
+                                    onClick={() => setShowNewProjectModal(true)}
+                                    className="p-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
+                                    title="Create Project"
+                                >
+                                    <FiPlus />
+                                </button>
+                            </div>
+                        )}
+                    
+                        {projectError && isSidebarExpanded && (
+                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded text-sm">
+                                {projectError}
+                            </div>
+                        )}
+                        
+                        {isLoadingProjects ? (
+                            <div className="flex justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                            </div>
+                        ) : projects.length === 0 ? (
+                            isSidebarExpanded ? (
+                                <div className="text-center py-8 text-gray-400 text-sm">
+                                    No projects found. Create your first project to get started.
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            ) : null
+                        ) : (
+                            <div className="space-y-3">
+                                {projects.map(project => (
+                                    <div
+                                        key={project.id}
+                                        onClick={() => handleSelectProject(project)}
+                                        className={`flex items-center p-3 text-base rounded-lg group relative transition-colors cursor-pointer ${
+                                            selectedProject?.id === project.id 
+                                            ? "bg-blue-700/60"
+                                            : "bg-black/40 hover:bg-black/60"
+                                        }`}
+                                    >
+                                        <FiFolder className={`flex-shrink-0 ${isSidebarExpanded ? 'mr-3' : 'mx-auto'}`} />
+                                        
+                                        {isSidebarExpanded && (
+                                            <>
+                                                <div className="flex-1 overflow-hidden">
+                                                    <div className="font-medium">{project.name}</div>
+                                                    {project.description && (
+                                                        <div className="text-xs text-gray-400 truncate">
+                                                            {project.description}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {project._count && (
+                                                    <span className="ml-1 bg-black/50 px-1.5 rounded-full text-xs">
+                                                        {project._count.files}
+                                                    </span>
+                                                )}
+                                                
+                                                {/* 3-dot menu */}
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Toggle dropdown for this project
+                                                            const currentMenuOpen = projectMenuOpen === project.id ? null : project.id;
+                                                            setProjectMenuOpen(currentMenuOpen);
+                                                        }}
+                                                        className="p-1.5 text-gray-400 hover:text-gray-200 rounded-full hover:bg-black/40"
+                                                    >
+                                                        <FiMoreVertical size={16} />
+                                                    </button>
+                                                    
+                                                    {/* Dropdown menu */}
+                                                    {projectMenuOpen === project.id && (
+                                                        <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
+                                                            <div 
+                                                                className="px-4 py-2 text-sm hover:bg-gray-800 cursor-pointer flex items-center"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setProjectMenuOpen(null);
+                                                                    handleEditProject(project);
+                                                                }}
+                                                            >
+                                                                <FiEdit2 className="mr-2" size={14} /> Rename
+                                                            </div>
+                                                            <div 
+                                                                className="px-4 py-2 text-sm text-red-400 hover:bg-gray-800 cursor-pointer flex items-center"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setProjectMenuOpen(null);
+                                                                    showDeleteConfirmation(project);
+                                                                }}
+                                                            >
+                                                                <FiDelete className="mr-2" size={14} /> Delete Project
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                        
+                                        {/* Tooltip for collapsed mode */}
+                                        {!isSidebarExpanded && (
+                                            <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                                {project.name}
+                                                {project._count && (
+                                                    <span className="ml-1 text-gray-400">({project._count.files})</span>
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 
                 {/* Main Content Area */}
                 <div className='flex-1 p-6 overflow-y-auto'>
-                    <PageHeader />
-                    
                     {selectedProject ? (
                         <>
                             {/* Selected Project Header */}
