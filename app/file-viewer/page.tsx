@@ -94,6 +94,11 @@ export default function TranscribePage() {
     const [numSpeakers, setNumSpeakers] = useState<number | null>(null);
     const [generateLabels, setGenerateLabels] = useState<boolean>(false);
 
+    // Add state for file deletion confirmation
+    const [showDeleteFileModal, setShowDeleteFileModal] = useState<boolean>(false);
+    const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
+    const [fileDeleteName, setFileDeleteName] = useState<string>('');
+    
     // Add the selected transcription state
     const [selectedTranscription, setSelectedTranscription] = useState<TranscriptionFile | null>(null);
 
@@ -500,45 +505,75 @@ export default function TranscribePage() {
     };
 
     // Delete file completely
-    const handleDeleteFile = async (fileKey: string) => {
-        if (!confirm("Are you sure you want to permanently delete this file? This action cannot be undone.")) {
-            return;
-        }
+    const handleDeleteFile = async (fileKey?: string) => {
+        // If fileKey is provided, we're deleting a single file; otherwise, use the filesToDelete array
+        const keysToDelete = fileKey ? [fileKey] : filesToDelete;
+        
+        if (keysToDelete.length === 0) return;
         
         try {
-            console.log(`Attempting to delete file: ${fileKey}`);
-            
-            const res = await fetch(`/api/files/${encodeURIComponent(fileKey)}`, {
-                method: 'DELETE',
-            });
-            
-            const data = await res.json();
-            
-            if (!res.ok) {
-                throw new Error(data.message || "Failed to delete file");
+            // For single files, show a loading toast
+            if (keysToDelete.length === 1) {
+                toast.loading("Deleting file...");
+            } else {
+                toast.loading(`Deleting ${keysToDelete.length} files...`);
             }
             
-            toast.success("File deleted successfully");
+            // Process all selected files
+            for (const key of keysToDelete) {
+                console.log(`Attempting to delete file: ${key}`);
+                
+                const res = await fetch(`/api/files/${encodeURIComponent(key)}`, {
+                    method: 'DELETE',
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.message || "Failed to delete file");
+                }
+                
+                // Remove file from selections if it was selected
+                if (selectedFiles.includes(key)) {
+                    setSelectedFiles(prev => prev.filter(k => k !== key));
+                }
+                if (projectSelectedFiles.includes(key)) {
+                    setProjectSelectedFiles(prev => prev.filter(k => k !== key));
+                }
+            }
             
-            // Remove file from selections if it was selected
-            if (selectedFiles.includes(fileKey)) {
-                setSelectedFiles(prev => prev.filter(key => key !== fileKey));
+            // Show success message
+            toast.dismiss();
+            if (keysToDelete.length === 1) {
+                toast.success("File deleted successfully");
+            } else {
+                toast.success(`${keysToDelete.length} files deleted successfully`);
             }
-            if (projectSelectedFiles.includes(fileKey)) {
-                setProjectSelectedFiles(prev => prev.filter(key => key !== fileKey));
-            }
+            
+            // Close the modal and clear the state
+            setShowDeleteFileModal(false);
+            setFilesToDelete([]);
+            setFileDeleteName('');
             
             // Reload transcription list
             await loadTranscriptionResults();
             
         } catch (err: any) {
             console.error("Error deleting file:", err);
+            toast.dismiss();
             toast.error(`Failed to delete file: ${err.message || "Unknown error"}`);
         }
     };
-
-    // Handle bulk file deletion
-    const handleBulkDeleteFiles = async () => {
+    
+    // Initiate file deletion process
+    const initiateDeleteFile = (fileKey: string, fileName: string) => {
+        setFilesToDelete([fileKey]);
+        setFileDeleteName(fileName);
+        setShowDeleteFileModal(true);
+    };
+    
+    // Initiate bulk file deletion
+    const initiateDeleteFiles = () => {
         const filesToDelete = selectedProject ? projectSelectedFiles : selectedFiles;
         
         if (filesToDelete.length === 0) {
@@ -546,59 +581,9 @@ export default function TranscribePage() {
             return;
         }
         
-        if (!confirm(`Are you sure you want to permanently delete ${filesToDelete.length} file(s)? This action cannot be undone.`)) {
-            return;
-        }
-        
-        toast.loading(`Deleting ${filesToDelete.length} files...`, { id: 'bulk-delete' });
-        
-        let successCount = 0;
-        let errorCount = 0;
-        let errors: string[] = [];
-        
-        for (const fileKey of filesToDelete) {
-            try {
-                console.log(`Attempting to delete file (bulk): ${fileKey}`);
-                
-                const res = await fetch(`/api/files/${encodeURIComponent(fileKey)}`, {
-                    method: 'DELETE',
-                });
-                
-                const data = await res.json();
-                
-                if (res.ok) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                    errors.push(`${fileKey}: ${data.message || "Unknown error"}`);
-                }
-            } catch (err: any) {
-                errorCount++;
-                errors.push(`${fileKey}: ${err.message || "Unknown error"}`);
-            }
-        }
-        
-        // Clear selections
-        if (selectedProject) {
-            setProjectSelectedFiles([]);
-        } else {
-            setSelectedFiles([]);
-        }
-        
-        // Show result message
-        toast.dismiss('bulk-delete');
-        if (successCount > 0 && errorCount === 0) {
-            toast.success(`Successfully deleted ${successCount} file(s)`);
-        } else if (successCount > 0 && errorCount > 0) {
-            toast.success(`Deleted ${successCount} file(s), but failed to delete ${errorCount} file(s)`);
-            console.error("Bulk delete errors:", errors);
-        } else {
-            toast.error(`Failed to delete all ${errorCount} file(s)`);
-            console.error("Bulk delete errors:", errors);
-        }
-        
-        // Reload transcription list
-        await loadTranscriptionResults();
+        setFilesToDelete(filesToDelete);
+        setFileDeleteName(''); // Multiple files
+        setShowDeleteFileModal(true);
     };
 
     // Add files to project
@@ -1145,15 +1130,8 @@ export default function TranscribePage() {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                projectSelectedFiles.forEach(fileKey => handleRemoveFileFromProject(fileKey));
-                                                setProjectSelectedFiles([]);
+                                                initiateDeleteFiles();
                                             }}
-                                            className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
-                                        >
-                                            <FiTrash2 /> Remove From Project
-                                        </button>
-                                        <button
-                                            onClick={handleBulkDeleteFiles}
                                             className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
                                         >
                                             <FiTrash2 /> Delete Files
@@ -1196,9 +1174,6 @@ export default function TranscribePage() {
                                                             </div>
                                                         </th>
                                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Project</th>
                                                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
                                                     </tr>
                                                 </thead>
@@ -1216,19 +1191,6 @@ export default function TranscribePage() {
                                                                 />
                                                             </td>
                                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{formatFileSize(file.size)}</td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                                                                {new Date(file.lastModified).toLocaleDateString()}
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                                                                {file.projectName ? (
-                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-300">
-                                                                        {file.projectName}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-gray-500">None</span>
-                                                                )}
-                                                            </td>
                                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                                                                 <div className="flex items-center justify-end gap-4">
                                                                     <button
@@ -1236,37 +1198,38 @@ export default function TranscribePage() {
                                                                             e.stopPropagation();
                                                                             viewTranscription(file.downloadUrl, file);
                                                                         }}
-                                                                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                                                                        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-full group relative"
+                                                                        title="View"
                                                                     >
-                                                                        <FiFileText /> View
+                                                                        <FiFileText className="text-lg" />
+                                                                        <span className="absolute hidden group-hover:block bg-gray-900 text-xs px-2 py-1 rounded shadow-lg -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                                                                            View
+                                                                        </span>
                                                                     </button>
                                                                     <a 
                                                                         href={file.downloadUrl}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                                                                        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-full group relative"
+                                                                        title="Download"
                                                                     >
-                                                                        <FiDownload /> Download
+                                                                        <FiDownload className="text-lg" />
+                                                                        <span className="absolute hidden group-hover:block bg-gray-900 text-xs px-2 py-1 rounded shadow-lg -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                                                                            Download
+                                                                        </span>
                                                                     </a>
-                                                                    {selectedProject && file.projectId === selectedProject.id && (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleRemoveFileFromProject(file.key);
-                                                                            }}
-                                                                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
-                                                                        >
-                                                                            <FiDelete /> Remove
-                                                                        </button>
-                                                                    )}
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            handleDeleteFile(file.key);
+                                                                            initiateDeleteFile(file.key, file.filename);
                                                                         }}
-                                                                        className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
+                                                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-full group relative"
+                                                                        title="Delete"
                                                                     >
-                                                                        <FiTrash2 /> Delete
+                                                                        <FiTrash2 className="text-lg" />
+                                                                        <span className="absolute hidden group-hover:block bg-gray-900 text-xs px-2 py-1 rounded shadow-lg -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                                                                            Delete
+                                                                        </span>
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -1657,6 +1620,44 @@ export default function TranscribePage() {
                                 }`}
                             >
                                 Delete Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Delete Files Confirmation Modal */}
+            {showDeleteFileModal && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
+                        <h3 className="text-xl font-semibold mb-4 text-red-400">Delete File{filesToDelete.length > 1 ? 's' : ''}</h3>
+                        
+                        <p className="mb-6 text-gray-300">
+                            {filesToDelete.length === 1 && fileDeleteName ? (
+                                <>Are you sure you want to delete the file "<span className="font-semibold">{fileDeleteName}</span>"?</>
+                            ) : (
+                                <>Are you sure you want to delete {filesToDelete.length} selected files?</>
+                            )}
+                            <br />
+                            <span className="text-red-400 mt-2 block text-sm">This action cannot be undone.</span>
+                        </p>
+                        
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteFileModal(false);
+                                    setFilesToDelete([]);
+                                    setFileDeleteName("");
+                                }}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleDeleteFile()}
+                                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700"
+                            >
+                                Delete
                             </button>
                         </div>
                     </div>
