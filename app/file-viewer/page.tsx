@@ -327,12 +327,15 @@ export default function TranscribePage() {
             setIsSubmittingProject(true);
             setProjectError("");
             
+            const projectName = newProjectName.trim();
+            const projectDescription = newProjectDescription.trim() || null;
+            
             const res = await fetch('/api/projects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: newProjectName.trim(),
-                    description: newProjectDescription.trim() || undefined,
+                    name: projectName,
+                    description: projectDescription || undefined,
                 }),
             });
             
@@ -349,9 +352,19 @@ export default function TranscribePage() {
             
             // Reload projects
             await loadProjects();
+            
+            // Select the newly created project
+            if (data.project) {
+                await handleSelectProject(data.project);
+                toast.success(`Project "${projectName}" created successfully`);
+            } else {
+                toast.success("Project created successfully");
+            }
+            
         } catch (err: any) {
             console.error("Error creating project:", err);
             setProjectError(err.message);
+            toast.error("Failed to create project: " + err.message);
         } finally {
             setIsSubmittingProject(false);
         }
@@ -369,12 +382,18 @@ export default function TranscribePage() {
             setIsSubmittingProject(true);
             setProjectError("");
             
+            // Save original values to determine what changed
+            const originalName = selectedProject.name;
+            const originalDescription = selectedProject.description || "";
+            const newName = newProjectName.trim();
+            const newDescription = newProjectDescription.trim() || null;
+            
             const res = await fetch(`/api/projects/${selectedProject.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: newProjectName.trim(),
-                    description: newProjectDescription.trim() || undefined,
+                    name: newName,
+                    description: newDescription || undefined,
                 }),
             });
             
@@ -389,19 +408,31 @@ export default function TranscribePage() {
             setNewProjectDescription("");
             setShowEditProjectModal(false);
             
-            // Reload projects and update selected project
+            // Reload projects
             await loadProjects();
             
             // Update the selected project with new data
             setSelectedProject({
                 ...selectedProject,
-                name: newProjectName.trim(),
-                description: newProjectDescription.trim() || null,
+                name: newName,
+                description: newDescription,
             });
+            
+            // Provide feedback on what was updated
+            if (originalName !== newName && originalDescription !== newDescription) {
+                toast.success("Project name and description updated");
+            } else if (originalName !== newName) {
+                toast.success("Project name updated");
+            } else if (originalDescription !== newDescription) {
+                toast.success("Project description updated");
+            } else {
+                toast.success("Project updated");
+            }
             
         } catch (err: any) {
             console.error("Error updating project:", err);
             setProjectError(err.message);
+            toast.error("Failed to update project: " + err.message);
         } finally {
             setIsSubmittingProject(false);
         }
@@ -986,15 +1017,29 @@ export default function TranscribePage() {
                             {/* Selected Project Header */}
                             <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
                                 <div className="flex justify-between items-center mb-4">
-                                    <div>
-                                        <h2 className="text-xl font-semibold text-white">
-                                            {selectedProject.name}
-                                        </h2>
-                                        {selectedProject.description && (
-                                            <p className="text-sm font-normal text-gray-400 mt-1">
-                                                {selectedProject.description}
-                                            </p>
-                                        )}
+                                    <div className="flex items-start gap-2">
+                                        <div>
+                                            <h2 className="text-xl font-semibold text-white">
+                                                {selectedProject.name}
+                                            </h2>
+                                            {selectedProject.description && (
+                                                <p className="text-sm font-normal text-gray-400 mt-1">
+                                                    {selectedProject.description}
+                                                </p>
+                                            )}
+                                            {!selectedProject.description && (
+                                                <p className="text-sm font-normal text-gray-500 italic mt-1">
+                                                    No description
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => handleEditProject(selectedProject)}
+                                            className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors rounded-full hover:bg-black/30"
+                                            title="Edit project details"
+                                        >
+                                            <FiEdit2 size={14} />
+                                        </button>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
@@ -1385,7 +1430,7 @@ export default function TranscribePage() {
                         )}
                         
                         <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">Project Name</label>
+                            <label className="block text-sm font-medium mb-1">Project Name <span className="text-red-400">*</span></label>
                             <input
                                 type="text"
                                 value={newProjectName}
@@ -1396,14 +1441,20 @@ export default function TranscribePage() {
                         </div>
                         
                         <div className="mb-6">
-                            <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-medium">Project Description</label>
+                                <span className="text-xs text-gray-400">Optional</span>
+                            </div>
                             <textarea
                                 value={newProjectDescription}
                                 onChange={(e) => setNewProjectDescription(e.target.value)}
                                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                placeholder="Enter project description"
-                                rows={3}
+                                placeholder="Add details about this project, such as client name, topic, or purpose"
+                                rows={4}
                             />
+                            <p className="text-xs text-gray-400 mt-1">
+                                A good description helps you identify and organize your projects
+                            </p>
                         </div>
                         
                         <div className="flex justify-end gap-3">
@@ -1445,7 +1496,7 @@ export default function TranscribePage() {
                         )}
                         
                         <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">Project Name</label>
+                            <label className="block text-sm font-medium mb-1">Project Name <span className="text-red-400">*</span></label>
                             <input
                                 type="text"
                                 value={newProjectName}
@@ -1456,14 +1507,20 @@ export default function TranscribePage() {
                         </div>
                         
                         <div className="mb-6">
-                            <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-medium">Project Description</label>
+                                <span className="text-xs text-gray-400">Optional</span>
+                            </div>
                             <textarea
                                 value={newProjectDescription}
                                 onChange={(e) => setNewProjectDescription(e.target.value)}
                                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                placeholder="Enter project description"
-                                rows={3}
+                                placeholder="Add details about this project, such as client name, topic, or purpose"
+                                rows={4}
                             />
+                            <p className="text-xs text-gray-400 mt-1">
+                                A good description helps you identify and organize your projects
+                            </p>
                         </div>
                         
                         <div className="flex justify-end gap-3">
@@ -1485,7 +1542,7 @@ export default function TranscribePage() {
                                 {isSubmittingProject && (
                                     <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
                                 )}
-                                Update Project
+                                Save Changes
                             </button>
                         </div>
                     </div>
