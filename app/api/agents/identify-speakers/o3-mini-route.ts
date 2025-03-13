@@ -6,8 +6,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-console.log("openai key used:", process.env.OPENAI_API_KEY);
-
 // Count tokens
 function approximateTokenCount(text: string): number {
   try {
@@ -21,6 +19,7 @@ function approximateTokenCount(text: string): number {
 
 // Extract JSON
 function extractJson(rawText: string): string | null {
+  // Remove any code fences first
   rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
   const match = rawText.match(/(\{[\s\S]*\})/);
   return match ? match[1].trim() : null;
@@ -28,7 +27,7 @@ function extractJson(rawText: string): string | null {
 
 // 1) Role inference
 async function labelSpeakers(
-  fileName: string, 
+  fileName: string,
   transcript: any[],
   userContext?: string
 ): Promise<Record<string, string>> {
@@ -39,46 +38,59 @@ async function labelSpeakers(
   
   const segmentsStr = JSON.stringify(simplifiedSegments, null, 2);
 
+  // System prompt => instructions
+  const systemPrompt = `
+You are an assistant that assigns roles to speakers in a video transcript.
+Return valid JSON only, with no extra text or Markdown formatting.
+`.trim();
+
+  // Optional context
   const contextBlock = userContext
-    ? `Additional context about potential speakers in this file:\n${userContext}\n\n Not all of these will be present in the transcript, but you can use them to help determine roles.`
+    ? `Additional context about potential speakers:\n${userContext}`
     : '';
 
-  const prompt = `
-    You are analyzing a JSON transcript of a video interview with multiple speakers (SPEAKER_00, SPEAKER_01, etc.).
-    
-    ${contextBlock}
+  // User prompt => input
+  const userPrompt = `
+You are analyzing a JSON transcript of a video interview with multiple speakers.
 
-    Your task: assign exactly one of these roles to each speaker:
-      - "Interviewee"
-      - "Interviewer"
-      - "Other"
+${contextBlock}
 
-    Important, - it's possible for there to be more than one speaker label that applies to a certain role, so use the natural flow of the conversation to determine the role. The interviewer usually talks the least and asks the questions. 
+Your task: assign exactly one of these roles to each speaker:
+  - "Interviewee"
+  - "Interviewer"
+  - "Other"
 
-    Below are ordered segments from the transcript: 
-    
-    ${segmentsStr}
-    
-    Return only valid JSON with no extra text - return it in this format:
-    {
-      "${fileName}": {
-        "SPEAKER_00": "Interviewee",
-        "SPEAKER_01": "Interviewer",
-        "SPEAKER_02": "Other"
-      }
-    }
-  `.trim();
+It's possible for multiple speakers to share the same role. The interviewer usually talks the least and asks questions.
 
-  const tokenCount = approximateTokenCount(prompt);
+Below are ordered segments from the transcript:
+${segmentsStr}
+
+Return ONLY valid JSON in this format:
+{
+  "${fileName}": {
+    "SPEAKER_00": "Interviewee",
+    "SPEAKER_01": "Interviewer",
+    "SPEAKER_02": "Other"
+  }
+}
+`.trim();
+
+  const tokenCount = approximateTokenCount(userPrompt);
   console.log(`[Role Inference] tokens for ${fileName}: ${tokenCount}`);
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.1,
+  // Call the new "responses" API with the o3-mini model
+  const response = await openai.responses.create({
+    model: "o3-mini-2025-01-31",
+    instructions: systemPrompt,
+    input: userPrompt,
+    reasoning: {
+      effort: "high",
+      generate_summary: "concise",
+    },
   });
 
-  const rawText = response.choices[0].message.content?.trim() || '';
+  // The new API returns `response.output` instead of `choices[0].message.content`
+  const rawText = response.output?.trim() || '';
   const jsonStr = extractJson(rawText);
 
   if (!jsonStr) {
@@ -111,49 +123,52 @@ async function inferNames(
   
   const fullTranscriptStr = lines.join("\n\n");
 
-  // Simpler prompt that references userContext for known people
+  // System-level instructions
+  const systemPrompt = `
+You are an assistant that infers real names from transcripts.
+Return valid JSON only, with no extra text or Markdown formatting.
+`.trim();
+
   const contextBlock = userContext
-    ? `We know these possible speakers or roles:\n${userContext}\n\n Not all of these will be present in the transcript, but you can use them to help determine roles.`
+    ? `We know these possible speakers or roles:\n${userContext}`
     : '';
 
-  const prompt = `
-    We have a transcript of a video interview, including speaker labels, roles, and text.
+  // User-level instructions
+  const userPrompt = `
+We have a transcript of a video interview, including speaker labels, roles, and text.
 
-    ${contextBlock}
+${contextBlock}
 
-    If the user included the name of the INTERVIEWER, make sure to apply that given name to the speaker who has the role "Interviewer".
+If the user included the name of the INTERVIEWER, apply that name to whoever has the role "Interviewer".
+If a speaker is labeled "UNKNOWN" or "UNKNOWN_SPEAKER" but might match one of the known individuals, update it. Otherwise, leave "Unknown".
 
-    If you see a speaker labeled "UNKNOWN" or "UNKNOWN_SPEAKER", 
-    it might match one of the known individuals above, 
-    or it may remain "Unknown" if there's insufficient info.
+Return valid JSON like:
+{
+  "SPEAKER_00": "Michael",
+  "SPEAKER_01": "Tristan G",
+  "SPEAKER_02": "Unknown"
+}
 
-    Your task:
-      - Determine the real name of each speaker if it can be inferred from context or user instructions, and if not, from the natural flow of the conversation, using a change in speaker label as a clue.
-      - If truly unknown, use "Unknown".
+Transcript:
+---START---
+${fullTranscriptStr}
+---END---
+`.trim();
 
-    Return valid JSON like:
-    {
-      "SPEAKER_00": "Michael",
-      "SPEAKER_01": "Tristan G",
-      "SPEAKER_02": "Michael"
-    }
-
-    Transcript:
-    ---START---
-    ${fullTranscriptStr}
-    ---END---
-  `.trim();
-
-  const tokenCount = approximateTokenCount(prompt);
+  const tokenCount = approximateTokenCount(userPrompt);
   console.log(`[Name Inference] tokens for ${fileName}: ${tokenCount}`);
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 1,
+  const response = await openai.responses.create({
+    model: "o3-mini-2025-01-31",
+    instructions: systemPrompt,
+    input: userPrompt,
+    reasoning: {
+      effort: "high",
+      generate_summary: "concise",
+    },
   });
 
-  const rawText = response.choices[0].message.content?.trim() || '';
+  const rawText = response.output?.trim() || '';
   const jsonStr = extractJson(rawText);
 
   if (!jsonStr) {

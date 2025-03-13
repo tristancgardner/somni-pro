@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2 } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2, FiMoreVertical } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "../../components/BackgroundWrapper";
@@ -96,6 +96,17 @@ export default function TranscribePage() {
 
     // File selection within a project
     const [projectSelectedFiles, setProjectSelectedFiles] = useState<string[]>([]);
+
+    // Add new state variables for the delete confirmation modal
+    const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
+    const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+    
+    // Add state for the project menu dropdown
+    const [projectMenuOpen, setProjectMenuOpen] = useState<string | null>(null);
+
+    // Add a ref to track if we've loaded transcriptions for the current project
+    const currentProjectRef = useRef<string | null>(null);
 
     // DEPRECATED: This function is no longer used since we migrated to the IdentifySpeakersAgent component
     // It's kept for reference in case we need to revert or understand the old logic
@@ -191,7 +202,7 @@ export default function TranscribePage() {
 
     // Load transcription results - modify this to accept an optional project parameter
     const loadTranscriptionResults = useCallback(async (nextToken?: string | null, projectOverride?: Project | null) => {
-        if (status !== "authenticated") return;
+        if (status !== "authenticated" || isLoadingTranscriptions) return;
         
         try {
             setIsLoadingTranscriptions(true);
@@ -232,9 +243,12 @@ export default function TranscribePage() {
             console.error("Error loading transcription results:", err);
             setTranscriptionError(err.message);
         } finally {
-            setIsLoadingTranscriptions(false);
+            // Add a small delay before setting loading to false to prevent UI flicker
+            setTimeout(() => {
+                setIsLoadingTranscriptions(false);
+            }, 300);
         }
-    }, [status, selectedProject, maxResultsPerPage]);
+    }, [status, selectedProject, maxResultsPerPage, isLoadingTranscriptions]);
 
     // Load projects
     const loadProjects = useCallback(async () => {
@@ -395,14 +409,16 @@ export default function TranscribePage() {
 
     // Delete project
     const handleDeleteProject = async () => {
-        if (!selectedProject) return;
+        if (!projectToDelete) return;
         
-        if (!confirm(`Are you sure you want to delete the project "${selectedProject.name}"? This will not delete the files, only the project.`)) {
+        // Check if confirmation text matches "permanently delete"
+        if (deleteConfirmText.toLowerCase() !== "permanently delete") {
+            setProjectError("Please type 'permanently delete' to confirm");
             return;
         }
         
         try {
-            const res = await fetch(`/api/projects/${selectedProject.id}`, {
+            const res = await fetch(`/api/projects/${projectToDelete.id}`, {
                 method: 'DELETE',
             });
             
@@ -411,15 +427,42 @@ export default function TranscribePage() {
                 throw new Error(data.message || "Failed to delete project");
             }
             
-            // Reset selected project and reload projects
-            setSelectedProject(null);
+            // Close the modal and reset
+            setShowDeleteProjectModal(false);
+            setDeleteConfirmText("");
+            setProjectToDelete(null);
+            
+            // Reload projects list
             await loadProjects();
-            await loadTranscriptionResults();
+            
+            // If the deleted project was the selected one, select another project
+            if (selectedProject?.id === projectToDelete.id) {
+                // Find all remaining projects after deletion
+                const remainingProjects = projects.filter(p => p.id !== projectToDelete.id);
+                
+                if (remainingProjects.length > 0) {
+                    // Select the first available project
+                    await handleSelectProject(remainingProjects[0]);
+                } else {
+                    // No projects left, reset selected project
+                    setSelectedProject(null);
+                }
+            }
+            
+            toast.success("Project deleted successfully");
             
         } catch (err: any) {
             console.error("Error deleting project:", err);
             setProjectError(err.message);
         }
+    };
+    
+    // Show delete project confirmation modal
+    const showDeleteConfirmation = (project: Project) => {
+        setProjectToDelete(project);
+        setDeleteConfirmText("");
+        setProjectError("");
+        setShowDeleteProjectModal(true);
     };
 
     // Delete file completely
@@ -624,15 +667,22 @@ export default function TranscribePage() {
 
     // Update the select project function to pass the project directly
     const handleSelectProject = useCallback(async (project: Project | null) => {
-        setSelectedProject(project);
-        setResultsPage(1);
-        setContinuationToken(null);
-        
-        // Pass the project directly to ensure we use the correct value immediately
-        if (!isLoadingTranscriptions) {
-            await loadTranscriptionResults(null, project);
+        // Don't allow setting project to null - we always want a project selected
+        if (project !== null) {
+            // Only update if the project has changed
+            if (!selectedProject || selectedProject.id !== project.id) {
+                setSelectedProject(project);
+                setResultsPage(1);
+                setContinuationToken(null);
+                currentProjectRef.current = project.id;
+                
+                // Pass the project directly to ensure we use the correct value immediately
+                if (!isLoadingTranscriptions) {
+                    await loadTranscriptionResults(null, project);
+                }
+            }
         }
-    }, [loadTranscriptionResults, isLoadingTranscriptions]);
+    }, [loadTranscriptionResults, isLoadingTranscriptions, selectedProject]);
 
     // Update the file selection handler to work with both general and project-specific selections
     const handleFileSelection = (key: string) => {
@@ -755,15 +805,35 @@ export default function TranscribePage() {
     useEffect(() => {
         setIsLoaded(true);
         if (status === "authenticated") {
-            loadTranscriptionResults(null, selectedProject);
+            // Just load projects once on mount
             loadProjects();
         }
-    }, [status, loadTranscriptionResults, loadProjects, selectedProject]);
+    }, [status, loadProjects]);
+    
+    // Handle project selection after projects are loaded
+    useEffect(() => {
+        if (status === "authenticated" && projects.length > 0 && !selectedProject) {
+            // Auto-select the first project if no project is selected
+            handleSelectProject(projects[0]);
+        }
+    }, [status, projects, selectedProject, handleSelectProject]);
+    
+    // Load transcriptions when selected project changes
+    useEffect(() => {
+        // Only load if:
+        // 1. We have a selected project
+        // 2. We're not already loading transcriptions
+        // 3. The project has changed since last load
+        if (selectedProject && !isLoadingTranscriptions && currentProjectRef.current !== selectedProject.id) {
+            currentProjectRef.current = selectedProject.id;
+            loadTranscriptionResults(null, selectedProject);
+        }
+    }, [selectedProject, isLoadingTranscriptions, loadTranscriptionResults]);
 
     // Handle projectId from URL
     useEffect(() => {
         const autoSelectProject = async () => {
-            if (status === "authenticated" && projects.length > 0 && !projectFromUrlProcessed.current) {
+            if (status === "authenticated" && projects.length > 0 && !projectFromUrlProcessed.current && !selectedProject) {
                 const projectIdFromUrl = searchParams.get('projectId');
                 if (projectIdFromUrl) {
                     const project = projects.find(p => p.id === projectIdFromUrl);
@@ -776,7 +846,7 @@ export default function TranscribePage() {
         };
         
         autoSelectProject();
-    }, [status, projects, searchParams]);
+    }, [status, projects, searchParams, handleSelectProject, selectedProject]);
 
     // Define the toggleAgent function (if it doesn't exist)
     const toggleAgent = (agentName: 'identify-speakers' | 'summarize' | 'sort-dialog') => {
@@ -790,6 +860,12 @@ export default function TranscribePage() {
         }
     };
 
+    // Create a debounced refresh handler
+    const handleRefreshClick = useCallback(() => {
+        if (isLoadingTranscriptions) return;
+        loadTranscriptionResults(null, selectedProject);
+    }, [loadTranscriptionResults, selectedProject, isLoadingTranscriptions]);
+
     if (status === "loading") {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -800,629 +876,678 @@ export default function TranscribePage() {
 
     return (
         <BackgroundWrapper imagePath="/images/electric_timeline.png">
-            <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
-                <div className='w-full max-w-7xl mx-auto relative'>
-                    <PageHeader />
+            <main className='flex min-h-screen'>
+                {/* Sidebar for Projects */}
+                <div className="w-80 bg-black/70 h-screen flex flex-col p-4 overflow-y-auto border-r border-gray-800">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-white">Projects</h2>
+                        <button
+                            onClick={() => setShowNewProjectModal(true)}
+                            className="flex items-center gap-2 p-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
+                            title="Create Project"
+                        >
+                            <FiPlus />
+                        </button>
+                    </div>
                     
-                    {/* Project Management Section */}
-                    <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">Project Management</h2>
-                            <button
-                                onClick={() => setShowNewProjectModal(true)}
-                                className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700"
-                            >
-                                <FiFolderPlus /> Create Project
-                            </button>
+                    {projectError && (
+                        <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded text-sm">
+                            {projectError}
                         </div>
-                        
-                        {projectError && (
-                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded">
-                                {projectError}
-                            </div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-3 mb-4">
-                            <button
-                                onClick={() => handleSelectProject(null)}
-                                className={`flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
-                                    selectedProject === null
-                                    ? "bg-blue-600 hover:bg-blue-700"
-                                    : "bg-black/30 hover:bg-black/50 border border-gray-700"
-                                }`}
-                            >
-                                <FiFolder /> All Files
-                            </button>
-                            
+                    )}
+                    
+                    {isLoadingProjects ? (
+                        <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                        </div>
+                    ) : projects.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 text-sm">
+                            No projects found. Create your first project to get started.
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
                             {projects.map(project => (
                                 <div
                                     key={project.id}
                                     onClick={() => handleSelectProject(project)}
-                                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded group relative transition-colors cursor-pointer ${
+                                    className={`flex items-center p-3 text-base rounded-lg group relative transition-colors cursor-pointer ${
                                         selectedProject?.id === project.id 
-                                        ? "bg-blue-700/40"
+                                        ? "bg-blue-700/60"
                                         : "bg-black/40 hover:bg-black/60"
                                     }`}
                                 >
-                                    <FiFolder />
-                                    {project.name}
+                                    <FiFolder className="mr-3 flex-shrink-0" />
+                                    <div className="flex-1 overflow-hidden">
+                                        <div className="font-medium">{project.name}</div>
+                                        {project.description && (
+                                            <div className="text-xs text-gray-400 truncate">
+                                                {project.description}
+                                            </div>
+                                        )}
+                                    </div>
                                     {project._count && (
                                         <span className="ml-1 bg-black/50 px-1.5 rounded-full text-xs">
                                             {project._count.files}
                                         </span>
                                     )}
                                     
-                                    {/* Edit/Delete buttons on hover */}
-                                    <div className={`absolute right-0 top-0 bottom-0 flex items-center gap-1 pr-2 ${
-                                        selectedProject?.id === project.id
-                                        ? "opacity-100"
-                                        : "opacity-0 group-hover:opacity-100"
-                                    } transition-opacity`}>
+                                    {/* 3-dot menu */}
+                                    <div className="relative">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleEditProject(project);
+                                                // Toggle dropdown for this project
+                                                const currentMenuOpen = projectMenuOpen === project.id ? null : project.id;
+                                                setProjectMenuOpen(currentMenuOpen);
                                             }}
-                                            className="p-1 text-blue-400 hover:text-blue-300"
+                                            className="p-1.5 text-gray-400 hover:text-gray-200 rounded-full hover:bg-black/40"
                                         >
-                                            <FiEdit2 size={14} />
+                                            <FiMoreVertical size={16} />
                                         </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteProject();
-                                            }}
-                                            className="p-1 text-red-400 hover:text-red-300"
-                                        >
-                                            <FiDelete size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    
-                    {/* Selected Files Actions */}
-                    {selectedFiles.length > 0 && !selectedProject && (
-                        <div className="bg-black/70 border border-blue-500 rounded-lg p-4 mb-4 flex justify-between items-center">
-                            <div className="text-blue-400">
-                                <span className="mr-2">{selectedFiles.length} files selected</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setSelectedFiles([])}
-                                    className="px-3 py-1 text-sm rounded bg-gray-700 hover:bg-gray-600"
-                                >
-                                    Cancel
-                                </button>
-                                <div className="relative group">
-                                    <div
-                                        className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1 cursor-pointer"
-                                    >
-                                        <FiFolderPlus /> Add to Project
-                                    </div>
-                                    
-                                    {/* Project dropdown */}
-                                    <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                                        {projects.length > 0 ? (
-                                            projects.map(project => (
-                                                <div
-                                                    key={project.id}
-                                                    onClick={() => {
-                                                        // Instead of setting state and immediately calling the function,
-                                                        // pass the project ID directly to a modified function
-                                                        handleAddFilesToProject(project.id);
+                                        
+                                        {/* Dropdown menu */}
+                                        {projectMenuOpen === project.id && (
+                                            <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
+                                                <div 
+                                                    className="px-4 py-2 text-sm hover:bg-gray-800 cursor-pointer flex items-center"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setProjectMenuOpen(null);
+                                                        handleEditProject(project);
                                                     }}
-                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-800 flex items-center gap-2 cursor-pointer"
                                                 >
-                                                    <FiFolder size={14} /> {project.name}
+                                                    <FiEdit2 className="mr-2" size={14} /> Rename
                                                 </div>
-                                            ))
-                                        ) : (
-                                            <div className="px-4 py-2 text-sm text-gray-400">
-                                                No projects available
+                                                <div 
+                                                    className="px-4 py-2 text-sm text-red-400 hover:bg-gray-800 cursor-pointer flex items-center"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setProjectMenuOpen(null);
+                                                        showDeleteConfirmation(project);
+                                                    }}
+                                                >
+                                                    <FiDelete className="mr-2" size={14} /> Delete Project
+                                                </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleBulkDeleteFiles}
-                                    className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
-                                >
-                                    <FiTrash2 /> Delete Files
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     )}
-
-                    {/* Selected Files Within Project Actions */}
-                    {projectSelectedFiles.length > 0 && selectedProject && (
-                        <div className="bg-black/70 border border-green-500 rounded-lg p-4 mb-4 flex justify-between items-center">
-                            <div className="text-green-400">
-                                <span className="mr-2">{projectSelectedFiles.length} files selected from {selectedProject.name}</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setProjectSelectedFiles([])}
-                                    className="px-3 py-1 text-sm rounded bg-gray-700 hover:bg-gray-600"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={viewAllProjectFiles}
-                                    className="px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700 flex items-center gap-1"
-                                >
-                                    <FiColumns /> View Selected
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        projectSelectedFiles.forEach(fileKey => handleRemoveFileFromProject(fileKey));
-                                        setProjectSelectedFiles([]);
-                                    }}
-                                    className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
-                                >
-                                    <FiTrash2 /> Remove From Project
-                                </button>
-                                <button
-                                    onClick={handleBulkDeleteFiles}
-                                    className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
-                                >
-                                    <FiTrash2 /> Delete Files
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Completed Transcriptions Panel */}
-                    <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">
-                                {selectedProject ? `Project: ${selectedProject.name}` : "Transcription Library"}
-                                {selectedProject?.description && (
-                                    <p className="text-sm font-normal text-gray-400 mt-1">
-                                        {selectedProject.description}
-                                    </p>
-                                )}
-                            </h2>
-                            <div className="flex items-center gap-2">
-                                {selectedProject && (
-                                    <button
-                                        onClick={viewAllProjectFiles}
-                                        className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700"
-                                    >
-                                        <FiColumns />
-                                        {projectSelectedFiles.length > 0 
-                                            ? `View Selected (${projectSelectedFiles.length})` 
-                                            : "View All Files"}
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => loadTranscriptionResults(null, selectedProject)}
-                                    disabled={isLoadingTranscriptions}
-                                    className={`flex items-center gap-2 px-3 py-1 text-sm rounded ${
-                                        isLoadingTranscriptions
-                                        ? "bg-gray-600 cursor-not-allowed"
-                                        : "bg-blue-600 hover:bg-blue-700"
-                                    }`}
-                                >
-                                    <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
-                                    Refresh
-                                </button>
-                            </div>
-                        </div>
-                        
-                        {transcriptionError && (
-                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded">
-                                {transcriptionError}
-                            </div>
-                        )}
-                        
-                        {getCurrentPageTranscriptions().length > 0 ? (
-                            <>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full bg-black/70 rounded-lg">
-                                        <thead className="border-b border-gray-700">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={(selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length && getCurrentPageTranscriptions().length > 0}
-                                                            onChange={() => {
-                                                                if ((selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length) {
-                                                                    clearSelectedFiles();
-                                                                } else {
-                                                                    selectAllFiles();
-                                                                }
-                                                            }}
-                                                            className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
-                                                        />
-                                                        <span className="sr-only">Select All</span>
-                                                    </div>
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Project</th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-700">
-                                            {getCurrentPageTranscriptions().map((file, index) => (
-                                                <tr key={index} className="hover:bg-gray-800/50">
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedProject 
-                                                                ? projectSelectedFiles.includes(file.key) 
-                                                                : selectedFiles.includes(file.key)}
-                                                            onChange={() => handleFileSelection(file.key)}
-                                                            className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{formatFileSize(file.size)}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                                                        {new Date(file.lastModified).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                                                        {file.projectName ? (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-300">
-                                                                {file.projectName}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-500">None</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                                        <div className="flex items-center justify-end gap-4">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    viewTranscription(file.downloadUrl, file);
-                                                                }}
-                                                                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
-                                                            >
-                                                                <FiFileText /> View
-                                                            </button>
-                                                            <a 
-                                                                href={file.downloadUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
-                                                            >
-                                                                <FiDownload /> Download
-                                                            </a>
-                                                            {selectedProject && file.projectId === selectedProject.id && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleRemoveFileFromProject(file.key);
-                                                                    }}
-                                                                    className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
-                                                                >
-                                                                    <FiDelete /> Remove
-                                                                </button>
-                                                            )}
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDeleteFile(file.key);
-                                                                }}
-                                                                className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
-                                                            >
-                                                                <FiTrash2 /> Delete
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <div className="flex justify-between items-center mt-4">
-                                    <button
-                                        onClick={() => handlePaginationChange('prev')}
-                                        disabled={resultsPage <= 1}
-                                        className={`flex items-center gap-1 px-3 py-1 rounded ${
-                                            resultsPage <= 1
-                                            ? "text-gray-500 cursor-not-allowed"
-                                            : "text-blue-400 hover:text-blue-300"
-                                        }`}
-                                    >
-                                        <FiChevronLeft /> Previous
-                                    </button>
-                                    <span className="text-sm text-gray-400">
-                                        Page {resultsPage}
-                                    </span>
-                                    <button
-                                        onClick={() => handlePaginationChange('next')}
-                                        disabled={!hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage}
-                                        className={`flex items-center gap-1 px-3 py-1 rounded ${
-                                            !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage
-                                            ? "text-gray-500 cursor-not-allowed"
-                                            : "text-blue-400 hover:text-blue-300"
-                                        }`}
-                                    >
-                                        Next <FiChevronRight />
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-center py-8 text-gray-400">
-                                {isLoadingTranscriptions ? (
-                                    <div className="flex justify-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                                    </div>
-                                ) : (
-                                    selectedProject ? 
-                                    "No files found in this project. Add files to get started." :
-                                    "No transcription files found in your output directory."
-                                )}
-                            </div>
-                        )}
-                    </div>
+                </div>
+                
+                {/* Main Content Area */}
+                <div className='flex-1 p-6 overflow-y-auto'>
+                    <PageHeader />
                     
-                    {/* New Project Modal */}
-                    {showNewProjectModal && (
-                        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
-                            <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
-                                <h3 className="text-xl font-semibold mb-4">Create New Project</h3>
-                                
-                                {projectError && (
-                                    <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
-                                        {projectError}
-                                    </div>
-                                )}
-                                
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-1">Project Name</label>
-                                    <input
-                                        type="text"
-                                        value={newProjectName}
-                                        onChange={(e) => setNewProjectName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                        placeholder="Enter project name"
-                                    />
-                                </div>
-                                
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium mb-1">Description (Optional)</label>
-                                    <textarea
-                                        value={newProjectDescription}
-                                        onChange={(e) => setNewProjectDescription(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                        placeholder="Enter project description"
-                                        rows={3}
-                                    />
-                                </div>
-                                
-                                <div className="flex justify-end gap-3">
-                                    <button
-                                        onClick={() => setShowNewProjectModal(false)}
-                                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleCreateProject}
-                                        disabled={isSubmittingProject}
-                                        className={`px-4 py-2 rounded flex items-center gap-2 ${
-                                            isSubmittingProject
-                                            ? "bg-blue-700 cursor-not-allowed"
-                                            : "bg-blue-600 hover:bg-blue-700"
-                                        }`}
-                                    >
-                                        {isSubmittingProject && (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    {selectedProject ? (
+                        <>
+                            {/* Selected Project Header */}
+                            <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
+                                <div className="flex justify-between items-center mb-4">
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-white">
+                                            {selectedProject.name}
+                                        </h2>
+                                        {selectedProject.description && (
+                                            <p className="text-sm font-normal text-gray-400 mt-1">
+                                                {selectedProject.description}
+                                            </p>
                                         )}
-                                        Create Project
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Edit Project Modal */}
-                    {showEditProjectModal && (
-                        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
-                            <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
-                                <h3 className="text-xl font-semibold mb-4">Edit Project</h3>
-                                
-                                {projectError && (
-                                    <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
-                                        {projectError}
                                     </div>
-                                )}
-                                
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-1">Project Name</label>
-                                    <input
-                                        type="text"
-                                        value={newProjectName}
-                                        onChange={(e) => setNewProjectName(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                        placeholder="Enter project name"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={viewAllProjectFiles}
+                                            className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700"
+                                        >
+                                            <FiColumns />
+                                            {projectSelectedFiles.length > 0 
+                                                ? `View Selected (${projectSelectedFiles.length})` 
+                                                : "View All Files"}
+                                        </button>
+                                        <button
+                                            onClick={handleRefreshClick}
+                                            disabled={isLoadingTranscriptions}
+                                            className={`flex items-center gap-2 px-3 py-1 text-sm rounded ${
+                                                isLoadingTranscriptions
+                                                ? "bg-gray-600 cursor-not-allowed"
+                                                : "bg-blue-600 hover:bg-blue-700"
+                                            }`}
+                                        >
+                                            <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
+                                            Refresh
+                                        </button>
+                                    </div>
                                 </div>
-                                
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium mb-1">Description (Optional)</label>
-                                    <textarea
-                                        value={newProjectDescription}
-                                        onChange={(e) => setNewProjectDescription(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
-                                        placeholder="Enter project description"
-                                        rows={3}
-                                    />
-                                </div>
-                                
-                                <div className="flex justify-end gap-3">
-                                    <button
-                                        onClick={() => setShowEditProjectModal(false)}
-                                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleUpdateProject}
-                                        disabled={isSubmittingProject}
-                                        className={`px-4 py-2 rounded flex items-center gap-2 ${
-                                            isSubmittingProject
-                                            ? "bg-blue-700 cursor-not-allowed"
-                                            : "bg-blue-600 hover:bg-blue-700"
-                                        }`}
-                                    >
-                                        {isSubmittingProject && (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                                        )}
-                                        Update Project
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Agents Section */}
-                    <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-white">Agents</h2>
-                        </div>
-                        
-                        <div className="flex flex-wrap justify-between items-center">
-                            {/* Agent Buttons */}
-                            <div className="flex flex-wrap gap-3">
-                                <button 
-                                    className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
-                                        activeAgent === 'identify-speakers' 
-                                        ? 'bg-blue-700 ring-2 ring-blue-400' 
-                                        : 'bg-blue-600 hover:bg-blue-700'
-                                    }`}
-                                    onClick={() => toggleAgent('identify-speakers')}
-                                >
-                                    <FiUsers /> Identify Speakers
-                                </button>
-                                <button 
-                                    className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
-                                        activeAgent === 'summarize' 
-                                        ? 'bg-blue-700 ring-2 ring-blue-400' 
-                                        : 'bg-blue-600 hover:bg-blue-700'
-                                    }`}
-                                    onClick={() => toggleAgent('summarize')}
-                                >
-                                    <FiSummarize /> Summarize
-                                </button>
-                                <button 
-                                    className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
-                                        activeAgent === 'sort-dialog' 
-                                        ? 'bg-blue-700 ring-2 ring-blue-400' 
-                                        : 'bg-blue-600 hover:bg-blue-700'
-                                    }`}
-                                    onClick={() => toggleAgent('sort-dialog')}
-                                >
-                                    <FiList /> Sort Dialog
-                                </button>
                             </div>
                             
-                            {/* Model Selection Dropdown */}
-                            <div className="relative mt-4 sm:mt-0">
-                                <div className="text-sm text-gray-400 mb-1">Model</div>
-                                <button
-                                    className="flex items-center justify-between gap-2 px-3 py-2 bg-black/30 border border-gray-700 rounded min-w-[140px]"
-                                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                                >
-                                    <span>{selectedModel}</span>
-                                    <FiChevronDown className={`transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
-                                </button>
+                            {/* Selected Files Within Project Actions */}
+                            {projectSelectedFiles.length > 0 && (
+                                <div className="bg-black/70 border border-green-500 rounded-lg p-4 mb-4 flex justify-between items-center">
+                                    <div className="text-green-400">
+                                        <span className="mr-2">{projectSelectedFiles.length} files selected</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setProjectSelectedFiles([])}
+                                            className="px-3 py-1 text-sm rounded bg-gray-700 hover:bg-gray-600"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={viewAllProjectFiles}
+                                            className="px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700 flex items-center gap-1"
+                                        >
+                                            <FiColumns /> View Selected
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                projectSelectedFiles.forEach(fileKey => handleRemoveFileFromProject(fileKey));
+                                                setProjectSelectedFiles([]);
+                                            }}
+                                            className="px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 flex items-center gap-1"
+                                        >
+                                            <FiTrash2 /> Remove From Project
+                                        </button>
+                                        <button
+                                            onClick={handleBulkDeleteFiles}
+                                            className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700 flex items-center gap-1"
+                                        >
+                                            <FiTrash2 /> Delete Files
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Transcription List for Selected Project */}
+                            <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
+                                {transcriptionError && (
+                                    <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded">
+                                        {transcriptionError}
+                                    </div>
+                                )}
                                 
-                                {isModelDropdownOpen && (
-                                    <div className="absolute z-10 mt-1 w-full bg-gray-900 border border-gray-700 rounded-md shadow-lg">
-                                        <ul>
-                                            <li
-                                                className="px-4 py-2 hover:bg-gray-800 cursor-pointer"
-                                                onClick={() => {
-                                                    setSelectedModel("4o");
-                                                    setIsModelDropdownOpen(false);
-                                                }}
+                                {/* REST OF THE EXISTING TRANSCRIPTION LIST CODE */}
+                                
+                                {getCurrentPageTranscriptions().length > 0 ? (
+                                    <>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full bg-black/70 rounded-lg">
+                                                <thead className="border-b border-gray-700">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={(selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length && getCurrentPageTranscriptions().length > 0}
+                                                                    onChange={() => {
+                                                                        if ((selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length) {
+                                                                            clearSelectedFiles();
+                                                                        } else {
+                                                                            selectAllFiles();
+                                                                        }
+                                                                    }}
+                                                                    className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                                                                />
+                                                                <span className="sr-only">Select All</span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Project</th>
+                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-700">
+                                                    {getCurrentPageTranscriptions().map((file, index) => (
+                                                        <tr key={index} className="hover:bg-gray-800/50">
+                                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedProject 
+                                                                        ? projectSelectedFiles.includes(file.key) 
+                                                                        : selectedFiles.includes(file.key)}
+                                                                    onChange={() => handleFileSelection(file.key)}
+                                                                    className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{formatFileSize(file.size)}</td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                                                {new Date(file.lastModified).toLocaleDateString()}
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                                                {file.projectName ? (
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-300">
+                                                                        {file.projectName}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-gray-500">None</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                                                                <div className="flex items-center justify-end gap-4">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            viewTranscription(file.downloadUrl, file);
+                                                                        }}
+                                                                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                                                                    >
+                                                                        <FiFileText /> View
+                                                                    </button>
+                                                                    <a 
+                                                                        href={file.downloadUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                                                                    >
+                                                                        <FiDownload /> Download
+                                                                    </a>
+                                                                    {selectedProject && file.projectId === selectedProject.id && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleRemoveFileFromProject(file.key);
+                                                                            }}
+                                                                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                                                                        >
+                                                                            <FiDelete /> Remove
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleDeleteFile(file.key);
+                                                                        }}
+                                                                        className="inline-flex items-center gap-1 text-red-400 hover:text-red-300"
+                                                                    >
+                                                                        <FiTrash2 /> Delete
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center mt-4">
+                                            <button
+                                                onClick={() => handlePaginationChange('prev')}
+                                                disabled={resultsPage <= 1}
+                                                className={`flex items-center gap-1 px-3 py-1 rounded ${
+                                                    resultsPage <= 1
+                                                    ? "text-gray-500 cursor-not-allowed"
+                                                    : "text-blue-400 hover:text-blue-300"
+                                                }`}
                                             >
-                                                o1
-                                            </li>
-                                        </ul>
+                                                <FiChevronLeft /> Previous
+                                            </button>
+                                            <span className="text-sm text-gray-400">
+                                                Page {resultsPage}
+                                            </span>
+                                            <button
+                                                onClick={() => handlePaginationChange('next')}
+                                                disabled={!hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage}
+                                                className={`flex items-center gap-1 px-3 py-1 rounded ${
+                                                    !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage
+                                                    ? "text-gray-500 cursor-not-allowed"
+                                                    : "text-blue-400 hover:text-blue-300"
+                                                }`}
+                                            >
+                                                Next <FiChevronRight />
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-400">
+                                        {isLoadingTranscriptions ? (
+                                            <div className="flex justify-center">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                            </div>
+                                        ) : (
+                                            "No files found in this project. Add files to get started."
+                                        )}
                                     </div>
                                 )}
                             </div>
+                            
+                            {/* Agents Section */}
+                            <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-semibold text-white">Agents</h2>
+                                </div>
+                                
+                                <div className="flex flex-wrap justify-between items-center">
+                                    {/* Agent Buttons */}
+                                    <div className="flex flex-wrap gap-3">
+                                        <button 
+                                            className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
+                                                activeAgent === 'identify-speakers' 
+                                                ? 'bg-blue-700 ring-2 ring-blue-400' 
+                                                : 'bg-blue-600 hover:bg-blue-700'
+                                            }`}
+                                            onClick={() => toggleAgent('identify-speakers')}
+                                        >
+                                            <FiUsers /> Identify Speakers
+                                        </button>
+                                        <button 
+                                            className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
+                                                activeAgent === 'summarize' 
+                                                ? 'bg-blue-700 ring-2 ring-blue-400' 
+                                                : 'bg-blue-600 hover:bg-blue-700'
+                                            }`}
+                                            onClick={() => toggleAgent('summarize')}
+                                        >
+                                            <FiSummarize /> Summarize
+                                        </button>
+                                        <button 
+                                            className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
+                                                activeAgent === 'sort-dialog' 
+                                                ? 'bg-blue-700 ring-2 ring-blue-400' 
+                                                : 'bg-blue-600 hover:bg-blue-700'
+                                            }`}
+                                            onClick={() => toggleAgent('sort-dialog')}
+                                        >
+                                            <FiList /> Sort Dialog
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Model Selection Dropdown */}
+                                    <div className="relative mt-4 sm:mt-0">
+                                        <div className="text-sm text-gray-400 mb-1">Model</div>
+                                        <button
+                                            className="flex items-center justify-between gap-2 px-3 py-2 bg-black/30 border border-gray-700 rounded min-w-[140px]"
+                                            onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                                        >
+                                            <span>{selectedModel}</span>
+                                            <FiChevronDown className={`transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        
+                                        {isModelDropdownOpen && (
+                                            <div className="absolute z-10 mt-1 w-full bg-gray-900 border border-gray-700 rounded-md shadow-lg">
+                                                <ul>
+                                                    <li
+                                                        className="px-4 py-2 hover:bg-gray-800 cursor-pointer"
+                                                        onClick={() => {
+                                                            setSelectedModel("o1");
+                                                            setIsModelDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        o1
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* Expanded Agent Content */}
+                                {activeAgent === 'identify-speakers' && (
+                                    <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
+                                        <IdentifySpeakersAgent
+                                            selectedFiles={
+                                                // Case 1: We have a directly selected transcription
+                                                selectedTranscription ? [selectedTranscription] :
+                                                // Case 2: Use project-specific selections
+                                                projectSelectedFiles.map((fileKey) => {
+                                                    const match = transcriptions.find(t => t.key === fileKey);
+                                                    return match
+                                                        ? {
+                                                            key: match.key,
+                                                            filename: match.filename,
+                                                            downloadUrl: match.downloadUrl
+                                                        }
+                                                        : null;
+                                                }).filter(Boolean) as TranscriptionFile[]
+                                            }
+                                            onClose={() => setActiveAgent(null)}
+                                        />
+                                    </div>
+                                )}
+                                
+                                {activeAgent === 'summarize' && (
+                                    <div className="mt-6 pt-6 border-t border-gray-700">
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-medium text-white mb-2">Summarize</h3>
+                                            <p className="text-gray-400">
+                                                This agent will generate a summary of your audio transcription.
+                                            </p>
+                                        </div>
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <button
+                                                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white"
+                                                onClick={() => setActiveAgent(null)}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {activeAgent === 'sort-dialog' && (
+                                    <div className="mt-6 pt-6 border-t border-gray-700">
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-medium text-white mb-2">Sort Dialog</h3>
+                                            <p className="text-gray-400">
+                                                This agent will organize and sort your audio dialog by speaker.
+                                            </p>
+                                        </div>
+                                        
+                                        <div className="flex justify-end gap-3">
+                                            <button
+                                                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white"
+                                                onClick={() => setActiveAgent(null)}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        // No project selected - guide
+                        <div className="text-center py-16">
+                            <div className="bg-black/50 backdrop-blur-sm rounded-lg p-8 max-w-lg mx-auto">
+                                <FiFolder className="w-16 h-16 mx-auto mb-6 text-blue-500" />
+                                <h2 className="text-2xl font-semibold mb-4">Select a Project</h2>
+                                <p className="text-gray-400 mb-6">
+                                    Please select a project from the sidebar to view its files. 
+                                    If you don't have a project yet, create one using the + button.
+                                </p>
+                                <button
+                                    onClick={() => setShowNewProjectModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 mx-auto"
+                                >
+                                    <FiFolderPlus /> Create a Project
+                                </button>
+                            </div>
                         </div>
-                        
-                        {/* Expanded Agent Content */}
-                        {activeAgent === 'identify-speakers' && (
-                            <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
-                                <IdentifySpeakersAgent
-                                    selectedFiles={
-                                        // Case 1: We have a directly selected transcription
-                                        selectedTranscription ? [selectedTranscription] :
-                                        // Case 2: We're in a project and have project-specific selections
-                                        // Case 3: Otherwise, use the general selectedFiles
-                                        (selectedProject && projectSelectedFiles.length > 0 
-                                            ? projectSelectedFiles 
-                                            : selectedFiles).map((fileKey) => {
-                                                const match = transcriptions.find(t => t.key === fileKey);
-                                                return match
-                                                    ? {
-                                                        key: match.key,
-                                                        filename: match.filename,
-                                                        downloadUrl: match.downloadUrl
-                                                    }
-                                                    : null;
-                                            }).filter(Boolean) as TranscriptionFile[]
-                                    }
-                                    onClose={() => setActiveAgent(null)}
-                                />
-                            </div>
-                        )}
-                        
-                        {activeAgent === 'summarize' && (
-                            <div className="mt-6 pt-6 border-t border-gray-700">
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-medium text-white mb-2">Summarize</h3>
-                                    <p className="text-gray-400">
-                                        This agent will generate a summary of your audio transcription.
-                                    </p>
-                                </div>
-                                
-                                <div className="flex justify-end gap-3">
-                                    <button
-                                        className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white"
-                                        onClick={() => setActiveAgent(null)}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {activeAgent === 'sort-dialog' && (
-                            <div className="mt-6 pt-6 border-t border-gray-700">
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-medium text-white mb-2">Sort Dialog</h3>
-                                    <p className="text-gray-400">
-                                        This agent will organize and sort your audio dialog by speaker.
-                                    </p>
-                                </div>
-                                
-                                <div className="flex justify-end gap-3">
-                                    <button
-                                        className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white"
-                                        onClick={() => setActiveAgent(null)}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    )}
                 </div>
             </main>
+            
+            {/* New Project Modal (Keep as is) */}
+            {showNewProjectModal && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
+                        <h3 className="text-xl font-semibold mb-4">Create New Project</h3>
+                        
+                        {projectError && (
+                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
+                                {projectError}
+                            </div>
+                        )}
+                        
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-1">Project Name</label>
+                            <input
+                                type="text"
+                                value={newProjectName}
+                                onChange={(e) => setNewProjectName(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                placeholder="Enter project name"
+                            />
+                        </div>
+                        
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                            <textarea
+                                value={newProjectDescription}
+                                onChange={(e) => setNewProjectDescription(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                placeholder="Enter project description"
+                                rows={3}
+                            />
+                        </div>
+                        
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowNewProjectModal(false)}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateProject}
+                                disabled={isSubmittingProject}
+                                className={`px-4 py-2 rounded flex items-center gap-2 ${
+                                    isSubmittingProject
+                                    ? "bg-blue-700 cursor-not-allowed"
+                                    : "bg-blue-600 hover:bg-blue-700"
+                                }`}
+                            >
+                                {isSubmittingProject && (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                )}
+                                Create Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Edit Project Modal (Keep as is) */}
+            {showEditProjectModal && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
+                        <h3 className="text-xl font-semibold mb-4">Edit Project</h3>
+                        
+                        {projectError && (
+                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
+                                {projectError}
+                            </div>
+                        )}
+                        
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-1">Project Name</label>
+                            <input
+                                type="text"
+                                value={newProjectName}
+                                onChange={(e) => setNewProjectName(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                placeholder="Enter project name"
+                            />
+                        </div>
+                        
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                            <textarea
+                                value={newProjectDescription}
+                                onChange={(e) => setNewProjectDescription(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                placeholder="Enter project description"
+                                rows={3}
+                            />
+                        </div>
+                        
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowEditProjectModal(false)}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleUpdateProject}
+                                disabled={isSubmittingProject}
+                                className={`px-4 py-2 rounded flex items-center gap-2 ${
+                                    isSubmittingProject
+                                    ? "bg-blue-700 cursor-not-allowed"
+                                    : "bg-blue-600 hover:bg-blue-700"
+                                }`}
+                            >
+                                {isSubmittingProject && (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                )}
+                                Update Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Delete Project Confirmation Modal (New) */}
+            {showDeleteProjectModal && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-lg w-full max-w-md p-6">
+                        <h3 className="text-xl font-semibold mb-4 text-red-400">Delete Project</h3>
+                        
+                        {projectError && (
+                            <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-2 rounded text-sm">
+                                {projectError}
+                            </div>
+                        )}
+                        
+                        <p className="mb-6 text-gray-300">
+                            Are you sure you want to delete the project "<span className="font-semibold">{projectToDelete?.name}</span>"?
+                            This will not delete the files, only the project.
+                        </p>
+                        
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-1">
+                                Type <span className="font-mono text-red-400">permanently delete</span> to confirm
+                            </label>
+                            <input
+                                type="text"
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white"
+                                placeholder="permanently delete"
+                            />
+                        </div>
+                        
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteProjectModal(false);
+                                    setProjectToDelete(null);
+                                    setDeleteConfirmText("");
+                                }}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteProject}
+                                disabled={deleteConfirmText.toLowerCase() !== "permanently delete"}
+                                className={`px-4 py-2 rounded ${
+                                    deleteConfirmText.toLowerCase() === "permanently delete"
+                                    ? "bg-red-600 hover:bg-red-700"
+                                    : "bg-red-900/50 cursor-not-allowed"
+                                }`}
+                            >
+                                Delete Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </BackgroundWrapper>
     );
 }
