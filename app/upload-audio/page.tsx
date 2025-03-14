@@ -93,7 +93,36 @@ export default function UploadTestPage() {
       const storedSession = localStorage.getItem('transcriptionSessionId');
       const storedJobs = localStorage.getItem('transcriptionJobs');
       
-      if (storedSession) {
+      // Initialize shouldCreateNewSession as false by default
+      let shouldCreateNewSession = false;
+      
+      // If we have stored jobs, check if they've all succeeded
+      if (storedJobs) {
+        try {
+          const parsedJobs = JSON.parse(storedJobs);
+          
+          // Check if there are completed jobs stored
+          if (parsedJobs.length > 0) {
+            // Also check if we have stored status information
+            const storedJobStatuses = localStorage.getItem('transcriptionJobStatuses');
+            
+            if (storedJobStatuses) {
+              const parsedJobStatuses = JSON.parse(storedJobStatuses);
+              
+              // Check if all jobs have succeeded - if so, we should create a new session
+              shouldCreateNewSession = parsedJobStatuses.length > 0 && 
+                parsedJobStatuses.every((job: JobStatus) => job.status === 'SUCCEEDED');
+                
+              console.log("All jobs succeeded in previous session?", shouldCreateNewSession);
+            }
+          }
+        } catch (err) {
+          console.error("Error parsing stored jobs:", err);
+        }
+      }
+      
+      if (storedSession && !shouldCreateNewSession) {
+        // Only restore the session if jobs are still in progress
         setSessionId(storedSession);
         console.log("Restored session ID from storage:", storedSession);
         
@@ -104,17 +133,42 @@ export default function UploadTestPage() {
             setJobs(parsedJobs);
             // When restoring a session, enable auto-refresh
             setAutoRefresh(true);
+            
+            // Also restore job statuses if available
+            const storedJobStatuses = localStorage.getItem('transcriptionJobStatuses');
+            if (storedJobStatuses) {
+              try {
+                const parsedJobStatuses = JSON.parse(storedJobStatuses);
+                setJobStatuses(parsedJobStatuses);
+                
+                // Check if all jobs have succeeded
+                const allSucceeded = parsedJobStatuses.length > 0 && 
+                  parsedJobStatuses.every((job: JobStatus) => job.status === 'SUCCEEDED');
+                
+                setAllJobsSucceeded(allSucceeded);
+              } catch (err) {
+                console.error("Error parsing stored job statuses:", err);
+              }
+            }
           } catch (err) {
             console.error("Error parsing stored jobs:", err);
           }
         }
       } else {
-        // Generate a unique session ID (timestamp + uuid)
+        // Either no stored session or all jobs have succeeded, so create a new session
         const newSessionId = `${Date.now()}-${uuidv4().substring(0, 8)}`;
         setSessionId(newSessionId);
-        console.log("Generated session ID:", newSessionId);
+        console.log("Generated new session ID:", newSessionId);
+        
         // Store in localStorage
         localStorage.setItem('transcriptionSessionId', newSessionId);
+        
+        // Clear previous jobs and statuses
+        localStorage.removeItem('transcriptionJobs');
+        localStorage.removeItem('transcriptionJobStatuses');
+        setJobs([]);
+        setJobStatuses([]);
+        setAllJobsSucceeded(false);
       }
     }
   }, [sessionId]);
@@ -319,6 +373,9 @@ export default function UploadTestPage() {
       }
       
       setJobStatuses(data.jobs || []);
+      
+      // Store job statuses in localStorage
+      localStorage.setItem('transcriptionJobStatuses', JSON.stringify(data.jobs || []));
       
       // Check if all jobs are successful
       const allSucceeded = data.jobs && 
