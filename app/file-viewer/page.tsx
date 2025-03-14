@@ -1028,7 +1028,7 @@ export default function TranscribePage() {
                                                                     showDeleteConfirmation(project);
                                                                 }}
                                                             >
-                                                                <FiDelete className="mr-2" size={14} /> Delete Project
+                                                                <FiDelete className="mr-2" size={14} /> Delete Project & Files
                                                             </div>
                                                         </div>
                                                     )}
@@ -1583,7 +1583,9 @@ export default function TranscribePage() {
                         
                         <p className="mb-6 text-gray-300">
                             Are you sure you want to delete the project "<span className="font-semibold">{projectToDelete?.name}</span>"?
-                            This will not delete the files, only the project.
+                            <span className="text-red-400 font-medium block mt-2">
+                                Warning: This will permanently delete all files associated with this project.
+                            </span>
                         </p>
                         
                         <div className="mb-6">
@@ -1619,7 +1621,7 @@ export default function TranscribePage() {
                                     : "bg-red-900/50 cursor-not-allowed"
                                 }`}
                             >
-                                Delete Project
+                                Delete Project & Files
                             </button>
                         </div>
                     </div>

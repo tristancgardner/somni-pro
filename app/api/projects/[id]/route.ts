@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 // Schema for project update
 const projectUpdateSchema = z.object({
@@ -142,6 +143,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // The params are already available and don't need to be awaited
     const projectId = params.id;
     
     // Authenticate the user
@@ -162,13 +164,63 @@ export async function DELETE(
       );
     }
 
-    // Delete the project (files will be automatically unlinked due to the SetNull relation)
+    // Get all files associated with this project using the correct model
+    // ProjectFile is not the correct model name - let's use the correct relation
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        files: true // Include the related files
+      }
+    });
+
+    if (!project || !project.files) {
+      return NextResponse.json(
+        { message: 'Project not found or has no files' },
+        { status: 404 }
+      );
+    }
+
+    // Initialize S3 client for file deletion
+    const s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+    });
+
+    // Delete all files from S3 that are associated with this project
+    const bucket = process.env.S3_TRANSCRIBE_BUCKET || process.env.AWS_BUCKET_NAME;
+    if (!bucket) {
+      return NextResponse.json(
+        { message: 'S3 bucket configuration error' },
+        { status: 500 }
+      );
+    }
+
+    // Delete files from S3
+    for (const file of project.files) {
+      try {
+        console.log(`Deleting file with key: ${file.s3Key}`);
+        await s3Client.send(
+          new DeleteObjectCommand({
+            Bucket: bucket,
+            Key: file.s3Key,
+          })
+        );
+      } catch (fileError) {
+        console.error(`Error deleting file ${file.s3Key} from S3:`, fileError);
+        // Continue with deletion even if one file fails
+      }
+    }
+
+    // Delete the project (which will cascade delete all file associations)
     await prisma.project.delete({
       where: { id: projectId },
     });
 
     return NextResponse.json(
-      { message: 'Project deleted successfully' },
+      { message: `Project and ${project.files.length} files deleted successfully` },
       { status: 200 }
     );
   } catch (error: any) {
