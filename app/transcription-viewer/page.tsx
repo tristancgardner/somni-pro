@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Clock, Users, ArrowLeft, Save, ChevronRight, ChevronLeft } from 'lucide-react';
+import { FileText, Clock, Users, ArrowLeft, Save, ChevronRight, ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 
@@ -67,6 +67,11 @@ export default function TranscriptionViewerPage() {
   // State for editing speaker info
   const [editingSpeaker, setEditingSpeaker] = useState<string | null>(null);
   const [editedSpeakers, setEditedSpeakers] = useState<Record<string, { name?: string, role?: string }>>({});
+  
+  // Add new state for segment navigation
+  const [speakerCurrentSegments, setSpeakerCurrentSegments] = useState<Record<string, number>>({});
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const segmentRefs = useRef<Record<number, HTMLDivElement>>({});
   
   // Format duration from seconds to mm:ss
   const formatDuration = (seconds: number): string => {
@@ -545,6 +550,81 @@ export default function TranscriptionViewerPage() {
     }, window.location.origin);
   };
 
+  // Function to scroll to a specific segment
+  const scrollToSegment = (segmentId: number) => {
+    if (segmentRefs.current[segmentId] && timelineRef.current) {
+      segmentRefs.current[segmentId].scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+  };
+  
+  // Function to navigate to the next segment for a speaker
+  const navigateToNextSegment = (speakerId: string) => {
+    if (!transcription) return;
+    
+    // Get all segments for this speaker
+    const speakerSegments = transcription.transcript
+      .filter(segment => segment.speaker === speakerId)
+      .sort((a, b) => a.start - b.start);
+    
+    if (speakerSegments.length === 0) return;
+    
+    // Get current index and calculate next index (with wrap-around)
+    const currentIndex = speakerCurrentSegments[speakerId] || 0;
+    const nextIndex = (currentIndex + 1) % speakerSegments.length;
+    
+    // Update the current index for this speaker
+    setSpeakerCurrentSegments(prev => ({
+      ...prev,
+      [speakerId]: nextIndex
+    }));
+    
+    // Scroll to the segment
+    scrollToSegment(speakerSegments[nextIndex].segment_id);
+  };
+  
+  // Function to navigate to the previous segment for a speaker
+  const navigateToPrevSegment = (speakerId: string) => {
+    if (!transcription) return;
+    
+    // Get all segments for this speaker
+    const speakerSegments = transcription.transcript
+      .filter(segment => segment.speaker === speakerId)
+      .sort((a, b) => a.start - b.start);
+    
+    if (speakerSegments.length === 0) return;
+    
+    // Get current index and calculate previous index (with wrap-around)
+    const currentIndex = speakerCurrentSegments[speakerId] || 0;
+    const prevIndex = (currentIndex - 1 + speakerSegments.length) % speakerSegments.length;
+    
+    // Update the current index for this speaker
+    setSpeakerCurrentSegments(prev => ({
+      ...prev,
+      [speakerId]: prevIndex
+    }));
+    
+    // Scroll to the segment
+    scrollToSegment(speakerSegments[prevIndex].segment_id);
+  };
+
+  // Update speakerStats to include segments when transcription changes
+  useEffect(() => {
+    if (transcription) {
+      // Initialize the current segment index for each speaker to 0
+      const initialSpeakerSegments: Record<string, number> = {};
+      const speakerStats = calculateSpeakerStats(transcription);
+      
+      speakerStats.forEach(speaker => {
+        initialSpeakerSegments[speaker.speaker] = 0;
+      });
+      
+      setSpeakerCurrentSegments(initialSpeakerSegments);
+    }
+  }, [transcription]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[600px]">
@@ -774,113 +854,150 @@ export default function TranscriptionViewerPage() {
               <div className="mb-6">
                 <h2 className="text-xl font-bold mb-4">Speaker Analysis</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {speakerStats.map((speaker, index) => (
-                    <div key={index} className="bg-black bg-opacity-80 rounded-lg p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge 
-                              variant="outline" 
-                              className="bg-teal-800/30 text-teal-300 border-teal-800 hover:bg-teal-800/50"
-                            >
-                              {speaker.name || speaker.speaker}
-                            </Badge>
-                            <button 
-                              onClick={() => setEditingSpeaker(editingSpeaker === speaker.speaker ? null : speaker.speaker)}
-                              className="text-xs text-gray-400 hover:text-white"
-                            >
-                              {editingSpeaker === speaker.speaker ? 'Cancel' : 'Edit'}
-                            </button>
-                          </div>
-                          
-                          {editingSpeaker === speaker.speaker ? (
-                            <div className="space-y-2 mt-2">
-                              <div>
-                                <label className="text-xs text-gray-400 block">Name:</label>
-                                <input 
-                                  type="text"
-                                  className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
-                                  defaultValue={speaker.name || ''}
-                                  placeholder="Enter name"
-                                  onChange={(e) => {
-                                    const newName = e.target.value;
-                                    setEditedSpeakers(prev => ({
-                                      ...prev,
-                                      [speaker.speaker]: { 
-                                        ...prev[speaker.speaker], 
-                                        name: newName 
-                                      }
-                                    }));
-                                  }}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-gray-400 block">Role:</label>
-                                <input 
-                                  type="text"
-                                  className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
-                                  defaultValue={speaker.role || ''}
-                                  placeholder="Enter role"
-                                  onChange={(e) => {
-                                    const newRole = e.target.value;
-                                    setEditedSpeakers(prev => ({
-                                      ...prev,
-                                      [speaker.speaker]: { 
-                                        ...prev[speaker.speaker], 
-                                        role: newRole 
-                                      }
-                                    }));
-                                  }}
-                                />
-                              </div>
-                              <button 
-                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
-                                onClick={() => {
-                                  const edits = editedSpeakers[speaker.speaker] || {};
-                                  updateSpeakerInfo(
-                                    speaker.speaker, 
-                                    edits.name, 
-                                    edits.role
-                                  );
-                                }}
+                  {speakerStats.map((speaker, index) => {
+                    // Get the current segment index and total segments
+                    const currentIndex = speakerCurrentSegments[speaker.speaker] || 0;
+                    const totalSegments = speaker.segments;
+                    
+                    return (
+                      <div key={index} className="bg-black bg-opacity-80 rounded-lg p-6">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant="outline" 
+                                className="bg-teal-800/30 text-teal-300 border-teal-800 hover:bg-teal-800/50"
                               >
-                                Save
+                                {speaker.name || speaker.speaker}
+                              </Badge>
+                              <button 
+                                onClick={() => setEditingSpeaker(editingSpeaker === speaker.speaker ? null : speaker.speaker)}
+                                className="text-xs text-gray-400 hover:text-white"
+                              >
+                                {editingSpeaker === speaker.speaker ? 'Cancel' : 'Edit'}
                               </button>
                             </div>
-                          ) : (
-                            <>
-                              <div className="text-sm text-gray-400">ID: {speaker.speaker}</div>
-                              <div className="text-sm text-gray-400">Role: {speaker.role || ''}</div>
-                            </>
-                          )}
+                            
+                            {editingSpeaker === speaker.speaker ? (
+                              <div className="space-y-2 mt-2">
+                                <div>
+                                  <label className="text-xs text-gray-400 block">Name:</label>
+                                  <input 
+                                    type="text"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                                    defaultValue={speaker.name || ''}
+                                    placeholder="Enter name"
+                                    onChange={(e) => {
+                                      const newName = e.target.value;
+                                      setEditedSpeakers(prev => ({
+                                        ...prev,
+                                        [speaker.speaker]: { 
+                                          ...prev[speaker.speaker], 
+                                          name: newName 
+                                        }
+                                      }));
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-400 block">Role:</label>
+                                  <input 
+                                    type="text"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                                    defaultValue={speaker.role || ''}
+                                    placeholder="Enter role"
+                                    onChange={(e) => {
+                                      const newRole = e.target.value;
+                                      setEditedSpeakers(prev => ({
+                                        ...prev,
+                                        [speaker.speaker]: { 
+                                          ...prev[speaker.speaker], 
+                                          role: newRole 
+                                        }
+                                      }));
+                                    }}
+                                  />
+                                </div>
+                                <button 
+                                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+                                  onClick={() => {
+                                    const edits = editedSpeakers[speaker.speaker] || {};
+                                    updateSpeakerInfo(
+                                      speaker.speaker, 
+                                      edits.name, 
+                                      edits.role
+                                    );
+                                  }}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="text-sm text-gray-400">ID: {speaker.speaker}</div>
+                                <div className="text-sm text-gray-400">Role: {speaker.role || ''}</div>
+                              </>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-400">Segments</div>
+                            <div className="text-sm font-medium flex items-center gap-1">
+                              {speaker.segments}
+                              {speaker.segments > 0 && (
+                                <div className="flex flex-col ml-2">
+                                  <button 
+                                    onClick={() => navigateToPrevSegment(speaker.speaker)}
+                                    className="text-gray-400 hover:text-teal-300 p-1"
+                                    title="Go to previous segment"
+                                  >
+                                    <ChevronUp size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => navigateToNextSegment(speaker.speaker)}
+                                    className="text-gray-400 hover:text-teal-300 p-1"
+                                    title="Go to next segment"
+                                  >
+                                    <ChevronDown size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            {speaker.segments > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {currentIndex + 1} of {totalSegments}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm text-gray-400">Segments</div>
-                          <div className="text-sm font-medium">{speaker.segments}</div>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="text-sm text-gray-400">Words</div>
+                            <div className="text-sm font-medium">{speaker.words}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-400">Duration</div>
+                            <div className="text-sm font-medium">{formatDuration(speaker.totalDuration)}</div>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="text-sm text-gray-400">Words</div>
-                          <div className="text-sm font-medium">{speaker.words}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-gray-400">Duration</div>
-                          <div className="text-sm font-medium">{formatDuration(speaker.totalDuration)}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               
               {/* Transcript Timeline */}
               <div>
                 <h2 className="text-xl font-bold mb-4">Transcript Timeline</h2>
-                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                <div 
+                  ref={timelineRef}
+                  className="space-y-4 max-h-[500px] overflow-y-auto pr-2"
+                >
                   {transcription.transcript.map((segment) => (
                     <div
                       key={segment.segment_id}
+                      ref={el => {
+                        if (el) segmentRefs.current[segment.segment_id] = el;
+                      }}
                       className="p-5 rounded-lg border border-gray-800 bg-black bg-opacity-80"
                     >
                       <div className="flex items-center gap-3 mb-2">
