@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from "next-auth/react";
 import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiUpload, FiPlay, FiCheck, FiX, FiFileText, FiMic } from "react-icons/fi";
 import { v4 as uuidv4 } from 'uuid';
@@ -57,6 +57,11 @@ export default function UploadTestPage() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [allJobsSucceeded, setAllJobsSucceeded] = useState(false);
+  
+  // Use refs instead of state to avoid re-render loops and race conditions
+  const filesAssociatedRef = useRef(false);
+  const associationInProgressRef = useRef(false); // Lock to prevent concurrent API calls
+  const checkingStatusInProgressRef = useRef(false); // Lock for status checking
   
   // Transcription results state
   const [transcriptions, setTranscriptions] = useState<TranscriptionFile[]>([]);
@@ -178,11 +183,127 @@ export default function UploadTestPage() {
     return transcriptions.slice(startIdx, endIdx);
   };
 
+  // Helper function to associate files with project
+  const associateFilesWithProject = useCallback(async (projectId: string) => {
+    if (!session?.user?.email || !sessionId) return;
+    
+    // Debug info with timestamps to track calls
+    console.log(`[${new Date().toISOString()}] Attempting to associate files with project ${projectId}, filesAssociated: ${filesAssociatedRef.current}, associationInProgress: ${associationInProgressRef.current}`);
+    
+    // Skip if files are already associated for this job batch
+    if (filesAssociatedRef.current) {
+      console.log(`[${new Date().toISOString()}] Files already associated for current jobs, skipping duplicate association`);
+      return;
+    }
+    
+    // Skip if another association process is already running
+    if (associationInProgressRef.current) {
+      console.log(`[${new Date().toISOString()}] Another association process is already running, skipping duplicate call`);
+      return;
+    }
+    
+    // Set the process lock to true immediately to prevent concurrent calls
+    associationInProgressRef.current = true;
+    
+    try {
+      // If transcriptions list is empty, load them first
+      if (transcriptions.length === 0) {
+        console.log(`[${new Date().toISOString()}] No transcriptions loaded yet. Loading them now before association...`);
+        await loadTranscriptionResults();
+        
+        // If still no transcriptions after loading, log and exit
+        if (transcriptions.length === 0) {
+          console.log(`[${new Date().toISOString()}] No transcriptions found after loading. Skipping association.`);
+          associationInProgressRef.current = false;
+          return;
+        }
+      }
+      
+      // IMPORTANT CHANGE: Instead of using uploadStatuses, we'll use the transcriptions list
+      // which contains files that have been fully processed and returned by AWS
+      const processedFiles = transcriptions
+        .filter(file => 
+          // We only want to associate files that have successfully been processed
+          file.key && 
+          file.filename
+        )
+        .map(file => ({
+          s3Key: file.key,
+          filename: file.filename
+        }));
+      
+      console.log(`[${new Date().toISOString()}] Found ${processedFiles.length} processed files to associate with project ${projectId}`);
+      
+      // If we have no processed files, no need to continue
+      if (processedFiles.length === 0) {
+        console.log(`[${new Date().toISOString()}] No processed files found to associate. Skipping association request.`);
+        associationInProgressRef.current = false;
+        return;
+      }
+      
+      // If we have processed files, associate those files
+      // Otherwise, just save the project and description for this session
+      const payload = {
+        sessionId: sessionId,
+        projectId: projectId,
+        description: fileDescription
+      };
+      
+      // Only include files if we have processed files
+      if (processedFiles.length > 0) {
+        Object.assign(payload, { files: processedFiles });
+      }
+      
+      console.log(`[${new Date().toISOString()}] Sending association request to API...`);
+      const res = await fetch('/api/associate-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to save file information");
+      }
+      
+      console.log(`[${new Date().toISOString()}] Association API call successful`);
+      
+      // Mark files as associated only after successful API call
+      filesAssociatedRef.current = true;
+      
+      // Show confirmation message
+      if (processedFiles.length > 0) {
+        setJobMessage("Files associated with project successfully!");
+      } else {
+        setJobMessage("Project information saved. Files will be associated when processing completes.");
+      }
+      
+    } catch (err: any) {
+      console.error(`[${new Date().toISOString()}] Error associating files with project:`, err);
+      setJobError(`Error saving project information: ${err.message}`);
+      // Don't reset the filesAssociatedRef flag on error - we'll let the user manually retry if needed
+    } finally {
+      // Always release the process lock when done
+      associationInProgressRef.current = false;
+    }
+  }, [session, sessionId, transcriptions, fileDescription, loadTranscriptionResults]);
+
   const checkJobStatus = useCallback(async () => {
     if (jobs.length === 0) return;
     
+    // Skip if another status check is already in progress
+    if (checkingStatusInProgressRef.current) {
+      console.log(`[${new Date().toISOString()}] Status check already in progress, skipping duplicate call`);
+      return;
+    }
+    
+    // Set the status check lock
+    checkingStatusInProgressRef.current = true;
+    setIsCheckingStatus(true);
+    
     try {
-      setIsCheckingStatus(true);
+      console.log(`[${new Date().toISOString()}] Checking job status...`);
       
       const jobIds = jobs.map((job) => job.jobId);
       const res = await fetch("/api/checkJobStatus", {
@@ -213,7 +334,22 @@ export default function UploadTestPage() {
       
       if (completedJobs.length > 0) {
         // Refresh transcription list when jobs complete
-        loadTranscriptionResults();
+        console.log(`[${new Date().toISOString()}] Jobs completed, refreshing transcription results...`);
+        await loadTranscriptionResults();
+        
+        // IMPORTANT ADDITION: If all jobs are completed, we have a selected project,
+        // AND we haven't already associated files for these jobs
+        const allCompleted = data.jobs && 
+          data.jobs.length > 0 && 
+          data.jobs.every((job: JobStatus) => job.status === 'SUCCEEDED' || job.status === 'FAILED');
+        
+        if (allCompleted && selectedProjectId && !filesAssociatedRef.current) {
+          // Now that we've loaded the transcription results and all jobs are complete,
+          // we can associate the processed files with the project
+          console.log(`[${new Date().toISOString()}] All jobs completed. Associating processed files with project:`, selectedProjectId);
+          await associateFilesWithProject(selectedProjectId);
+          // The ref is already set to true inside associateFilesWithProject
+        }
       }
       
       // If all jobs are completed (either succeeded or failed), we can turn off auto-refresh
@@ -222,14 +358,17 @@ export default function UploadTestPage() {
         data.jobs.every((job: JobStatus) => job.status === 'SUCCEEDED' || job.status === 'FAILED');
       
       if (allCompleted) {
+        console.log(`[${new Date().toISOString()}] All jobs completed, turning off auto-refresh`);
         setAutoRefresh(false);
       }
     } catch (err: any) {
-      console.error("Error checking job status:", err);
+      console.error(`[${new Date().toISOString()}] Error checking job status:`, err);
     } finally {
       setIsCheckingStatus(false);
+      // Release the status check lock
+      checkingStatusInProgressRef.current = false;
     }
-  }, [jobs, loadTranscriptionResults]);
+  }, [jobs, loadTranscriptionResults, selectedProjectId, associateFilesWithProject]);
 
   // Set up auto-refresh if enabled
   useEffect(() => {
@@ -298,6 +437,7 @@ export default function UploadTestPage() {
     if (!newProjectName.trim() || !session?.user?.email) return;
     
     try {
+      setIsCreatingProject(true);
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -318,8 +458,36 @@ export default function UploadTestPage() {
       setSelectedProjectId(data.project.id);
       setNewProjectName("");
       setIsCreatingProject(false);
+      
+      // IMPORTANT CHANGE: Don't immediately associate files
+      // Instead, store the project ID and description in the database
+      // Files will be associated later when they're returned from AWS
+      try {
+        const payload = {
+          sessionId: sessionId,
+          projectId: data.project.id,
+          description: fileDescription
+        };
+        
+        const associateRes = await fetch('/api/associate-files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!associateRes.ok) {
+          const associateData = await associateRes.json();
+          throw new Error(associateData.message || "Failed to save project information");
+        }
+        
+        setJobMessage("Project created! Files will be associated when processing completes.");
+      } catch (associateErr: any) {
+        console.error("Error saving project metadata:", associateErr);
+        setJobError(`Error saving project information: ${associateErr.message}`);
+      }
     } catch (err: any) {
       console.error("Error creating project:", err);
+      setIsCreatingProject(false);
     }
   };
 
@@ -364,53 +532,12 @@ export default function UploadTestPage() {
     if (!session?.user?.email) return;
     
     try {
-      // Determine what we're saving based on context - if this was after file upload or job submission
-      const successfulUploads = uploadStatuses
-        .filter(status => 
-          status.status === 'success' && 
-          status.location && 
-          !status.filename.toLowerCase().endsWith('.wav') // Filter out WAV files
-        )
-        .map(status => ({
-          s3Key: status.location,
-          filename: status.filename
-        }));
-      
-      // If we have successful uploads, associate those files
-      // Otherwise, just save the project and description for this session
-      const payload = {
-        sessionId: sessionId,
-        projectId: selectedProjectId,
-        description: fileDescription
-      };
-      
-      // Only include files if we have successful uploads
-      if (successfulUploads.length > 0) {
-        Object.assign(payload, { files: successfulUploads });
-      }
-      
-      const res = await fetch('/api/associate-files', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to save file information");
-      }
+      await associateFilesWithProject(selectedProjectId);
+      // The ref is already set to true inside associateFilesWithProject
       
       // Close the modal and reset description
       setShowProjectModal(false);
       setFileDescription("");
-      
-      // Show confirmation message
-      if (successfulUploads.length > 0) {
-        setJobMessage("Files associated with project successfully!");
-      } else {
-        setJobMessage("Project information saved. Files will be associated when processing completes.");
-      }
       
     } catch (err: any) {
       console.error("Error saving file information:", err);
@@ -525,7 +652,11 @@ export default function UploadTestPage() {
     setJobs([]);
     setJobStatuses([]);
     setAllJobsSucceeded(false);
-
+    
+    // Reset all refs when submitting new jobs
+    filesAssociatedRef.current = false;
+    associationInProgressRef.current = false;
+    
     try {
       const res = await fetch("/api/submitJobsForUser", {
         method: "POST",
@@ -936,12 +1067,27 @@ export default function UploadTestPage() {
                   
                   {/* Show file viewer button when all jobs succeed */}
                   {allJobsSucceeded && selectedProjectId && (
-                    <button 
-                      onClick={navigateToFileViewer}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-md font-bold bg-green-600 text-white hover:bg-green-700 mb-4"
-                    >
-                      Open in File Viewer <FiChevronRight />
-                    </button>
+                    <div className="flex flex-col md:flex-row gap-2 mb-4">
+                      <button 
+                        onClick={navigateToFileViewer}
+                        className="flex-grow flex items-center justify-center gap-2 py-3 rounded-md font-bold bg-green-600 text-white hover:bg-green-700"
+                      >
+                        Open in File Viewer <FiChevronRight />
+                      </button>
+                      
+                      <button 
+                        onClick={() => {
+                          // Reset both refs for manual reassociation
+                          filesAssociatedRef.current = false;
+                          associationInProgressRef.current = false;
+                          setJobMessage("Attempting to reassociate files with project...");
+                          associateFilesWithProject(selectedProjectId);
+                        }}
+                        className="flex items-center justify-center gap-2 py-3 px-4 rounded-md font-bold bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        <FiRefreshCw /> Reassociate Files
+                      </button>
+                    </div>
                   )}
                   
                   {/* Show the manual submit button only when there are no jobs yet */}
