@@ -868,7 +868,11 @@ export default function UploadTestPage() {
             <div className="flex gap-2">
               <textarea
                 value={fileDescription}
-                onChange={(e) => setFileDescription(e.target.value)}
+                onChange={(e) => {
+                  // Stop propagation to prevent refresh button clicks
+                  e.stopPropagation();
+                  setFileDescription(e.target.value);
+                }}
                 placeholder="Give a brief description of the project or files"
                 rows={4}
                 className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -1190,7 +1194,11 @@ export default function UploadTestPage() {
                           Auto-refresh (15s)
                         </label>
                         <button
-                          onClick={checkJobStatus}
+                          onClick={(e) => {
+                            // Stop event propagation to prevent unintentional triggering
+                            e.stopPropagation();
+                            checkJobStatus();
+                          }}
                           disabled={isCheckingStatus || jobs.length === 0}
                           className={`flex items-center gap-1 px-3 py-2 rounded text-sm ${
                             isCheckingStatus || jobs.length === 0

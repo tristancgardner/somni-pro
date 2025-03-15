@@ -57,16 +57,18 @@ export async function POST(req: NextRequest) {
     
     // We're storing the session-project relationship in the project description for now
     // This is a temporary workaround until we can properly migrate the database
-    let updatedDescription = project.description || '';
-    if (sessionId && !updatedDescription.includes(`Session ID: ${sessionId}`)) {
-      updatedDescription = `${updatedDescription}\nSession ID: ${sessionId}`;
-      
-      await prisma.project.update({
-        where: { id: projectId },
-        data: { 
-          description: updatedDescription 
-        },
-      });
+    // But we'll keep it separate from the user's actual description
+    if (sessionId) {
+      // Store session ID in a separate metadata field or table instead of overwriting description
+      await prisma.$executeRaw`
+        UPDATE "Project" 
+        SET metadata = jsonb_set(
+          COALESCE(metadata, '{}'::jsonb), 
+          '{sessionId}', 
+          ${sessionId}::text::jsonb
+        ) 
+        WHERE id = ${projectId}
+      `;
     }
     
     // If files are provided, associate them with the project
