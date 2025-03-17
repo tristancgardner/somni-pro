@@ -343,6 +343,69 @@ export default function UploadTestPage() {
     }
   }, [session, sessionId, transcriptions, fileDescription, loadTranscriptionResults]);
 
+  // Add a new function specifically for manual reconnection
+  const handleReconnectFilesToProject = async () => {
+    if (!selectedProjectId || !sessionId) {
+      setJobError("Please select a project to reconnect files");
+      return;
+    }
+
+    try {
+      // Set a reconnection status message
+      setJobMessage("Reconnecting files to selected project...");
+      setJobError("");
+      
+      // Reset the flags to force a reconnection even if previously attempted
+      filesAssociatedRef.current = false;
+      associationInProgressRef.current = false;
+      
+      // Ensure we have the latest transcription data
+      if (transcriptions.length === 0) {
+        await loadTranscriptionResults();
+      }
+      
+      // Call the associate files function with the selected project
+      await associateFilesWithProject(selectedProjectId);
+      
+      // If successful, show a confirmation and close the modal
+      setJobMessage(`Successfully reconnected ${transcriptions.length} files to project!`);
+      setShowProjectModal(false);
+      
+      // Optional: Navigate to the project view after reconnection
+      if (selectedProjectId) {
+        // Uncomment to enable auto-navigation after reconnection
+        // window.location.href = `/projects/${selectedProjectId}`;
+      }
+    } catch (err: any) {
+      console.error("Error during file reconnection:", err);
+      setJobError(`Failed to reconnect files: ${err.message}`);
+    }
+  };
+
+  // Update handleSaveProjectInfo to use the reconnection function when appropriate
+  const handleSaveProjectInfo = async () => {
+    if (!session?.user?.email) return;
+    
+    // If we have transcriptions loaded, we're in reconnection mode
+    if (transcriptions.length > 0) {
+      await handleReconnectFilesToProject();
+      return;
+    }
+    
+    try {
+      await associateFilesWithProject(selectedProjectId);
+      // The ref is already set to true inside associateFilesWithProject
+      
+      // Close the modal and reset description
+      setShowProjectModal(false);
+      setFileDescription("");
+      
+    } catch (err: any) {
+      console.error("Error saving file information:", err);
+      setJobError(`Error saving project information: ${err.message}`);
+    }
+  };
+
   const checkJobStatus = useCallback(async () => {
     if (jobs.length === 0) return;
     
@@ -584,24 +647,6 @@ export default function UploadTestPage() {
     recognition.start();
   };
 
-  // Save file information and project association
-  const handleSaveProjectInfo = async () => {
-    if (!session?.user?.email) return;
-    
-    try {
-      await associateFilesWithProject(selectedProjectId);
-      // The ref is already set to true inside associateFilesWithProject
-      
-      // Close the modal and reset description
-      setShowProjectModal(false);
-      setFileDescription("");
-      
-    } catch (err: any) {
-      console.error("Error saving file information:", err);
-      setJobError(`Error saving project information: ${err.message}`);
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const fileArray = Array.from(e.target.files);
@@ -789,8 +834,15 @@ export default function UploadTestPage() {
     return (
       <Modal show={showProjectModal} onClose={() => setShowProjectModal(false)}>
         <h2 className="text-xl font-semibold mb-4 text-white">
-          While we're waiting, tell us about these files
+          {transcriptions.length > 0 ? "Reconnect Files to Project" : "While we're waiting, tell us about these files"}
         </h2>
+        
+        {transcriptions.length > 0 && (
+          <div className="mb-4 p-4 bg-blue-900/30 border-l-4 border-blue-500 text-blue-200 text-sm">
+            <p>This will associate {transcriptions.length} transcription file(s) from this session with your selected project.</p>
+            <p className="mt-2">Use this if your files were processed correctly but weren't properly linked to your project.</p>
+          </div>
+        )}
         
         <div className="space-y-4">
           {/* Project selection */}
@@ -860,39 +912,41 @@ export default function UploadTestPage() {
             )}
           </div>
           
-          {/* Description input */}
-          <div>
-            <label className="block mb-2 text-sm font-bold text-gray-300">
-              Brief Description
-            </label>
-            <div className="flex gap-2">
-              <textarea
-                value={fileDescription}
-                onChange={(e) => {
-                  // Stop propagation to prevent refresh button clicks
-                  e.stopPropagation();
-                  setFileDescription(e.target.value);
-                }}
-                placeholder="Give a brief description of the project or files"
-                rows={4}
-                className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-              <button
-                onClick={handleStartDictation}
-                className={`self-start p-2 rounded ${
-                  isListeningForDictation
-                    ? 'bg-red-600 text-white animate-pulse'
-                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                }`}
-                title="Dictate description"
-              >
-                <FiMic />
-              </button>
+          {/* Description input - only show if not reconnecting*/}
+          {transcriptions.length === 0 && (
+            <div>
+              <label className="block mb-2 text-sm font-bold text-gray-300">
+                Brief Description
+              </label>
+              <div className="flex gap-2">
+                <textarea
+                  value={fileDescription}
+                  onChange={(e) => {
+                    // Stop propagation to prevent refresh button clicks
+                    e.stopPropagation();
+                    setFileDescription(e.target.value);
+                  }}
+                  placeholder="Give a brief description of the project or files"
+                  rows={4}
+                  className="flex-grow px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <button
+                  onClick={handleStartDictation}
+                  className={`self-start p-2 rounded ${
+                    isListeningForDictation
+                      ? 'bg-red-600 text-white animate-pulse'
+                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                  }`}
+                  title="Dictate description"
+                >
+                  <FiMic />
+                </button>
+              </div>
+              {isListeningForDictation && (
+                <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
+              )}
             </div>
-            {isListeningForDictation && (
-              <p className="mt-1 text-sm text-red-400">Listening... speak now</p>
-            )}
-          </div>
+          )}
           
           {/* Buttons */}
           <div className="flex justify-end gap-3 pt-4">
@@ -900,14 +954,14 @@ export default function UploadTestPage() {
               onClick={() => setShowProjectModal(false)}
               className="px-4 py-2 rounded text-gray-300 hover:text-white"
             >
-              Skip
+              {transcriptions.length > 0 ? "Cancel" : "Skip"}
             </button>
             <button
               onClick={handleSaveProjectInfo}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
               disabled={isCreatingProject}
             >
-              Save
+              {transcriptions.length > 0 ? "Reconnect Files" : "Save"}
             </button>
           </div>
         </div>
@@ -1254,18 +1308,28 @@ export default function UploadTestPage() {
               <div className="mt-8 bg-black/50 p-6 rounded-lg">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-white m-0">Step 3: View Transcriptions</h2>
-                  <button
-                    onClick={() => loadTranscriptionResults()}
-                    disabled={isLoadingTranscriptions}
-                    className={`flex items-center gap-2 px-4 py-2 rounded ${
-                      isLoadingTranscriptions
-                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
-                    Refresh List
-                  </button>
+                  <div className="flex gap-2">
+                    {transcriptions.length > 0 && (
+                      <button
+                        onClick={() => setShowProjectModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                      >
+                        <FiFileText /> Reconnect Files to Project
+                      </button>
+                    )}
+                    <button
+                      onClick={() => loadTranscriptionResults()}
+                      disabled={isLoadingTranscriptions}
+                      className={`flex items-center gap-2 px-4 py-2 rounded ${
+                        isLoadingTranscriptions
+                          ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      <FiRefreshCw className={isLoadingTranscriptions ? "animate-spin" : ""} />
+                      Refresh List
+                    </button>
+                  </div>
                 </div>
                 
                 {transcriptionError && (

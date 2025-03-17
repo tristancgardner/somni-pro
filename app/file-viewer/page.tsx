@@ -116,6 +116,17 @@ export default function TranscribePage() {
     // Add a ref to track if we've loaded transcriptions for the current project
     const currentProjectRef = useRef<string | null>(null);
 
+    // Add state for reconnecting files by browsing all user files
+    const [showReconnectFilesModal, setShowReconnectFilesModal] = useState(false);
+    const [availableFiles, setAvailableFiles] = useState<TranscriptionFile[]>([]);
+    const [selectedFilesToAdd, setSelectedFilesToAdd] = useState<string[]>([]);
+    const [isLoadingAvailableFiles, setIsLoadingAvailableFiles] = useState(false);
+    const [reconnectStatus, setReconnectStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [reconnectMessage, setReconnectMessage] = useState<string>("");
+    const [fileSearchTerm, setFileSearchTerm] = useState<string>("");
+    const [fileListPage, setFileListPage] = useState(1);
+    const filesPerPage = 10;
+
     // DEPRECATED: This function is no longer used since we migrated to the IdentifySpeakersAgent component
     // It's kept for reference in case we need to revert or understand the old logic
     const runSpeakerIdentification = async () => {
@@ -885,6 +896,158 @@ export default function TranscribePage() {
         loadTranscriptionResults(null, selectedProject);
     }, [loadTranscriptionResults, selectedProject, isLoadingTranscriptions]);
 
+    // Add function to handle loading all available files from the user's output folder
+    const loadAllAvailableFiles = async () => {
+        try {
+            setIsLoadingAvailableFiles(true);
+            setReconnectStatus('loading');
+            setReconnectMessage("Loading all available files...");
+            
+            // Call the API to get all files (without sessionId filter)
+            const res = await fetch(`/api/list-transcriptions?maxResults=1000`);
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to load available files");
+            }
+            
+            // Filter out files that are already in the current project
+            const currentProjectId = selectedProject?.id;
+            let filesNotInProject = data.files || [];
+            
+            if (currentProjectId) {
+                filesNotInProject = data.files.filter((file: TranscriptionFile) => 
+                    file.projectId !== currentProjectId
+                );
+            }
+            
+            setAvailableFiles(filesNotInProject);
+            
+            if (filesNotInProject.length === 0) {
+                setReconnectStatus('error');
+                setReconnectMessage("No additional files found that aren't already in this project.");
+            } else {
+                setReconnectStatus('idle');
+                setReconnectMessage("");
+            }
+            
+        } catch (err: any) {
+            console.error("Error loading available files:", err);
+            setReconnectStatus('error');
+            setReconnectMessage(err.message || "Failed to load available files");
+        } finally {
+            setIsLoadingAvailableFiles(false);
+        }
+    };
+    
+    // Add function to handle file selection for adding to project
+    const toggleFileSelection = (fileKey: string) => {
+        setSelectedFilesToAdd(prevSelected => 
+            prevSelected.includes(fileKey)
+                ? prevSelected.filter(key => key !== fileKey)
+                : [...prevSelected, fileKey]
+        );
+    };
+    
+    // Add function to select all/none files
+    const handleSelectAllFiles = (selectAll: boolean) => {
+        if (selectAll) {
+            const filteredFiles = getFilteredFiles();
+            setSelectedFilesToAdd(filteredFiles.map(file => file.key));
+        } else {
+            setSelectedFilesToAdd([]);
+        }
+    };
+    
+    // Add function to filter available files based on search term
+    const getFilteredFiles = () => {
+        if (!fileSearchTerm.trim()) {
+            return availableFiles;
+        }
+        
+        const searchTermLower = fileSearchTerm.toLowerCase();
+        return availableFiles.filter(file => 
+            file.filename.toLowerCase().includes(searchTermLower) ||
+            (file.projectName && file.projectName.toLowerCase().includes(searchTermLower))
+        );
+    };
+    
+    // Add function to get files for current page
+    const getCurrentPageFiles = () => {
+        const filteredFiles = getFilteredFiles();
+        const startIndex = (fileListPage - 1) * filesPerPage;
+        return filteredFiles.slice(startIndex, startIndex + filesPerPage);
+    };
+    
+    // Add function to handle reconnecting files to the current project
+    const handleAddFilesToCurrentProject = async () => {
+        if (!selectedProject?.id || selectedFilesToAdd.length === 0) {
+            setReconnectStatus('error');
+            setReconnectMessage("Please select files to add to this project");
+            return;
+        }
+        
+        try {
+            setReconnectStatus('loading');
+            setReconnectMessage(`Adding ${selectedFilesToAdd.length} files to project...`);
+            
+            // Format the files for the API
+            const filesToAdd = availableFiles
+                .filter(file => selectedFilesToAdd.includes(file.key))
+                .map(file => ({
+                    s3Key: file.key,
+                    filename: file.filename
+                }));
+                
+            // Call the API to associate files with the project
+            const res = await fetch(`/api/projects/${selectedProject.id}/files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileKeys: selectedFilesToAdd,
+                }),
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to add files to project");
+            }
+            
+            // Success! Update UI and reload files
+            setReconnectStatus('success');
+            setReconnectMessage(`Successfully added ${selectedFilesToAdd.length} files to the project`);
+            
+            // Reload transcription list
+            await loadTranscriptionResults();
+            
+            // Close modal after a delay
+            setTimeout(() => {
+                setShowReconnectFilesModal(false);
+                setSelectedFilesToAdd([]);
+                setFileSearchTerm("");
+                setFileListPage(1);
+                setReconnectStatus('idle');
+                setReconnectMessage("");
+                toast.success(`Added ${selectedFilesToAdd.length} files to project "${selectedProject.name}"`);
+            }, 2000);
+            
+        } catch (err: any) {
+            console.error("Error adding files to project:", err);
+            setReconnectStatus('error');
+            setReconnectMessage(err.message || "Failed to add files to project");
+        }
+    };
+
+    // Replace the session-based reconnect function with the new one
+    const openReconnectFilesModal = async () => {
+        setShowReconnectFilesModal(true);
+        setSelectedFilesToAdd([]);
+        setFileSearchTerm("");
+        setFileListPage(1);
+        await loadAllAvailableFiles();
+    };
+
     if (status === "loading") {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -1084,6 +1247,12 @@ export default function TranscribePage() {
                                         </button>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={openReconnectFilesModal}
+                                            className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            <FiPlus /> Add Files to Project
+                                        </button>
                                         <button
                                             onClick={viewAllProjectFiles}
                                             className="flex items-center gap-2 px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700"
@@ -1660,6 +1829,211 @@ export default function TranscribePage() {
                                 className="px-4 py-2 rounded bg-red-600 hover:bg-red-700"
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Replace Reconnect Session Modal with new Reconnect Files Modal */}
+            {showReconnectFilesModal && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-lg w-full max-w-4xl p-6">
+                        <h3 className="text-xl font-semibold mb-4">Add Files to Project: {selectedProject?.name}</h3>
+                        
+                        {reconnectMessage && (
+                            <div className={`mb-4 p-3 rounded text-sm ${
+                                reconnectStatus === 'loading' ? 'bg-blue-900/30 border-l-4 border-blue-500 text-blue-400' :
+                                reconnectStatus === 'success' ? 'bg-green-900/30 border-l-4 border-green-500 text-green-400' :
+                                reconnectStatus === 'error' ? 'bg-red-900/30 border-l-4 border-red-500 text-red-400' :
+                                'bg-gray-800 text-gray-300'
+                            }`}>
+                                {reconnectStatus === 'loading' && (
+                                    <div className="flex items-center">
+                                        <div className="mr-2 w-4 h-4 border-2 border-blue-500 border-r-transparent rounded-full animate-spin"></div>
+                                        {reconnectMessage}
+                                    </div>
+                                )}
+                                {reconnectStatus !== 'loading' && reconnectMessage}
+                            </div>
+                        )}
+                        
+                        {/* Search and file controls */}
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={fileSearchTerm}
+                                        onChange={(e) => {
+                                            setFileSearchTerm(e.target.value);
+                                            setFileListPage(1); // Reset to page 1 when searching
+                                        }}
+                                        placeholder="Search by filename..."
+                                        className="px-3 py-2 pl-9 bg-gray-800 border border-gray-700 rounded text-white w-64"
+                                        disabled={isLoadingAvailableFiles}
+                                    />
+                                    <div className="absolute left-3 top-2.5 text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => handleSelectAllFiles(true)}
+                                    disabled={isLoadingAvailableFiles || getFilteredFiles().length === 0}
+                                    className="px-3 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    onClick={() => handleSelectAllFiles(false)}
+                                    disabled={isLoadingAvailableFiles || selectedFilesToAdd.length === 0}
+                                    className="px-3 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500"
+                                >
+                                    Clear Selection
+                                </button>
+                                <button
+                                    onClick={loadAllAvailableFiles}
+                                    disabled={isLoadingAvailableFiles}
+                                    className="px-3 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 flex items-center gap-1 disabled:bg-gray-800 disabled:text-gray-500"
+                                >
+                                    <FiRefreshCw className={isLoadingAvailableFiles ? "animate-spin" : ""} />
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* File list table */}
+                        <div className="bg-black/30 rounded-lg overflow-hidden mb-4 max-h-[400px] overflow-y-auto">
+                            {isLoadingAvailableFiles ? (
+                                <div className="flex justify-center items-center h-40">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                </div>
+                            ) : availableFiles.length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">
+                                    No files available to add to this project.
+                                </div>
+                            ) : getFilteredFiles().length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">
+                                    No files match your search.
+                                </div>
+                            ) : (
+                                <table className="min-w-full">
+                                    <thead className="bg-gray-800">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
+                                                <div className="flex items-center justify-center">
+                                                    <span className="sr-only">Select</span>
+                                                </div>
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Size</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Current Project</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-700">
+                                        {getCurrentPageFiles().map((file, index) => (
+                                            <tr key={index} 
+                                                className={`hover:bg-gray-800/50 cursor-pointer ${
+                                                    selectedFilesToAdd.includes(file.key) ? 'bg-blue-900/30' : ''
+                                                }`}
+                                                onClick={() => toggleFileSelection(file.key)}
+                                            >
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    <div className="flex items-center justify-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedFilesToAdd.includes(file.key)}
+                                                            onChange={() => toggleFileSelection(file.key)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                                                        />
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                                                    {new Date(file.lastModified).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                                                    {formatFileSize(file.size)}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                                    {file.projectName ? (
+                                                        <span className="text-blue-400">{file.projectName}</span>
+                                                    ) : (
+                                                        <span className="text-gray-500 italic">None</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                        
+                        {/* Pagination */}
+                        {getFilteredFiles().length > filesPerPage && (
+                            <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
+                                <button
+                                    onClick={() => setFileListPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={fileListPage === 1}
+                                    className={`flex items-center gap-1 ${fileListPage === 1 ? 'text-gray-600 cursor-not-allowed' : 'text-blue-400 hover:text-blue-300'}`}
+                                >
+                                    <FiChevronLeft /> Previous
+                                </button>
+                                <span>
+                                    Page {fileListPage} of {Math.ceil(getFilteredFiles().length / filesPerPage)}
+                                </span>
+                                <button
+                                    onClick={() => setFileListPage(prev => Math.min(prev + 1, Math.ceil(getFilteredFiles().length / filesPerPage)))}
+                                    disabled={fileListPage >= Math.ceil(getFilteredFiles().length / filesPerPage)}
+                                    className={`flex items-center gap-1 ${fileListPage >= Math.ceil(getFilteredFiles().length / filesPerPage) ? 'text-gray-600 cursor-not-allowed' : 'text-blue-400 hover:text-blue-300'}`}
+                                >
+                                    Next <FiChevronRight />
+                                </button>
+                            </div>
+                        )}
+                        
+                        {/* Action buttons */}
+                        <div className="flex justify-end gap-3 mt-6">
+                            <div className="flex-1">
+                                {selectedFilesToAdd.length > 0 && (
+                                    <span className="text-sm text-green-400">
+                                        {selectedFilesToAdd.length} file{selectedFilesToAdd.length !== 1 ? 's' : ''} selected
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowReconnectFilesModal(false);
+                                    setSelectedFilesToAdd([]);
+                                    setFileSearchTerm("");
+                                    setFileListPage(1);
+                                    setReconnectStatus('idle');
+                                    setReconnectMessage("");
+                                }}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAddFilesToCurrentProject}
+                                disabled={selectedFilesToAdd.length === 0 || reconnectStatus === 'loading'}
+                                className={`px-4 py-2 rounded flex items-center gap-2 ${
+                                    selectedFilesToAdd.length === 0 || reconnectStatus === 'loading'
+                                    ? "bg-purple-700 cursor-not-allowed"
+                                    : "bg-purple-600 hover:bg-purple-700"
+                                }`}
+                            >
+                                {reconnectStatus === 'loading' && (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                )}
+                                Add {selectedFilesToAdd.length} File{selectedFilesToAdd.length !== 1 ? 's' : ''} to Project
                             </button>
                         </div>
                     </div>
