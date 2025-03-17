@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         SET metadata = jsonb_set(
           COALESCE(metadata, '{}'::jsonb), 
           '{sessionId}', 
-          ${sessionId}::text::jsonb
+          to_jsonb(${sessionId})
         ) 
         WHERE id = ${projectId}
       `;

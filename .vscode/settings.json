@@ -25,6 +25,10 @@
         {
             "folderPath": "somni-pro/app/",
             "badge": "AP"
+        },
+        {
+            "folderPath": "somni-pro/app/upload-audio/",
+            "color": "foldercolorizer.color_cccc00"
         }
     ]
 }
