@@ -224,23 +224,55 @@ export default function IdentifySpeakersAgent({
     setIsSaving(true);
 
     try {
-      // Optionally unify speakers if they share the same name & role
-      // For example, grouping them so that if SPEAKER_00 and SPEAKER_01
-      // both have { name: "Trent", role: "Interviewee" }, 
-      // you keep them as one label in the final JSON, etc.
-      //
-      // This part is your custom logic.
-
       const file = selectedFiles[currentFileIndex];
       
-      // Example: Just write the updated speaker info directly onto each segment
+      // Group speakers with the same name and role
+      const speakerGroups: Record<string, string[]> = {};
+      const uniqueLabels: Record<string, { name?: string, role?: string }> = {};
+      
+      // First pass: gather all unique name+role combinations
+      Object.entries(editedSpeakerLabels).forEach(([speakerId, info]) => {
+        if (info.name && info.role) {
+          const groupKey = `${info.name}|${info.role}`;
+          
+          if (!speakerGroups[groupKey]) {
+            speakerGroups[groupKey] = [];
+            uniqueLabels[groupKey] = { 
+              name: info.name, 
+              role: info.role 
+            };
+          }
+          
+          if (!speakerGroups[groupKey].includes(speakerId)) {
+            speakerGroups[groupKey].push(speakerId);
+          }
+        }
+      });
+      
+      // Create a mapping of original speakerIds to their primary speakerId
+      const speakerIdMap: Record<string, string> = {};
+      Object.entries(speakerGroups).forEach(([groupKey, speakerIds]) => {
+        // Use the first speaker ID as the primary ID for this group
+        const primarySpeakerId = speakerIds[0];
+        
+        // Map all speakers in this group to the primary ID
+        speakerIds.forEach(id => {
+          speakerIdMap[id] = primarySpeakerId;
+        });
+      });
+
+      // Apply the mapping to consolidate speakers and update labels
       const updatedTranscript = {
         ...currentTranscript,
         transcript: currentTranscript.transcript.map((segment: any) => {
-          const label = editedSpeakerLabels[segment.speaker];
+          const originalSpeakerId = segment.speaker;
+          const mappedSpeakerId = speakerIdMap[originalSpeakerId] || originalSpeakerId;
+          const label = editedSpeakerLabels[mappedSpeakerId];
+
           if (label) {
             return {
               ...segment,
+              speaker: mappedSpeakerId,
               role: label.role,
               name: label.name,
             };
@@ -249,21 +281,36 @@ export default function IdentifySpeakersAgent({
         }),
       };
 
-      // Optionally, call your own API to save it:
-      // e.g. `/api/save-transcription` or upload back to S3
-      // This snippet just triggers a download of the updated file
-      const blob = new Blob([JSON.stringify(updatedTranscript, null, 2)], {
-        type: "application/json",
+      // Save the updated transcript using the API
+      const saveResponse = await fetch('/api/save-transcription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transcriptionData: updatedTranscript,
+          jsonUrl: file.downloadUrl,
+        }),
       });
-      const tempUrl = URL.createObjectURL(blob);
-      const dl = document.createElement("a");
-      const newFilename = file.filename.replace(".json", "_with_speakers.json");
-      dl.href = tempUrl;
-      dl.download = newFilename;
-      dl.click();
-      URL.revokeObjectURL(tempUrl);
 
-      toast.success(`Speaker labels applied to ${file.filename}. Downloaded new file.`);
+      if (!saveResponse.ok) {
+        throw new Error('Failed to save transcript');
+      }
+
+      // Generate a temporary ID for storing the results
+      const tempId = `temp_transcript_${Date.now()}`;
+      
+      // Store the updated transcript and speaker labels in localStorage
+      localStorage.setItem(tempId, JSON.stringify({
+        transcript: updatedTranscript,
+        speakerLabels: editedSpeakerLabels
+      }));
+
+      // Open the transcript viewer in a new tab with the temp ID
+      const viewerUrl = `/transcription-viewer?tempId=${tempId}&url=${encodeURIComponent(file.downloadUrl)}`;
+      window.open(viewerUrl, '_blank');
+
+      toast.success(`Speaker labels applied to ${file.filename}`);
 
       // Move to the next file if multiple
       if (currentFileIndex < selectedFiles.length - 1) {
