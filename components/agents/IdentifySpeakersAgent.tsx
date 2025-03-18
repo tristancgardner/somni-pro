@@ -95,11 +95,27 @@ export default function IdentifySpeakersAgent({
    * but you can call the `downloadUrl` directly if it's public.
    */
   const fetchTranscriptJson = async (downloadUrl: string) => {
-    const res = await fetch(downloadUrl);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch transcription from ${downloadUrl}`);
+    try {
+      console.log('Fetching transcript from:', downloadUrl);
+      const res = await fetch('/api/fetch-transcript', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ downloadUrl }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching transcript:', error);
+      throw new Error(`Failed to fetch transcription: ${error.message}`);
     }
-    return res.json();
   };
 
   /** 
