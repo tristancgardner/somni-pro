@@ -112,9 +112,10 @@ export default function IdentifySpeakersAgent({
 
       const data = await res.json();
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching transcript:', error);
-      throw new Error(`Failed to fetch transcription: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to fetch transcription: ${errorMessage}`);
     }
   };
 
