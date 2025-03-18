@@ -29,6 +29,10 @@
         {
             "folderPath": "somni-pro/app/upload-audio/",
             "color": "foldercolorizer.color_cccc00"
+        },
+        {
+            "folderPath": "somni-pro/app/api/agents/",
+            "color": "foldercolorizer.color_00cc00"
         }
     ]
 }
