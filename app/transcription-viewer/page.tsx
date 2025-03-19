@@ -29,6 +29,13 @@ interface TranscriptData {
   file: string;
   transcript: Segment[];
   num_speakers: number;
+  summaryJson?: {
+    [key: string]: {
+      summary: string;
+      themes?: string[];
+      key_moments?: string[];
+    }
+  };
 }
 
 interface SpeakerStats {
@@ -758,6 +765,19 @@ export default function TranscriptionViewerPage() {
             </div>
           )}
           
+          {/* Add notification when summary is available */}
+          {transcription.summaryJson && (
+            <div className="mb-4 bg-green-900/30 border border-green-500 text-green-300 p-4 rounded-lg flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Summary Available</p>
+                <p className="text-sm">This transcript includes an AI-generated summary with key moments and themes. Scroll down to view it.</p>
+              </div>
+            </div>
+          )}
+          
           {/* Existing transcription content */}
           <div className="mb-6 flex justify-between items-start">
             <div>
@@ -984,6 +1004,56 @@ export default function TranscriptionViewerPage() {
                   })}
                 </div>
               </div>
+              
+              {/* Summary Section - NEW */}
+              {transcription.summaryJson && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold mb-4">Summary</h2>
+                  <div className="bg-black bg-opacity-80 rounded-lg p-6 space-y-5">
+                    {Object.entries(transcription.summaryJson).map(([filename, content]) => (
+                      <div key={filename}>
+                        {/* Summary Text */}
+                        <div className="mb-5">
+                          <h3 className="text-sm text-gray-400 uppercase mb-2 font-medium">Overview</h3>
+                          <p className="text-gray-200 bg-black/30 p-4 rounded-lg">{content.summary}</p>
+                        </div>
+                        
+                        {/* Key Moments */}
+                        {content.key_moments && content.key_moments.length > 0 && (
+                          <div className="mb-5">
+                            <h3 className="text-sm text-gray-400 uppercase mb-2 font-medium">Key Moments</h3>
+                            <ul className="space-y-2">
+                              {content.key_moments.map((moment, idx) => (
+                                <li key={idx} className="flex items-start gap-2 bg-black/30 p-3 rounded-lg">
+                                  <span className="text-blue-400 mt-0.5 text-lg">•</span>
+                                  <span className="text-gray-300">{moment}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {/* Themes */}
+                        {content.themes && content.themes.length > 0 && (
+                          <div>
+                            <h3 className="text-sm text-gray-400 uppercase mb-2 font-medium">Themes</h3>
+                            <div className="flex flex-wrap gap-2">
+                              {content.themes.map((theme, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className="bg-blue-900/40 text-blue-300 px-3 py-1 rounded-full"
+                                >
+                                  {theme}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {/* Transcript Timeline */}
               <div>

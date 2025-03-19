@@ -249,125 +249,197 @@ export default function SummarizeAgent({
       </div>
 
       {selectedFiles.length > 1 && (
-        <div className="mb-4 text-sm">
-          File {currentFileIndex + 1} of {selectedFiles.length}:{" "}
-          <span className="font-medium ml-1">
-            {selectedFiles[currentFileIndex]?.filename}
-          </span>
+        <div className="mb-4 text-sm bg-blue-900/30 p-2 rounded border border-blue-800">
+          <div className="flex items-center gap-2">
+            <span>Processing:</span>
+            <span className="font-medium">{currentFileIndex + 1}</span>
+            <span>of</span>
+            <span className="font-medium">{selectedFiles.length}</span>
+            <span className="mx-1">-</span>
+            <span className="font-medium truncate max-w-md">
+              {selectedFiles[currentFileIndex]?.filename}
+            </span>
+          </div>
         </div>
       )}
 
       {!processingComplete ? (
         <>
-          <p className="text-sm mb-3">
-            Provide any relevant context below. For example: 
-            <br />
-            <strong>Trent is father.</strong> <strong>Amber is mother.</strong>
-          </p>
+          <div className="mb-5 bg-gray-900/50 p-3 rounded border border-gray-700">
+            <p className="text-sm mb-3">
+              Provide any relevant context about people in the conversation:
+            </p>
 
-          <table className="min-w-full text-sm mb-3">
-            <thead>
-              <tr>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Position / Role</th>
-                <th className="p-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {contextRows.map((row, idx) => (
-                <tr key={idx}>
-                  <td className="p-2">
-                    <input
-                      value={row.name}
-                      onChange={(e) => handleChangeRow(idx, "name", e.target.value)}
-                      className="bg-gray-800 border border-gray-700 text-white p-1 w-full"
-                      placeholder="Trent"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      value={row.position}
-                      onChange={(e) => handleChangeRow(idx, "position", e.target.value)}
-                      className="bg-gray-800 border border-gray-700 text-white p-1 w-full"
-                      placeholder="Father, manager, etc."
-                    />
-                  </td>
-                  <td className="p-2">
-                    {idx > 0 && (
-                      <button
-                        onClick={() => handleRemoveRow(idx)}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </td>
+            <table className="min-w-full text-sm mb-3">
+              <thead>
+                <tr>
+                  <th className="p-2 text-left text-xs uppercase text-gray-400">Name</th>
+                  <th className="p-2 text-left text-xs uppercase text-gray-400">Position / Role</th>
+                  <th className="p-2"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {contextRows.map((row, idx) => (
+                  <tr key={idx} className="border-t border-gray-800">
+                    <td className="p-2">
+                      <input
+                        value={row.name}
+                        onChange={(e) => handleChangeRow(idx, "name", e.target.value)}
+                        className="bg-gray-800 border border-gray-700 text-white p-2 w-full rounded"
+                        placeholder="Trent"
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        value={row.position}
+                        onChange={(e) => handleChangeRow(idx, "position", e.target.value)}
+                        className="bg-gray-800 border border-gray-700 text-white p-2 w-full rounded"
+                        placeholder="Father, manager, etc."
+                      />
+                    </td>
+                    <td className="p-2">
+                      {idx > 0 && (
+                        <button
+                          onClick={() => handleRemoveRow(idx)}
+                          className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          <button
-            onClick={handleAddRow}
-            className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-sm"
-          >
-            + Add Another
-          </button>
-
-          <div className="mt-4 text-sm">
-            <label className="block font-medium mb-1">Mode:</label>
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value as "summarization" | "storyline")}
-              className="bg-gray-800 border border-gray-700 text-white p-1"
+            <button
+              onClick={handleAddRow}
+              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-sm flex items-center gap-1"
             >
-              <option value="summarization">Summarization (concise)</option>
-              <option value="storyline">Storyline (creative)</option>
-            </select>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Person
+            </button>
+
+            <div className="mt-4 text-sm">
+              <label className="block font-medium mb-1 text-xs uppercase text-gray-400">Mode:</label>
+              <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value as "summarization" | "storyline")}
+                className="bg-gray-800 border border-gray-700 text-white p-2 rounded w-full md:w-64"
+              >
+                <option value="summarization">Summarization (concise)</option>
+                <option value="storyline">Storyline (creative)</option>
+              </select>
+            </div>
           </div>
 
-          <div className="mt-4 flex justify-end">
+          <div className="mt-6 flex justify-end">
             <button
               onClick={handleSummarize}
-              disabled={isProcessing}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm flex items-center gap-2"
+              disabled={isProcessing || selectedFiles.length === 0}
+              className={`px-4 py-2 rounded text-sm flex items-center gap-2 ${
+                isProcessing || selectedFiles.length === 0
+                  ? "bg-blue-700/50 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
               {isProcessing && <FiLoader className="animate-spin" />}
-              {isProcessing ? "Summarizing..." : "Summarize"}
+              {isProcessing ? "Summarizing..." : "Generate Summary"}
             </button>
           </div>
         </>
       ) : (
         <>
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center mb-4">
             <h4 className="text-md font-semibold">Summarization Results</h4>
-            <button
-              onClick={handleRerun}
-              className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded"
-            >
-              Rerun
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRerun}
+                className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+              >
+                Rerun
+              </button>
+            </div>
           </div>
 
-          <div className="mb-4 bg-black/30 p-3 border border-gray-700 rounded text-sm overflow-x-auto">
-            {summaryJson ? (
-              <pre>{JSON.stringify(summaryJson, null, 2)}</pre>
-            ) : (
-              <p className="text-sm italic">No summary available.</p>
-            )}
-          </div>
+          {summaryJson && Object.keys(summaryJson).length > 0 && (
+            <div className="space-y-4">
+              {Object.entries(summaryJson).map(([filename, content]) => (
+                <div key={filename} className="bg-black/30 rounded-lg border border-gray-700 overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex justify-between items-center">
+                    <h5 className="font-medium text-sm truncate">{filename}</h5>
+                  </div>
+                  
+                  <div className="p-4 space-y-4">
+                    <div>
+                      <h6 className="text-xs uppercase text-gray-400 mb-1 font-medium">Summary</h6>
+                      <p className="text-sm text-gray-300 bg-black/30 p-3 rounded">{content.summary}</p>
+                    </div>
+                    
+                    {content.key_moments && content.key_moments.length > 0 && (
+                      <div>
+                        <h6 className="text-xs uppercase text-gray-400 mb-1 font-medium">Key Moments</h6>
+                        <ul className="text-sm space-y-2">
+                          {content.key_moments.map((moment, idx) => (
+                            <li key={idx} className="flex items-start gap-2 bg-black/30 p-3 rounded">
+                              <span className="text-blue-400 mt-0.5">•</span>
+                              <span className="text-gray-300">{moment}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {content.themes && content.themes.length > 0 && (
+                      <div>
+                        <h6 className="text-xs uppercase text-gray-400 mb-1 font-medium">Themes</h6>
+                        <div className="flex flex-wrap gap-2">
+                          {content.themes.map((theme, idx) => (
+                            <span 
+                              key={idx} 
+                              className="text-xs bg-blue-900/40 text-blue-300 px-2 py-1 rounded-full"
+                            >
+                              {theme}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-6">
             <button
               onClick={handleApprove}
               disabled={isSaving}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center gap-2"
+              className={`px-4 py-2 rounded text-sm flex items-center gap-2 ${
+                isSaving 
+                ? "bg-green-700/50 cursor-not-allowed" 
+                : "bg-green-600 hover:bg-green-700"
+              }`}
             >
               {isSaving && <FiLoader className="animate-spin" />}
               {isSaving ? "Saving..." : "Approve & Save"}
             </button>
           </div>
         </>
+      )}
+      
+      {isProcessing && (
+        <div className="mt-6">
+          <div className="h-1 w-full bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2 text-center">
+            Analyzing transcript and generating summary...
+          </p>
+        </div>
       )}
     </div>
   );
