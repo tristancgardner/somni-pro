@@ -37,7 +37,7 @@ interface SummarizeNarrativeAgentProps {
   onClose?: () => void;
 }
 
-export default function SummarizeNarrativeAgent({
+export default function SummarizeAgent({
   selectedFiles,
   onClose,
 }: SummarizeNarrativeAgentProps) {
@@ -60,7 +60,7 @@ export default function SummarizeNarrativeAgent({
   const [summaryJson, setSummaryJson] = useState<SummaryJson | null>(null);
   const [processingComplete, setProcessingComplete] = useState(false);
 
-  // 5) Store the raw transcript for possible future “approve & save”
+  // 5) Store the raw transcript for possible future "approve & save"
   const [currentTranscript, setCurrentTranscript] = useState<any>(null);
 
   /** Add or remove rows in the context table */
@@ -112,7 +112,7 @@ export default function SummarizeNarrativeAgent({
   };
 
   /**
-   * Core action: POST transcript + userContext to /api/agents/narrative-summarization.
+   * Core action: POST transcript + userContext to /api/agents/summarize.
    * Note: The payload key is "file" (not "fileName").
    */
   const handleSummarize = async () => {
@@ -145,11 +145,11 @@ export default function SummarizeNarrativeAgent({
         file: file.filename,
         transcript: transcriptData.transcript,
         userContext, // e.g. "Trent is Father. Amber is Mother."
-        mode,        // "summarization" or "storyline"
+        chunkLimit: 200000, // Setting a reasonable chunk limit instead of mode
       };
 
       // 4) POST to the Summarization API route
-      const response = await fetch("/api/agents/narrative-summarization", {
+      const response = await fetch("/api/agents/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bodyPayload),
