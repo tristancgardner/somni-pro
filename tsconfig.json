@@ -33,7 +33,7 @@
     "**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts"
-  ],
+, "app/api/agents/summarize"  ],
   "exclude": [
     "node_modules"
   ]

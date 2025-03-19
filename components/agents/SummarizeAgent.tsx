@@ -16,11 +16,11 @@ interface SummaryJson {
   [key: string]: {
     summary: string;
     themes: string[];
-    key_speakers: Record<string, string>;
+    key_moments: string[];
   };
 }
 
-// Alternatively, we could define a type for the entire response object
+// The entire response object from the API
 interface SummarizeResponse {
   success?: boolean;
   summaryJson?: SummaryJson;
@@ -41,20 +41,19 @@ export default function SummarizeNarrativeAgent({
   selectedFiles,
   onClose,
 }: SummarizeNarrativeAgentProps) {
-  // 1) We'll capture user context as rows of "Name" + "Position/Role"
-  //    (like IdentifySpeakers, but we're just using them as arbitrary lines of context).
+  // 1) Capture user context as rows of "Name" + "Position/Role"
   const [contextRows, setContextRows] = useState<Array<{ name: string; position: string }>>([
     { name: "", position: "" },
   ]);
 
-  // 2) Summarization mode (e.g. "summarization" vs. "storyline")
+  // 2) Summarization mode (we support "summarization" or "storyline", but focus on summarization)
   const [mode, setMode] = useState<"summarization" | "storyline">("summarization");
 
   // 3) Processing states
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Because your code processes files one by one, track the current index
+  // Process files one at a time
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
 
   // 4) Once the route returns the summary, we store it
@@ -71,7 +70,6 @@ export default function SummarizeNarrativeAgent({
   const handleRemoveRow = (idx: number) => {
     setContextRows((prev) => prev.filter((_, i) => i !== idx));
   };
-
   const handleChangeRow = (idx: number, field: "name" | "position", value: string) => {
     setContextRows((prev) => {
       const updated = [...prev];
@@ -80,22 +78,17 @@ export default function SummarizeNarrativeAgent({
     });
   };
 
-  /** 
-   * Build a single string for userContext, e.g.:
-   * "Trent is Father. Amber is Mother."
-   */
+  /** Build a single user context string, e.g. "Trent is Father. Amber is Mother." */
   const buildUserContext = (): string => {
     const lines = contextRows
       .filter((row) => row.name.trim() && row.position.trim())
       .map((row) => `${row.name} is ${row.position}`);
-    // Join sentences with a period
     const contextStr = lines.join(". ");
     return contextStr ? contextStr + "." : "";
   };
 
   /**
-   * Fetch the JSON transcript from file.downloadUrl
-   * If your route is public or you have a separate route, adapt as needed.
+   * Fetch the JSON transcript from file.downloadUrl.
    */
   const fetchTranscriptJson = async (downloadUrl: string) => {
     try {
@@ -107,29 +100,26 @@ export default function SummarizeNarrativeAgent({
         },
         body: JSON.stringify({ downloadUrl }),
       });
-
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
-
-      const data = await res.json();
-      return data;
-    } catch (error) {
+      return await res.json();
+    } catch (error: any) {
       console.error("Error fetching transcript:", error);
-      throw new Error(`Failed to fetch transcription: ${error}`);
+      throw new Error(`Failed to fetch transcription: ${error.message}`);
     }
   };
 
-  /** 
-   * Core action: POST transcript + userContext to /api/agents/narrative-summarization
+  /**
+   * Core action: POST transcript + userContext to /api/agents/narrative-summarization.
+   * Note: The payload key is "file" (not "fileName").
    */
   const handleSummarize = async () => {
     if (!selectedFiles || selectedFiles.length === 0) {
       toast.error("No files selected");
       return;
     }
-
     setIsProcessing(true);
     setProcessingComplete(false);
     setSummaryJson(null);
@@ -147,18 +137,18 @@ export default function SummarizeNarrativeAgent({
       }
       setCurrentTranscript(transcriptData);
 
-      // 2) Build user context from the table
+      // 2) Build user context from the context table
       const userContext = buildUserContext();
 
-      // 3) Construct body payload
+      // 3) Construct payload – note we use "file" instead of "fileName"
       const bodyPayload = {
-        fileName: file.filename,
+        file: file.filename,
         transcript: transcriptData.transcript,
         userContext, // e.g. "Trent is Father. Amber is Mother."
         mode,        // "summarization" or "storyline"
       };
 
-      // 4) POST to the Summarization API
+      // 4) POST to the Summarization API route
       const response = await fetch("/api/agents/narrative-summarization", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +167,6 @@ export default function SummarizeNarrativeAgent({
         return;
       }
 
-      // 5) Store the summary results
       if (result.summaryJson) {
         setSummaryJson(result.summaryJson);
         setProcessingComplete(true);
@@ -194,8 +183,7 @@ export default function SummarizeNarrativeAgent({
   };
 
   /**
-   * If you want to re-run after adjusting context or switching mode,
-   * reset states.
+   * Reset state to allow rerunning the summarization.
    */
   const handleRerun = () => {
     setProcessingComplete(false);
@@ -203,26 +191,19 @@ export default function SummarizeNarrativeAgent({
   };
 
   /**
-   * Approve & Save (optional) - if you want to do the same pattern as IdentifySpeakers:
-   * e.g. store the summary in a DB or update the transcript, etc.
+   * Approve & Save action (optional).
    */
   const handleApprove = async () => {
     if (!currentTranscript || !summaryJson) {
       toast.error("No transcript or summary available");
       return;
     }
-
     setIsSaving(true);
-
     try {
       const file = selectedFiles[currentFileIndex];
-
-      // In IdentifySpeakers, you unify speakers, update roles/names, etc.
-      // Here, you might do something simpler: just store the summary JSON
-      // or attach it to the transcript, etc.
+      // Example: merge the summary into the transcript and POST to save.
       const updatedTranscript = { ...currentTranscript, summaryJson };
 
-      // Example: POST to "/api/save-transcription" or some endpoint
       const saveResponse = await fetch("/api/save-transcription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -236,16 +217,13 @@ export default function SummarizeNarrativeAgent({
         throw new Error("Failed to save summarization");
       }
 
-      // Optionally open a viewer, or just move to next
       toast.success(`Summary saved for ${file.filename}`);
-
       if (currentFileIndex < selectedFiles.length - 1) {
         setCurrentFileIndex(currentFileIndex + 1);
         setProcessingComplete(false);
         setSummaryJson(null);
         setCurrentTranscript(null);
       } else {
-        // All done
         if (onClose) onClose();
       }
     } catch (err: any) {
@@ -272,7 +250,7 @@ export default function SummarizeNarrativeAgent({
 
       {selectedFiles.length > 1 && (
         <div className="mb-4 text-sm">
-          File {currentFileIndex + 1} of {selectedFiles.length}:
+          File {currentFileIndex + 1} of {selectedFiles.length}:{" "}
           <span className="font-medium ml-1">
             {selectedFiles[currentFileIndex]?.filename}
           </span>
@@ -282,12 +260,11 @@ export default function SummarizeNarrativeAgent({
       {!processingComplete ? (
         <>
           <p className="text-sm mb-3">
-            Provide any relevant context below. For example:
+            Provide any relevant context below. For example: 
             <br />
             <strong>Trent is father.</strong> <strong>Amber is mother.</strong>
           </p>
 
-          {/* Context table (same pattern as IdentifySpeakers) */}
           <table className="min-w-full text-sm mb-3">
             <thead>
               <tr>
@@ -312,7 +289,7 @@ export default function SummarizeNarrativeAgent({
                       value={row.position}
                       onChange={(e) => handleChangeRow(idx, "position", e.target.value)}
                       className="bg-gray-800 border border-gray-700 text-white p-1 w-full"
-                      placeholder="Father, mother, manager, etc."
+                      placeholder="Father, manager, etc."
                     />
                   </td>
                   <td className="p-2">
@@ -337,7 +314,6 @@ export default function SummarizeNarrativeAgent({
             + Add Another
           </button>
 
-          {/* Mode selection */}
           <div className="mt-4 text-sm">
             <label className="block font-medium mb-1">Mode:</label>
             <select
@@ -350,7 +326,6 @@ export default function SummarizeNarrativeAgent({
             </select>
           </div>
 
-          {/* Summarize button */}
           <div className="mt-4 flex justify-end">
             <button
               onClick={handleSummarize}
@@ -364,26 +339,25 @@ export default function SummarizeNarrativeAgent({
         </>
       ) : (
         <>
-          {/* Display summarization results */}
-          <div className="mb-3">
+          <div className="flex justify-between items-center mb-3">
             <h4 className="text-md font-semibold">Summarization Results</h4>
-            {summaryJson ? (
-              <pre className="bg-gray-800 p-2 mt-2 text-sm overflow-x-auto">
-                {JSON.stringify(summaryJson, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-sm italic">No summary available.</p>
-            )}
-          </div>
-
-          {/* Rerun or Approve & Save */}
-          <div className="flex justify-between items-center">
             <button
               onClick={handleRerun}
               className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded"
             >
               Rerun
             </button>
+          </div>
+
+          <div className="mb-4 bg-black/30 p-3 border border-gray-700 rounded text-sm overflow-x-auto">
+            {summaryJson ? (
+              <pre>{JSON.stringify(summaryJson, null, 2)}</pre>
+            ) : (
+              <p className="text-sm italic">No summary available.</p>
+            )}
+          </div>
+
+          <div className="flex justify-end">
             <button
               onClick={handleApprove}
               disabled={isSaving}
