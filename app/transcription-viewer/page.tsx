@@ -36,6 +36,17 @@ interface TranscriptData {
       key_moments?: string[];
     }
   };
+  categorizedJson?: {
+    [key: string]: {
+      detected_topics?: string[];
+      categorized_segments: {
+        [topic: string]: Array<{
+          speaker: string;
+          summary: string;
+        }>;
+      };
+    }
+  };
 }
 
 interface SpeakerStats {
@@ -778,6 +789,19 @@ export default function TranscriptionViewerPage() {
             </div>
           )}
           
+          {/* Add notification when categorized content is available */}
+          {transcription.categorizedJson && (
+            <div className="mb-4 bg-purple-900/30 border border-purple-500 text-purple-300 p-4 rounded-lg flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Categorized Dialog Available</p>
+                <p className="text-sm">This transcript includes categorized dialog organized by topic. Scroll down to view it.</p>
+              </div>
+            </div>
+          )}
+          
           {/* Existing transcription content */}
           <div className="mb-6 flex justify-between items-start">
             <div>
@@ -1049,6 +1073,61 @@ export default function TranscriptionViewerPage() {
                             </div>
                           </div>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Categorized Dialog Section - NEW */}
+              {transcription.categorizedJson && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold mb-4">Dialog by Topic</h2>
+                  <div className="bg-black bg-opacity-80 rounded-lg p-6 space-y-5">
+                    {Object.entries(transcription.categorizedJson).map(([filename, content]) => (
+                      <div key={filename}>
+                        {/* Auto-detected topics */}
+                        {content.detected_topics && content.detected_topics.length > 0 && (
+                          <div className="mb-5">
+                            <h3 className="text-sm text-gray-400 uppercase mb-2 font-medium">Topics</h3>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {content.detected_topics.map((topic, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className="bg-purple-900/40 text-purple-300 px-3 py-1 rounded-full"
+                                >
+                                  {topic}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Categorized segments by topic */}
+                        <div className="space-y-5">
+                          {Object.entries(content.categorized_segments).map(([topic, segments]) => (
+                            <div key={topic} className="bg-black/30 rounded-lg overflow-hidden border border-gray-700">
+                              <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700">
+                                <h3 className="font-medium">{topic}</h3>
+                              </div>
+                              
+                              <div className="p-4">
+                                {segments.length === 0 ? (
+                                  <p className="text-sm text-gray-400 italic">No discussion found about this topic</p>
+                                ) : (
+                                  <ul className="space-y-3">
+                                    {segments.map((segment, idx) => (
+                                      <li key={idx} className="bg-black/30 p-3 rounded-lg border border-gray-800">
+                                        <div className="text-xs text-blue-400 mb-1 font-medium">{segment.speaker}</div>
+                                        <p className="text-sm text-gray-300">{segment.summary}</p>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>

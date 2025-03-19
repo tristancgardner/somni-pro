@@ -9,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "../../components/BackgroundWrapper";
 import IdentifySpeakersAgent from "@/components/agents/IdentifySpeakersAgent"; 
 import SummarizeAgent from "@/components/agents/SummarizeAgent";
+import SortDialogAgent from "@/components/agents/SortDialogAgent";
 import { toast } from 'react-hot-toast';
 
 type ProjectFile = {
@@ -1568,22 +1569,25 @@ export default function TranscribePage() {
                                 )}
                                 
                                 {activeAgent === 'sort-dialog' && (
-                                    <div className="mt-6 pt-6 border-t border-gray-700">
-                                        <div className="mb-4">
-                                            <h3 className="text-lg font-medium text-white mb-2">Sort Dialog</h3>
-                                            <p className="text-gray-400">
-                                                This agent will organize and sort your audio dialog by speaker.
-                                            </p>
-                                        </div>
-                                        
-                                        <div className="flex justify-end gap-3">
-                                            <button
-                                                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white"
-                                                onClick={() => setActiveAgent(null)}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
+                                    <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
+                                        <SortDialogAgent
+                                            selectedFiles={
+                                                // Case 1: We have a directly selected transcription
+                                                selectedTranscription ? [selectedTranscription] :
+                                                // Case 2: Use project-specific selections
+                                                projectSelectedFiles.map((fileKey) => {
+                                                    const match = transcriptions.find(t => t.key === fileKey);
+                                                    return match
+                                                        ? {
+                                                            key: match.key,
+                                                            filename: match.filename,
+                                                            downloadUrl: match.downloadUrl
+                                                        }
+                                                        : null;
+                                                }).filter(Boolean) as TranscriptionFile[]
+                                            }
+                                            onClose={() => setActiveAgent(null)}
+                                        />
                                     </div>
                                 )}
                             </div>
