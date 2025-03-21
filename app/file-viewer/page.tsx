@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
-import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2, FiMoreVertical, FiMenu, FiChevronsLeft, FiChevronsRight } from "react-icons/fi";
+import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText, FiFolderPlus, FiFolder, FiEdit2, FiDelete, FiPlus, FiUsers, FiFileText as FiSummarize, FiList, FiLoader, FiCheck, FiAlertCircle, FiColumns, FiTrash2, FiMoreVertical, FiMenu, FiChevronsLeft, FiChevronsRight, FiBookOpen } from "react-icons/fi";
 import { FiChevronDown } from "react-icons/fi";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "../../components/BackgroundWrapper";
 import IdentifySpeakersAgent from "@/components/agents/IdentifySpeakersAgent"; 
 import SummarizeAgent from "@/components/agents/SummarizeAgent";
 import SortDialogAgent from "@/components/agents/SortDialogAgent";
+import StorylineAgent from "@/components/agents/StorylineAgent";
 import { toast } from 'react-hot-toast';
 
 type ProjectFile = {
@@ -82,7 +83,7 @@ export default function TranscribePage() {
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
 
     // Agent state
-    const [activeAgent, setActiveAgent] = useState<'identify-speakers' | 'summarize' | 'sort-dialog' | null>(null);
+    const [activeAgent, setActiveAgent] = useState<'identify-speakers' | 'summarize' | 'sort-dialog' | 'storyline' | null>(null);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
     // Add a ref to track if we've already processed the URL parameters
@@ -881,7 +882,7 @@ export default function TranscribePage() {
     }, [status, projects, searchParams, handleSelectProject, selectedProject]);
 
     // Define the toggleAgent function (if it doesn't exist)
-    const toggleAgent = (agentName: 'identify-speakers' | 'summarize' | 'sort-dialog') => {
+    const toggleAgent = (agentName: 'identify-speakers' | 'summarize' | 'sort-dialog' | 'storyline') => {
         if (activeAgent === agentName) {
             setActiveAgent(null);
             // Reset processing state when closing
@@ -1490,6 +1491,16 @@ export default function TranscribePage() {
                                         >
                                             <FiList /> Sort Dialog
                                         </button>
+                                        <button 
+                                            className={`flex items-center gap-2 px-4 py-2 rounded text-white transition-colors ${
+                                                activeAgent === 'storyline' 
+                                                ? 'bg-blue-700 ring-2 ring-blue-400' 
+                                                : 'bg-blue-600 hover:bg-blue-700'
+                                            }`}
+                                            onClick={() => toggleAgent('storyline')}
+                                        >
+                                            <FiBookOpen /> Storyline
+                                        </button>
                                     </div>
                                     
                                     {/* Model Selection Dropdown */}
@@ -1571,6 +1582,29 @@ export default function TranscribePage() {
                                 {activeAgent === 'sort-dialog' && (
                                     <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
                                         <SortDialogAgent
+                                            selectedFiles={
+                                                // Case 1: We have a directly selected transcription
+                                                selectedTranscription ? [selectedTranscription] :
+                                                // Case 2: Use project-specific selections
+                                                projectSelectedFiles.map((fileKey) => {
+                                                    const match = transcriptions.find(t => t.key === fileKey);
+                                                    return match
+                                                        ? {
+                                                            key: match.key,
+                                                            filename: match.filename,
+                                                            downloadUrl: match.downloadUrl
+                                                        }
+                                                        : null;
+                                                }).filter(Boolean) as TranscriptionFile[]
+                                            }
+                                            onClose={() => setActiveAgent(null)}
+                                        />
+                                    </div>
+                                )}
+                                
+                                {activeAgent === 'storyline' && (
+                                    <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm rounded-xl">
+                                        <StorylineAgent
                                             selectedFiles={
                                                 // Case 1: We have a directly selected transcription
                                                 selectedTranscription ? [selectedTranscription] :

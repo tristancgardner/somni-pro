@@ -42,9 +42,17 @@ export default function IdentifySpeakersAgent({
     { name: "", position: "" },
   ]);
 
+  // Add state for number of speakers
+  const [speakerCount, setSpeakerCount] = useState<number>(2);
+
+  // Add state for conversation type
+  const [conversationType, setConversationType] = useState<string>("interview");
+
   // 2) Processing states
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [processingTime, setProcessingTime] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Because your code processes files one by one, track the current index
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(0);
@@ -59,6 +67,9 @@ export default function IdentifySpeakersAgent({
   // 5) Provide an "edit mode" to tweak roles/names
   const [editMode, setEditMode] = useState(false);
   const [editedSpeakerLabels, setEditedSpeakerLabels] = useState<SpeakerLabels>({});
+
+  // Add a reference to track cancellation
+  const processingRef = React.useRef<boolean>(false);
 
   /** Add or remove rows in the context table */
   const handleAddRow = () => {
@@ -86,6 +97,24 @@ export default function IdentifySpeakersAgent({
       .map((row) => `${row.name} is ${row.position}`);
     // Join sentences with a period
     return lines.join(". ") + (lines.length ? "." : "");
+  };
+
+  /** 
+   * Parse context rows into structured format
+   */
+  const buildStructuredContext = () => {
+    const knownSpeakers = contextRows
+      .filter((row) => row.name.trim() && row.position.trim())
+      .map((row) => ({
+        name: row.name.trim(),
+        role: row.position.trim(),
+        relevance: "primary"
+      }));
+    
+    return {
+      conversationType,
+      knownSpeakers
+    };
   };
 
   /**
@@ -133,6 +162,9 @@ export default function IdentifySpeakersAgent({
     setSpeakerLabels({});
     setCurrentTranscript(null);
     setEditedSpeakerLabels({});
+    setError(null);
+    setProcessingTime(null);
+    processingRef.current = true;
 
     try {
       // We process a single file at a time
@@ -142,45 +174,83 @@ export default function IdentifySpeakersAgent({
 
       if (!Array.isArray(transcriptData?.transcript)) {
         toast.error(`Invalid transcript data for ${file.filename}`);
+        setError(`Invalid transcript data for ${file.filename}`);
         return;
       }
       setCurrentTranscript(transcriptData);
 
-      // Build the userContext from the table
-      const userContext = buildUserContext();
+      // Build the structured context from the table
+      const userContext = buildStructuredContext();
 
       // 2) Construct payload
       const bodyPayload = {
         fileName: file.filename,
         transcript: transcriptData.transcript,
-        userContext, // e.g. "Trent is Father. Amber is Mother."
+        userContext,
+        speakerCount,
       };
 
-      // 3) POST to /api/agents/identify-speakers
-      const response = await fetch("/api/agents/identify-speakers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyPayload),
-      });
+      // Show status message for long-running operations
+      const processingToastId = toast.loading(
+        "Identifying speakers. This may take a few minutes...", 
+        { duration: Infinity }
+      );
 
-      const data = await response.json();
-      if (!response.ok) {
-        toast.error(`Error for ${file.filename}: ${data.error || "Unknown error"}`);
-        return;
+      try {
+        const response = await fetch("/api/agents/identify-speakers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bodyPayload),
+        });
+
+        toast.dismiss(processingToastId);
+
+        if (!processingRef.current) {
+          // Operation was cancelled
+          return;
+        }
+
+        const data = await response.json();
+        if (!response.ok) {
+          const errorMsg = data.error || `Error for ${file.filename}: ${response.statusText}`;
+          toast.error(errorMsg);
+          setError(errorMsg);
+          return;
+        }
+
+        // 4) Save the speakerLabels returned
+        setSpeakerLabels(data.speakerLabels || {});
+        setEditedSpeakerLabels(data.speakerLabels || {});
+        setProcessingComplete(true);
+        setProcessingTime(data.processingTimeMs || null);
+
+        toast.success(`Speaker identification complete for ${file.filename}`);
+      } catch (err: any) {
+        toast.dismiss(processingToastId);
+        
+        const errorMsg = `Failed to identify speakers: ${err.message}`;
+        console.error("Error identifying speakers:", err);
+        toast.error(errorMsg);
+        setError(errorMsg);
       }
-
-      // 4) Save the speakerLabels returned
-      setSpeakerLabels(data.speakerLabels || {});
-      setEditedSpeakerLabels(data.speakerLabels || {});
-      setProcessingComplete(true);
-
-      toast.success(`Speaker identification complete for ${file.filename}`);
     } catch (err: any) {
-      console.error("Error identifying speakers:", err);
-      toast.error(`Failed to identify speakers: ${err.message}`);
+      console.error("Error in transcript processing:", err);
+      const errorMsg = `Error processing transcript: ${err.message}`;
+      toast.error(errorMsg);
+      setError(errorMsg);
     } finally {
       setIsProcessing(false);
+      processingRef.current = false;
     }
+  };
+
+  /** 
+   * Cancel ongoing processing
+   */
+  const handleCancel = () => {
+    processingRef.current = false;
+    setIsProcessing(false);
+    toast.error("Speaker identification cancelled");
   };
 
   /** 
@@ -192,6 +262,8 @@ export default function IdentifySpeakersAgent({
     setSpeakerLabels({});
     setCurrentTranscript(null);
     setEditedSpeakerLabels({});
+    setError(null);
+    setProcessingTime(null);
   };
 
   /** Toggle edit mode */
@@ -354,6 +426,13 @@ export default function IdentifySpeakersAgent({
         </div>
       )}
 
+      {error && (
+        <div className="mb-4 p-3 bg-red-900/40 border border-red-700 rounded-md text-sm">
+          <p className="font-semibold mb-1">Error:</p>
+          <p>{error}</p>
+        </div>
+      )}
+
       {!processingComplete ? (
         <>
           <p className="text-sm mb-3">
@@ -361,6 +440,46 @@ export default function IdentifySpeakersAgent({
             <br />
             <strong>Trent is father.</strong> <strong>Amber is mother.</strong>
           </p>
+
+          {/* Add conversation type dropdown */}
+          <div className="mb-4">
+            <label className="block text-sm mb-1">Conversation type:</label>
+            <select
+              value={conversationType}
+              onChange={(e) => setConversationType(e.target.value)}
+              className="bg-gray-800 border border-gray-700 text-white p-1 w-full"
+            >
+              <option value="interview">Interview</option>
+              <option value="meeting">Meeting</option>
+              <option value="podcast">Podcast</option>
+              <option value="conversation">Casual Conversation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          {/* Add speaker count dropdown */}
+          <div className="mb-4">
+            <label className="block text-sm mb-1">Number of speakers in recording:</label>
+            <div className="flex items-center">
+              <input
+                type="number"
+                min="1"
+                max="10"
+                value={speakerCount}
+                onChange={(e) => setSpeakerCount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="bg-gray-800 border border-gray-700 text-white p-1 w-20 mr-2"
+              />
+              <select
+                value={speakerCount}
+                onChange={(e) => setSpeakerCount(parseInt(e.target.value))}
+                className="bg-gray-800 border border-gray-700 text-white p-1"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <option key={num} value={num}>{num} speaker{num !== 1 ? 's' : ''}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <table className="min-w-full text-sm mb-3">
             <thead>
@@ -411,7 +530,15 @@ export default function IdentifySpeakersAgent({
             + Add Another
           </button>
 
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-end gap-2">
+            {isProcessing && (
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm"
+              >
+                Cancel
+              </button>
+            )}
             <button
               onClick={handleIdentifySpeakers}
               disabled={isProcessing}
@@ -441,6 +568,12 @@ export default function IdentifySpeakersAgent({
               </button>
             </div>
           </div>
+
+          {processingTime && (
+            <p className="text-xs text-gray-400 mb-2">
+              Processing completed in {(processingTime / 1000).toFixed(1)} seconds
+            </p>
+          )}
 
           <table className="min-w-full text-sm mb-3 border border-gray-700">
             <thead className="bg-gray-700">

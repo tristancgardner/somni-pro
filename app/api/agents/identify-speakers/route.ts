@@ -87,7 +87,8 @@ async function labelSpeakers(
   transcript: any[],
   conversationType: string,
   knownSpeakers: Array<{ name: string; role: string; relevance: string }>,
-  additionalNotes: string
+  additionalNotes: string,
+  speakerCount?: number
 ): Promise<Record<string, string>> {
   // Build a simplified version of the transcript
   const simplifiedSegments = transcript.map((seg) => ({
@@ -106,16 +107,30 @@ Return valid JSON only, with no extra text or markdown.
   if (conversationType.toLowerCase() === 'interview') {
     roleOptions = `"Interviewee" | "Interviewer" | "Other"`;
   }
+  // Add support for other conversation types
+  else if (conversationType.toLowerCase() === 'meeting') {
+    roleOptions = `"Facilitator" | "Participant" | "Other"`;
+  }
+  else if (conversationType.toLowerCase() === 'podcast') {
+    roleOptions = `"Host" | "Guest" | "Co-host" | "Other"`;
+  }
+  else if (conversationType.toLowerCase() === 'conversation') {
+    roleOptions = `"Speaker A" | "Speaker B" | "Other"`;
+  }
 
   const knownSpeakersStr = JSON.stringify(knownSpeakers, null, 2);
+  
+  // Add speakerCount to the prompt if provided
+  const speakerCountInstruction = speakerCount 
+    ? `There are EXACTLY ${speakerCount} unique individuals in this conversation. Multiple speaker labels may belong to the same person (diarization may have over-segmented speakers). Ensure your final result identifies exactly ${speakerCount} unique people, even if there are more speaker IDs.`
+    : '';
 
   const userPrompt = `
 Conversation type: "${conversationType}"
-Known speakers (from user):
-${knownSpeakersStr}
 
-Additional notes:
-${additionalNotes}
+${speakerCountInstruction}
+
+Use ${knownSpeakersStr} to infer roles and names if possible.
 
 You must assign each speaker exactly one of: ${roleOptions}.
 - Multiple speakers can be labeled "Interviewee" if appropriate.
@@ -128,7 +143,7 @@ Return ONLY valid JSON in this shape:
 {
   "${fileName}": {
     "SPEAKER_00": "Interviewee",
-    "SPEAKER_01": "Interviewee",
+    "SPEAKER_01": "Interviewer",
     "SPEAKER_02": "Other"
   }
 }
@@ -178,6 +193,7 @@ async function inferNames(
     conversationType: string;
     knownSpeakers?: Array<{ name: string; role: string; relevance: string }>;
     additionalNotes?: string;
+    speakerCount?: number;
   }
 ): Promise<Record<string, string>> {
   // Build lines
@@ -198,11 +214,25 @@ Return valid JSON only, with no extra text or markdown formatting.
   const contextBlock = knownSpeakers.length
     ? `Known speakers:\n${JSON.stringify(knownSpeakers, null, 2)}`
     : '';
+    
+  // Add speakerCount to the prompt if provided
+  const speakerCountInstruction = userContext?.speakerCount 
+    ? `There are EXACTLY ${userContext.speakerCount} unique individuals speaking in this conversation. 
+The diarization process may have over-segmented speakers, meaning multiple speaker IDs might actually be the same person.
+
+IMPORTANT CONSTRAINT: Your response must identify exactly ${userContext.speakerCount} unique people by name. 
+If you see more speaker IDs than actual speakers, you MUST assign the same name to multiple speaker IDs.
+For example, if there are 2 people but 5 speaker IDs, you might have:
+SPEAKER_00: "John", SPEAKER_02: "John", SPEAKER_04: "John" (same person)
+SPEAKER_01: "Mary", SPEAKER_03: "Mary" (same person)`
+    : '';
 
   const userPrompt = `
 We have a transcript (with roles assigned). Use the known speaker data if it helps.
 
 ${contextBlock}
+
+${speakerCountInstruction}
 
 Transcript:
 ${fullTranscriptStr}
@@ -210,8 +240,8 @@ ${fullTranscriptStr}
 Return valid JSON mapping speaker labels to names, e.g.:
 {
   "SPEAKER_00": "Alice",
-  "SPEAKER_01": "Bob",
-  "SPEAKER_02": "Unknown"
+  "SPEAKER_01": "Bob", 
+  "SPEAKER_02": "Alice"  // Note that SPEAKER_00 and SPEAKER_02 are the same person
 }
 `.trim();
 
@@ -270,8 +300,11 @@ function buildSpeakerMap(
 
 // ------------------ POST HANDLER ------------------
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  console.log('[IdentifySpeakers] Request received at:', new Date().toISOString());
+  
   try {
-    const { fileName, transcript, userContext } = await request.json();
+    const { fileName, transcript, userContext, speakerCount } = await request.json();
     if (!fileName || !transcript || !Array.isArray(transcript)) {
       return NextResponse.json(
         { error: 'Invalid request data. Must provide fileName + transcript array.' },
@@ -279,33 +312,77 @@ export async function POST(request: Request) {
       );
     }
 
-    const conversationType = userContext?.conversationType || 'Other';
-    const knownSpeakers = userContext?.knownSpeakers || [];
-    const additionalNotes = userContext?.additionalNotes || '';
+    console.log(`[IdentifySpeakers] Processing file: ${fileName}, with ${transcript.length} segments`);
+    console.log(`[IdentifySpeakers] Speaker count specified: ${speakerCount || 'not specified'}`);
+
+    // Handle both string and object formats for backward compatibility
+    let conversationType = 'Other';
+    let knownSpeakers: Array<{ name: string; role: string; relevance: string }> = [];
+    let additionalNotes = '';
+    
+    if (userContext) {
+      if (typeof userContext === 'string') {
+        console.log('[IdentifySpeakers] Using legacy string userContext');
+        // Legacy format - simple string
+        additionalNotes = userContext;
+      } else {
+        console.log('[IdentifySpeakers] Using structured userContext with type:', userContext.conversationType);
+        // New structured format
+        conversationType = userContext.conversationType || 'Other';
+        knownSpeakers = userContext.knownSpeakers || [];
+        additionalNotes = userContext.additionalNotes || '';
+      }
+    }
 
     // 1) Role inference
-    const speakerRoles = await labelSpeakers(
-      fileName,
-      transcript,
-      conversationType,
-      knownSpeakers,
-      additionalNotes
-    );
-    console.log('speakerRoles:', speakerRoles);
+    console.log('[IdentifySpeakers] Starting role inference...');
+    let speakerRoles = {};
+    try {
+      speakerRoles = await labelSpeakers(
+        fileName,
+        transcript,
+        conversationType,
+        knownSpeakers,
+        additionalNotes,
+        speakerCount
+      );
+      console.log('[IdentifySpeakers] Role inference completed successfully');
+    } catch (error) {
+      console.error('[IdentifySpeakers] Role inference failed:', error);
+      return NextResponse.json({ 
+        error: `Role inference failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      }, { status: 500 });
+    }
 
     // 2) Attach roles
     const transcriptWithRoles = transcript.map((seg: any) => ({
       ...seg,
-      role: speakerRoles[seg.speaker] || 'Other',
+      role: typeof speakerRoles === 'object' && speakerRoles !== null && seg.speaker in speakerRoles 
+        ? speakerRoles[seg.speaker as keyof typeof speakerRoles] 
+        : 'Other',
     }));
 
     // 3) Name inference
-    const speakerNames = await inferNames(
-      fileName,
-      transcriptWithRoles,
-      userContext
-    );
-    console.log('speakerNames:', speakerNames);
+    console.log('[IdentifySpeakers] Starting name inference...');
+    let speakerNames = {};
+    try {
+      speakerNames = await inferNames(
+        fileName,
+        transcriptWithRoles,
+        {
+          conversationType,
+          knownSpeakers,
+          additionalNotes,
+          speakerCount
+        }
+      );
+      console.log('[IdentifySpeakers] Name inference completed successfully');
+    } catch (error) {
+      console.error('[IdentifySpeakers] Name inference failed:', error);
+      return NextResponse.json({ 
+        error: `Name inference failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      }, { status: 500 });
+    }
 
     // 4) Combine
     const speakerLabels = buildSpeakerMap(
@@ -315,12 +392,19 @@ export async function POST(request: Request) {
       speakerNames
     );
 
+    const totalTime = Date.now() - startTime;
+    console.log(`[IdentifySpeakers] Request completed in ${totalTime}ms`);
+    
     return NextResponse.json({
       success: true,
       speakerLabels,
+      processingTimeMs: totalTime
     });
   } catch (error) {
-    console.error('Error in identify-speakers route:', error);
-    return NextResponse.json({ error: 'Failed to identify speakers.' }, { status: 500 });
+    const totalTime = Date.now() - startTime;
+    console.error(`[IdentifySpeakers] Error (after ${totalTime}ms):`, error);
+    return NextResponse.json({ 
+      error: `Failed to identify speakers: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    }, { status: 500 });
   }
 }
