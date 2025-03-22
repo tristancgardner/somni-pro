@@ -12,6 +12,7 @@ import SummarizeAgent from "@/components/agents/SummarizeAgent";
 import SortDialogAgent from "@/components/agents/SortDialogAgent";
 import StorylineAgent from "@/components/agents/StorylineAgent";
 import { toast } from 'react-hot-toast';
+import FileSpeakers from "@/components/FileSpeakers";
 
 type ProjectFile = {
   id: string;
@@ -1362,7 +1363,12 @@ export default function TranscribePage() {
                                                                     className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
                                                                 />
                                                             </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{file.filename}</td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                                                <div>
+                                                                    {file.filename}
+                                                                    <FileSpeakers fileKey={file.key} downloadUrl={file.downloadUrl} />
+                                                                </div>
+                                                            </td>
                                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
                                                                 <div className="flex items-center justify-end gap-4">
                                                                     <button
