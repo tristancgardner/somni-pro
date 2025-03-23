@@ -13,6 +13,7 @@ import SortDialogAgent from "@/components/agents/SortDialogAgent";
 import StorylineAgent from "@/components/agents/StorylineAgent";
 import { toast } from 'react-hot-toast';
 import FileSpeakers from "@/components/FileSpeakers";
+import MediaBin from "@/components/MediaBin";
 
 type ProjectFile = {
   id: string;
@@ -1314,149 +1315,21 @@ export default function TranscribePage() {
                             )}
                             
                             {/* Transcription List for Selected Project */}
-                            <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
-                                {transcriptionError && (
-                                    <div className="mb-4 bg-red-900/30 border border-red-600 text-red-400 px-4 py-3 rounded">
-                                        {transcriptionError}
-                                    </div>
-                                )}
-                                
-                                {/* REST OF THE EXISTING TRANSCRIPTION LIST CODE */}
-                                
-                                {getCurrentPageTranscriptions().length > 0 ? (
-                                    <>
-                                        <div className="overflow-x-auto">
-                                            <table className="min-w-full bg-black/70 rounded-lg">
-                                                <thead className="border-b border-gray-700">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-10">
-                                                            <div className="flex items-center gap-2">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={(selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length && getCurrentPageTranscriptions().length > 0}
-                                                                    onChange={() => {
-                                                                        if ((selectedProject ? projectSelectedFiles : selectedFiles).length === getCurrentPageTranscriptions().length) {
-                                                                            clearSelectedFiles();
-                                                                        } else {
-                                                                            selectAllFiles();
-                                                                        }
-                                                                    }}
-                                                                    className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
-                                                                />
-                                                                <span className="sr-only">Select All</span>
-                                                            </div>
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">File Name</th>
-                                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-700">
-                                                    {getCurrentPageTranscriptions().map((file, index) => (
-                                                        <tr key={index} className="hover:bg-gray-800/50">
-                                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={selectedProject 
-                                                                        ? projectSelectedFiles.includes(file.key) 
-                                                                        : selectedFiles.includes(file.key)}
-                                                                    onChange={() => handleFileSelection(file.key)}
-                                                                    className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
-                                                                />
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                                                                <div>
-                                                                    {file.filename}
-                                                                    <FileSpeakers fileKey={file.key} downloadUrl={file.downloadUrl} />
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                                                <div className="flex items-center justify-end gap-4">
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            viewTranscription(file.downloadUrl, file);
-                                                                        }}
-                                                                        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-full group relative"
-                                                                        title="View"
-                                                                    >
-                                                                        <FiFileText className="text-lg" />
-                                                                        <span className="absolute hidden group-hover:block bg-gray-900 text-xs px-2 py-1 rounded shadow-lg -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                                                                            View
-                                                                        </span>
-                                                                    </button>
-                                                                    <a 
-                                                                        href={file.downloadUrl}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-full group relative"
-                                                                        title="Download"
-                                                                    >
-                                                                        <FiDownload className="text-lg" />
-                                                                        <span className="absolute hidden group-hover:block bg-gray-900 text-xs px-2 py-1 rounded shadow-lg -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                                                                            Download
-                                                                        </span>
-                                                                    </a>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            initiateDeleteFile(file.key, file.filename);
-                                                                        }}
-                                                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-full group relative"
-                                                                        title="Delete"
-                                                                    >
-                                                                        <FiTrash2 className="text-lg" />
-                                                                        <span className="absolute hidden group-hover:block bg-gray-900 text-xs px-2 py-1 rounded shadow-lg -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                                                                            Delete
-                                                                        </span>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center mt-4">
-                                            <button
-                                                onClick={() => handlePaginationChange('prev')}
-                                                disabled={resultsPage <= 1}
-                                                className={`flex items-center gap-1 px-3 py-1 rounded ${
-                                                    resultsPage <= 1
-                                                    ? "text-gray-500 cursor-not-allowed"
-                                                    : "text-blue-400 hover:text-blue-300"
-                                                }`}
-                                            >
-                                                <FiChevronLeft /> Previous
-                                            </button>
-                                            <span className="text-sm text-gray-400">
-                                                Page {resultsPage}
-                                            </span>
-                                            <button
-                                                onClick={() => handlePaginationChange('next')}
-                                                disabled={!hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage}
-                                                className={`flex items-center gap-1 px-3 py-1 rounded ${
-                                                    !hasMoreTranscriptions && transcriptions.length <= resultsPage * maxResultsPerPage
-                                                    ? "text-gray-500 cursor-not-allowed"
-                                                    : "text-blue-400 hover:text-blue-300"
-                                                }`}
-                                            >
-                                                Next <FiChevronRight />
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center py-8 text-gray-400">
-                                        {isLoadingTranscriptions ? (
-                                            <div className="flex justify-center">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                                            </div>
-                                        ) : (
-                                            "No files found in this project. Add files to get started."
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                            <MediaBin
+                                transcriptions={getCurrentPageTranscriptions()}
+                                selectedFiles={selectedProject ? projectSelectedFiles : selectedFiles}
+                                onSelectFile={handleFileSelection}
+                                onViewFile={viewTranscription}
+                                onDeleteFile={initiateDeleteFile}
+                                resultsPage={resultsPage}
+                                maxResultsPerPage={maxResultsPerPage}
+                                hasMoreTranscriptions={hasMoreTranscriptions}
+                                onPageChange={handlePaginationChange}
+                                isLoadingTranscriptions={isLoadingTranscriptions}
+                                clearSelectedFiles={clearSelectedFiles}
+                                selectAllFiles={selectAllFiles}
+                                currentProject={!!selectedProject}
+                            />
                             
                             {/* Agents Section */}
                             <div className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
