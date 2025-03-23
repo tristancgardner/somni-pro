@@ -1,43 +1,74 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import PageHeader from "@/components/PageHeader";
-import Login from "@/components/login";
-import BackgroundWrapper from "@/components/BackgroundWrapper";
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Github } from 'lucide-react';
+import Image from "next/image";
+import { Logo } from "@/components/logo";
 
 export default function LoginPage() {
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    useEffect(() => {
-        setIsLoaded(true);
-    }, []);
+    const loginWithGoogle = async () => {
+        setIsLoading(true);
+        try {
+            await signIn("google", { callbackUrl: "/dashboard" });
+        } catch (error) {
+            console.error("Login failed:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loginWithGithub = async () => {
+        setIsLoading(true);
+        try {
+            await signIn("github", { callbackUrl: "/dashboard" });
+        } catch (error) {
+            console.error("Login failed:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <BackgroundWrapper imagePath='/images/electric_timeline.png'>
-            <main className='flex min-h-screen flex-col items-center p-24 pt-9'>
-                <div className='w-full max-w-7xl mx-auto relative'>
-                    <PageHeader />
-                    <div className='flex flex-col items-center justify-center mt-[150px]'>
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className="mb-10 text-center"
-                        >
-                            <h1 className="text-3xl font-bold text-white mb-2">Welcome to Somni Pro</h1>
-                            <p className="text-gray-300">Sign in with your social account to continue</p>
-                        </motion.div>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3, duration: 0.5 }}
-                        >
-                            <Login />
-                        </motion.div>
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12 sm:px-6 lg:px-8">
+            <Card className="w-full max-w-md">
+                <CardHeader className="space-y-1 text-center">
+                    <div className="flex justify-center mb-4">
+                        <Logo size={48} />
                     </div>
-                </div>
-            </main>
-        </BackgroundWrapper>
+                    <CardTitle className="text-2xl font-bold tracking-tight">Sign in to SOMNI Pro</CardTitle>
+                    <CardDescription>Choose your preferred sign in method</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                    <Button
+                        variant="outline"
+                        onClick={loginWithGoogle}
+                        disabled={isLoading}
+                        className="flex items-center justify-center gap-2"
+                    >
+                        <Image src="/google-logo.svg" width={16} height={16} alt="Google" className="h-4 w-4" />
+                        Sign in with Google
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={loginWithGithub}
+                        disabled={isLoading}
+                        className="flex items-center justify-center gap-2"
+                    >
+                        <Github className="h-4 w-4" />
+                        Sign in with GitHub
+                    </Button>
+                </CardContent>
+                <CardFooter className="flex flex-col items-center justify-center text-center">
+                    <p className="text-sm text-muted-foreground">
+                        By signing in, you agree to our Terms of Service and Privacy Policy.
+                    </p>
+                </CardFooter>
+            </Card>
+        </div>
     );
 }

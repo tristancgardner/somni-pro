@@ -1,0 +1,26 @@
+<svg width="800" height="500" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="500" fill="#F3F4F6"/>
+  <rect x="40" y="40" width="720" height="420" rx="8" fill="#E5E7EB"/>
+  <rect x="60" y="80" width="280" height="160" rx="4" fill="#D1D5DB"/>
+  <rect x="60" y="260" width="280" height="160" rx="4" fill="#D1D5DB"/>
+  <rect x="360" y="80" width="380" height="340" rx="4" fill="#D1D5DB"/>
+  
+  <!-- UI Elements -->
+  <rect x="80" y="100" width="240" height="16" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="126" width="180" height="12" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="148" width="220" height="12" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="170" width="160" height="12" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="192" width="200" height="12" rx="2" fill="#9CA3AF"/>
+  
+  <rect x="80" y="280" width="240" height="16" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="306" width="180" height="12" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="328" width="220" height="12" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="350" width="160" height="12" rx="2" fill="#9CA3AF"/>
+  <rect x="80" y="372" width="200" height="12" rx="2" fill="#9CA3AF"/>
+  
+  <rect x="380" y="100" width="340" height="20" rx="2" fill="#9CA3AF"/>
+  <rect x="380" y="140" width="340" height="260" rx="4" fill="#9CA3AF"/>
+  
+  <!-- Text -->
+  <text x="400" y="250" font-family="Arial" font-size="24" font-weight="bold" fill="#6B7280">SOMNI Pro Dashboard</text>
+</svg> 

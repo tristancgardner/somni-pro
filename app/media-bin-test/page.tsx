@@ -143,7 +143,7 @@ export default function MediaBinTestPage() {
   };
 
   return (
-    <BackgroundWrapper imagePath="/images/electric_timeline.png">
+    <BackgroundWrapper>
       <PageHeader />
       
       <main className="container mx-auto px-4 py-8">

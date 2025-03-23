@@ -230,7 +230,7 @@ export default function Transcribe2Page() {
   };
 
   return (
-    <BackgroundWrapper imagePath="/images/electric_timeline.png">
+    <BackgroundWrapper>
       <main className='flex min-h-screen flex-col items-center justify-between p-24 pt-9'>
         <div className='w-full max-w-7xl mx-auto relative'>
           <PageHeader />

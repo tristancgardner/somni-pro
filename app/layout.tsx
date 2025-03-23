@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import "./styles/globals.css";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
-import SessionProvider from "@/components/SessionProvider";
+import SessionProvider from "@/components/auth/session-provider";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-    title: "Home",
-    description: "Welcome to Somni Pro - Your gateway to advanced speaker diarization and more.",
+    title: "SOMNI Pro",
+    description: "Advanced audio processing and analysis for filmmakers and content creators",
     icons: {
         icon: "/branding/Icon_White.svg",
     },
@@ -18,14 +19,21 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang='en'>
-            <body className='antialiased'>
-                <SessionProvider>
-                    <BackgroundWrapper imagePath='/images/electric_timeline.png'>
-                        {children}
-                    </BackgroundWrapper>
-                    <Toaster />
-                </SessionProvider>
+        <html lang='en' suppressHydrationWarning>
+            <body className='antialiased bg-background text-foreground'>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <SessionProvider>
+                        <BackgroundWrapper>
+                            {children}
+                        </BackgroundWrapper>
+                        <Toaster />
+                    </SessionProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

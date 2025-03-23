@@ -11,7 +11,7 @@ const projectSchema = z.object({
 });
 
 // GET /api/projects - Fetch all projects for current user
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -31,10 +31,10 @@ export async function GET(req: NextRequest) {
     // Get all projects for this user
     const projects = await prisma.project.findMany({
       where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
     
-    return NextResponse.json({ projects });
+    return NextResponse.json(projects);
   } catch (error) {
     console.error('Error fetching projects:', error);
     return NextResponse.json(
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/projects - Create a new project
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -62,26 +62,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Parse request body
-    const { name, description } = await req.json();
+    const { name, description } = await request.json();
     
-    if (!name || name.trim() === '') {
+    // Validate input
+    if (!name || typeof name !== 'string') {
       return NextResponse.json(
         { error: 'Project name is required' },
         { status: 400 }
       );
     }
     
-    // Create new project
+    // Create project in database
     const project = await prisma.project.create({
       data: {
         name,
-        description,
+        description: description || '',
         userId: user.id,
       },
     });
     
-    return NextResponse.json({ project }, { status: 201 });
+    return NextResponse.json(project);
   } catch (error) {
     console.error('Error creating project:', error);
     return NextResponse.json(

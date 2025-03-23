@@ -1,53 +1,114 @@
-`<think>`You're asking me to create a prompt with instructions that you can give to a new chat. Based on our conversation, I understand you want to summarize the issue and solution regarding the empty WAV files being saved to the database from your upload-audio process.
+## Step 13: Update the Login Page
 
-I'll create a clear, comprehensive prompt that explains:
-
-1. The problem that was identified (empty WAV files getting saved to the database)
-2. The solution implemented (filtering out all WAV files in the handleSaveProjectInfo function)
-3. Any context needed to understand the issue
-
-This will allow you to quickly brief another assistant or developer on what was done.`</think>`# Prompt: Fixing WAV Files Being Saved to Database
-
-I have an issue in my upload-audio application where empty WAV files (0B) are being unnecessarily saved to my database during file processing.
-
-The issue is in the `handleSaveProjectInfo` function in `app/upload-audio/page.tsx`. Currently, when files are uploaded and associated with a project, the code is including all successfully uploaded files, including WAV files. However, WAV files should never be saved to the database - only their processed JSON transcription results should be stored.
-
-Please:
-
-1. Examine the `handleSaveProjectInfo` function that handles file associations
-2. Modify the function to filter out ALL WAV files (based on filename ending with '.wav')
-3. Only allow non-WAV files (like JSON files) to be included in the `successfulUploads` array
-4. Be careful not to change any other functionality - everything else should work exactly the same
-
-The core issue is in the filtering of `uploadStatuses` where we should exclude all WAV files, regardless of their size.
-
-Here's the relevant part of my code to fix:
+```plaintext
+// Update the login page
+UPDATE app/login/page.tsx
+```
 
 ```typescript
-const handleSaveProjectInfo = async () => {
-  if (!session?.user?.email) return;
-  
-  try {
-    // Determine what we're saving based on context - if this was after file upload or job submission
-    const successfulUploads = uploadStatuses
-      .filter(status => status.status === 'success' && status.location)
-      .map(status => ({
-        s3Key: status.location,
-        filename: status.filename
-      }));
-  
-    // If we have successful uploads, associate those files
-    // Otherwise, just save the project and description for this session
-    const payload = {
-      sessionId: sessionId,
-      projectId: selectedProjectId,
-      description: fileDescription
-    };
-  
-    // Only include files if we have successful uploads
-    if (successfulUploads.length > 0) {
-      Object.assign(payload, { files: successfulUploads });
+"use client"
+import { useState } from "react"
+import { signIn } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Github } from 'lucide-react'
+import Image from "next/image"
+import { Logo } from "@/components/logo"
+
+export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  const loginWithGoogle = async () => {
+    setIsLoading(true)
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" })
+    } catch (error) {
+      console.error("Login failed:", error)
+    } finally {
+      setIsLoading(false)
     }
-  
-    // ... rest of function ...
+  }
+
+  const loginWithGithub = async () => {
+    setIsLoading(true)
+    try {
+      await signIn("github", { callbackUrl: "/dashboard" })
+    } catch (error) {
+      console.error("Login failed:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-4">
+            <Logo size={48} />
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">Sign in to SOMNI Pro</CardTitle>
+          <CardDescription>Choose your preferred sign in method</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Button
+            variant="outline"
+            onClick={loginWithGoogle}
+            disabled={isLoading}
+            className="flex items-center justify-center gap-2"
+          >
+            <Image src="/google-logo.svg" width={16} height={16} alt="Google" className="h-4 w-4" />
+            Sign in with Google
+          </Button>
+          <Button
+            variant="outline"
+            onClick={loginWithGithub}
+            disabled={isLoading}
+            className="flex items-center justify-center gap-2"
+          >
+            <Github className="h-4 w-4" />
+            Sign in with GitHub
+          </Button>
+        </CardContent>
+        <CardFooter className="flex flex-col items-center justify-center text-center">
+          <p className="text-sm text-muted-foreground">
+            By signing in, you agree to our Terms of Service and Privacy Policy.
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
+  )
+}
 ```
+
+## Step 14: Final Cleanup and Integration
+
+```plaintext
+// Remove any old routes or components that are no longer needed
+DELETE app/upload-audio/page.tsx
+DELETE app/file-viewer/page.tsx
+DELETE app/features/page.tsx
+```
+
+```plaintext
+// Update the lib/db.ts file to ensure it's properly connected to your database
+UPDATE lib/db.ts
+```
+
+```typescript
+import { PrismaClient } from "@prisma/client"
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient }
+
+export const db =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  })
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db
+
+export default db
+```
+
+These instructions should help Cursor implement the remaining pages and update the navigation structure to replace the old navbar with our new components. The implementation follows a modern, responsive design pattern with a clear navigation structure and consistent UI elements throughout the application.

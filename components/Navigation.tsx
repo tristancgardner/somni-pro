@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const Navigation = () => {
     const pathname = usePathname();
 
     return (
-        <nav className='flex items-center'>
+        <nav className='flex justify-between items-center w-full'>
             <ul className='flex gap-8 items-center'>
                 <li
                     className={
-                        pathname === "/" ? "text-[#45b7aa]" : "text-white"
+                        pathname === "/" ? "text-[#45b7aa]" : "text-foreground"
                     }
                 >
                     <Link
@@ -25,7 +26,7 @@ const Navigation = () => {
                     className={
                         pathname === "/upload-audio"
                             ? "text-[#45b7aa]"
-                            : "text-white"
+                            : "text-foreground"
                     }
                 >
                     <Link
@@ -39,7 +40,7 @@ const Navigation = () => {
                     className={
                         pathname === "/file-viewer"
                             ? "text-[#45b7aa]"
-                            : "text-white"
+                            : "text-foreground"
                     }
                 >
                     <Link
@@ -53,7 +54,7 @@ const Navigation = () => {
                     className={
                         pathname === "/features"
                             ? "text-[#45b7aa]"
-                            : "text-white"
+                            : "text-foreground"
                     }
                 >
                     <Link
@@ -64,6 +65,10 @@ const Navigation = () => {
                     </Link>
                 </li>
             </ul>
+            
+            <div className="flex items-center">
+                <ModeToggle />
+            </div>
         </nav>
     );
 };
