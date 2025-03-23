@@ -9,14 +9,14 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export default function LoginLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang='en'>
-            <body className='antialiased'>{children}</body>
-        </html>
+        <div className="login-container">
+            {children}
+        </div>
     );
 }

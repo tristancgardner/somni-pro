@@ -29,7 +29,7 @@ export function TranscriptionProgress() {
               style={{ width: `${transcribedPercentage}%` }}
             ></div>
             <div
-              className="h-full bg-yellow-500 absolute top-0"
+              className="h-full bg-amber-500 dark:bg-amber-600 absolute top-0"
               style={{
                 left: `${transcribedPercentage}%`,
                 width: `${processingPercentage}%`,

@@ -71,7 +71,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -83,7 +83,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Audio Files</CardTitle>
             <Headphones className="h-4 w-4 text-muted-foreground" />
@@ -95,7 +95,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Transcriptions</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -107,7 +107,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Duration</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -124,7 +124,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="col-span-1">
+        <Card className="col-span-1 bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Recent Projects</CardTitle>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
+        <Card className="col-span-1 bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Recent Files</CardTitle>
@@ -217,8 +217,8 @@ export default function DashboardPage() {
                     <div
                       className={`px-2 py-1 text-xs rounded-full ${
                         file.status === "transcribed"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100"
+                          ? "bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300"
+                          : "bg-yellow-500/20 text-yellow-700 dark:bg-yellow-500/30 dark:text-yellow-300"
                       }`}
                     >
                       {file.status === "transcribed" ? "Transcribed" : "Processing"}
