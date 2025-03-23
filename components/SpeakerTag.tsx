@@ -6,13 +6,6 @@ interface SpeakerTagProps {
 }
 
 const SpeakerTag: React.FC<SpeakerTagProps> = ({ name, role }) => {
-  // Clean up the name if it still contains "SPEAKER_"
-  const displayName = name.includes('SPEAKER_') 
-    ? name.replace('SPEAKER_', 'Speaker ')
-    : name.startsWith('Speaker SPEAKER_')
-      ? name.replace('Speaker SPEAKER_', 'Speaker ')
-      : name;
-      
   // Determine background color based on role
   const getBgColor = () => {
     if (!role) return 'bg-blue-600';
@@ -31,7 +24,7 @@ const SpeakerTag: React.FC<SpeakerTagProps> = ({ name, role }) => {
 
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${getBgColor()} mr-1`}>
-      {displayName}
+      {name}
     </span>
   );
 };

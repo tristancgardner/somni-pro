@@ -14,7 +14,7 @@ type TranscriptionFile = {
 };
 
 type Speaker = {
-  id?: string;
+  id: string;
   name: string;
   role: string;
 };
@@ -79,10 +79,10 @@ const MediaBin: React.FC<MediaBinProps> = ({
       
       try {
         // Fetch the transcript JSON
-        const response = await fetch('/api/fetch-transcript', {
+        const response = await fetch('/api/fetch-transcription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ downloadUrl: file.downloadUrl }),
+          body: JSON.stringify({ jsonUrl: file.downloadUrl }),
         });
 
         if (!response.ok) {
@@ -93,77 +93,54 @@ const MediaBin: React.FC<MediaBinProps> = ({
         
         let speakers: Speaker[] = [];
         
-        // Debug log to see the structure of the transcript data
-        console.log(`Transcript data for ${file.filename}:`, {
-          hasSpeakerMap: !!data.speakerMap,
-          speakerMapSample: data.speakerMap ? Object.keys(data.speakerMap).slice(0, 3) : null,
-          hasTranscript: !!data.transcript,
-          transcriptSample: data.transcript && Array.isArray(data.transcript) ? 
-            data.transcript.slice(0, 2) : null
-        });
-        
         // Extract speakers from speakerMap if available
         if (data.speakerMap) {
           const speakerMap: SpeakerMap = data.speakerMap;
-          const speakerEntries = Object.entries(speakerMap);
+          const uniqueSpeakers = new Map<string, Speaker>();
           
-          console.log("Speaker entries sample:", speakerEntries.slice(0, 3));
-          
-          // First, collect all speakers from the speakerMap
-          const allSpeakers: Speaker[] = speakerEntries.map(([speakerId, speakerInfo]) => {
-            // Use the real name if available, otherwise use a formatted ID
-            let displayName = speakerInfo.name;
+          Object.entries(speakerMap).forEach(([speakerId, speaker]) => {
+            // Use speaker ID as name if no name is provided
+            const name = speaker.name || `Speaker ${speakerId}`;
             
-            // If no name is provided, format the ID
-            if (!displayName || displayName.trim() === '') {
-              displayName = speakerId.startsWith('SPEAKER_') ? 
-                `Speaker ${speakerId.replace('SPEAKER_', '')}` : 
-                `Speaker ${speakerId}`;
-            }
-            
-            return {
-              id: speakerId,
-              name: displayName,
-              role: speakerInfo.role || ''
-            };
-          });
-          
-          // Now filter out duplicates if needed
-          const uniqueSpeakerMap = new Map<string, Speaker>();
-          allSpeakers.forEach(speaker => {
-            if (!uniqueSpeakerMap.has(speaker.id)) {
-              uniqueSpeakerMap.set(speaker.id, speaker);
+            if (!uniqueSpeakers.has(name)) {
+              uniqueSpeakers.set(name, { 
+                id: speakerId,
+                name, 
+                role: speaker.role || ''
+              });
             }
           });
           
-          speakers = Array.from(uniqueSpeakerMap.values());
+          speakers = Array.from(uniqueSpeakers.values());
         } 
         // If no speakerMap, try to extract from transcript
         else if (data.transcript && Array.isArray(data.transcript)) {
-          const speakerIds = new Set<string>();
+          // Use a map to collect unique speakers by ID
+          const speakerMap = new Map<string, Speaker>();
           
-          // Collect all unique speaker IDs
+          // Process each transcript segment
           data.transcript.forEach((segment: any) => {
-            if (segment.speaker) {
-              speakerIds.add(segment.speaker);
+            if (segment.speaker && !speakerMap.has(segment.speaker)) {
+              const speakerId = segment.speaker;
+              // Format the name nicely if it's in SPEAKER_XX format and no name is provided
+              const name = segment.name || (
+                speakerId.startsWith('SPEAKER_') ? 
+                `Speaker ${speakerId.replace('SPEAKER_', '')}` : 
+                speakerId
+              );
+              
+              speakerMap.set(speakerId, {
+                id: speakerId,
+                name: name,
+                role: segment.role || ''
+              });
             }
           });
           
-          // Create basic speaker objects
-          speakers = Array.from(speakerIds).map(id => {
-            const displayName = id.startsWith('SPEAKER_') ? 
-              `Speaker ${id.replace('SPEAKER_', '')}` : 
-              `Speaker ${id}`;
-              
-            return {
-              id,
-              name: displayName,
-              role: ''
-            };
-          });
+          // Convert map values to array
+          speakers = Array.from(speakerMap.values());
+          console.log(`Speakers extracted from transcript for ${file.filename}:`, speakers);
         }
-        
-        console.log(`Extracted speakers for ${file.filename}:`, speakers);
         
         // Update the file with speakers information
         setFilesWithSpeakers(prev => 
@@ -244,21 +221,17 @@ const MediaBin: React.FC<MediaBinProps> = ({
                         {file.filename}
                         <div className="flex flex-wrap gap-1 mt-1">
                           {file.speakers && file.speakers.length > 0 ? (
-                            <>
-                              {file.speakers.map((speaker, i) => (
-                                <SpeakerTag 
-                                  key={i} 
-                                  name={speaker.name} 
-                                  role={speaker.role} 
-                                />
-                              ))}
-                            </>
+                            file.speakers.map((speaker, i) => (
+                              <SpeakerTag 
+                                key={i} 
+                                name={speaker.name} 
+                                role={speaker.role} 
+                              />
+                            ))
                           ) : (
                             loadingSpeakers[file.key] ? (
                               <span className="text-xs text-gray-400 italic">Loading speakers...</span>
-                            ) : (
-                              <span className="text-xs text-gray-400 italic">No speakers found</span>
-                            )
+                            ) : null
                           )}
                         </div>
                       </div>
