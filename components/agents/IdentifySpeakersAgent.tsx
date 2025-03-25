@@ -90,16 +90,46 @@ export default function IdentifySpeakersAgent({
 
   /**
    * Fetch the diarizer JSON from file.downloadUrl
-   * or if you want, directly fetch from S3. 
-   * In your snippet, you used a separate route `/api/fetch-transcription`
-   * but you can call the `downloadUrl` directly if it's public.
+   * using our server-side proxy to avoid CORS issues
    */
   const fetchTranscriptJson = async (downloadUrl: string) => {
-    const res = await fetch(downloadUrl);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch transcription from ${downloadUrl}`);
+    try {
+      console.log(`Requesting transcript via server proxy from: ${downloadUrl}`);
+      const res = await fetch("/api/fetch-transcript", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ downloadUrl }),
+      });
+      
+      if (!res.ok) {
+        console.error(`Failed to fetch transcription with status: ${res.status} ${res.statusText}`);
+        throw new Error(`Failed to fetch transcription: ${res.status} ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      console.error(`Error fetching transcript: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
     }
-    return res.json();
+  };
+
+  // Add this function to refresh a file's download URL if needed
+  const refreshDownloadUrl = async (fileKey: string): Promise<string> => {
+    try {
+      // Call your API endpoint to get a fresh signed URL for this file
+      const response = await fetch(`/api/refresh-file-url?key=${encodeURIComponent(fileKey)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to refresh URL: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.downloadUrl;
+    } catch (error) {
+      console.error("Error refreshing download URL:", error);
+      throw new Error("Unable to refresh file access. Please try again later.");
+    }
   };
 
   /** 
@@ -120,13 +150,45 @@ export default function IdentifySpeakersAgent({
     try {
       // We process a single file at a time
       const file = selectedFiles[currentFileIndex];
-      // 1) fetch the transcript from your JSON
-      const transcriptData = await fetchTranscriptJson(file.downloadUrl);
+      
+      // Validate the downloadUrl
+      if (!file.downloadUrl) {
+        throw new Error(`Missing download URL for file: ${file.filename}`);
+      }
+      
+      // Log the URL we're trying to fetch
+      console.log(`Processing file: ${file.filename}`);
+      
+      // 1) fetch the transcript from your JSON using server-side proxy
+      let transcriptData;
+      try {
+        transcriptData = await fetchTranscriptJson(file.downloadUrl);
+      } catch (fetchError) {
+        console.error("Failed to fetch transcript, trying to refresh URL:", fetchError);
+        
+        // If fetch fails, try to refresh the URL once
+        toast.info("File access error. Attempting to refresh access...");
+        
+        try {
+          // Try to get a fresh URL and retry the fetch
+          const freshUrl = await refreshDownloadUrl(file.key);
+          transcriptData = await fetchTranscriptJson(freshUrl);
+          
+          // Update the file object with the new URL
+          const updatedFile = { ...file, downloadUrl: freshUrl };
+          selectedFiles[currentFileIndex] = updatedFile;
+          
+        } catch (refreshError) {
+          console.error("Failed to refresh URL:", refreshError);
+          throw new Error("The file could not be accessed. Please try again later.");
+        }
+      }
 
-      if (!Array.isArray(transcriptData?.transcript)) {
-        toast.error(`Invalid transcript data for ${file.filename}`);
+      if (!transcriptData || !Array.isArray(transcriptData?.transcript)) {
+        toast.error(`Invalid transcript data for ${file.filename}. Expected array of segments.`);
         return;
       }
+      
       setCurrentTranscript(transcriptData);
 
       // Build the userContext from the table
@@ -139,6 +201,12 @@ export default function IdentifySpeakersAgent({
         userContext, // e.g. "Trent is Father. Amber is Mother."
       };
 
+      console.log("Sending payload to identify-speakers API:", {
+        fileName: file.filename,
+        transcriptLength: transcriptData.transcript.length,
+        userContext
+      });
+
       // 3) POST to /api/agents/identify-speakers
       const response = await fetch("/api/agents/identify-speakers", {
         method: "POST",
@@ -146,11 +214,19 @@ export default function IdentifySpeakersAgent({
         body: JSON.stringify(bodyPayload),
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        toast.error(`Error for ${file.filename}: ${data.error || "Unknown error"}`);
-        return;
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error("Error parsing API response:", jsonError);
+        throw new Error("Failed to parse API response");
       }
+
+      if (!response.ok) {
+        throw new Error(`API error (${response.status}): ${data?.error || "Unknown error"}`);
+      }
+
+      console.log("Speaker labels received:", data.speakerLabels);
 
       // 4) Save the speakerLabels returned
       setSpeakerLabels(data.speakerLabels || {});
