@@ -45,7 +45,7 @@ export async function DELETE(
 
     // First, attempt to remove the file from any projects it's associated with
     try {
-      await prisma.projectFile.deleteMany({
+      await prisma.transcriptionFile.deleteMany({
         where: {
           s3Key: fileKey
         }
