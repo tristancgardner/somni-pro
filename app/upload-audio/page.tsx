@@ -827,21 +827,6 @@ export default function UploadTestPage() {
     setViewerOpen(true);
   };
 
-  // Add this ProcessingMessage component before the renderModal function
-  const ProcessingMessage = ({ jobCount = 1 }: { jobCount?: number }) => {
-    return (
-      <div className="flex flex-col items-center text-center py-6">
-        <div className="w-14 h-14 border-4 border-gray-600 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-        <h3 className="text-xl font-semibold text-white mb-3">
-          Transcribing {jobCount} {jobCount === 1 ? 'file' : 'files'}...
-        </h3>
-        <p className="text-gray-300 max-w-md">
-          This might take a few minutes. The transcribed files will show up under the results section as soon as they are done.
-        </p>
-      </div>
-    );
-  };
-
   // Show appropriate modal based on settings
   const renderModal = () => {
     if (!showProjectModal) return null;
@@ -851,15 +836,6 @@ export default function UploadTestPage() {
         <h2 className="text-xl font-semibold mb-4 text-white">
           {transcriptions.length > 0 ? "Reconnect Files to Project" : "While we're waiting, tell us about these files"}
         </h2>
-        
-        {/* Add processing message at the top of the modal when jobs are being processed */}
-        {jobs.length > 0 && jobStatuses.some(status => 
-          status.status === 'RUNNING' || status.status === 'STARTING' || status.status === 'SUBMITTED'
-        ) && (
-          <div className="mb-6 bg-indigo-900/20 border border-indigo-800 rounded-lg p-4">
-            <ProcessingMessage jobCount={jobs.length} />
-          </div>
-        )}
         
         {transcriptions.length > 0 && (
           <div className="mb-4 p-4 bg-blue-900/30 border-l-4 border-blue-500 text-blue-200 text-sm">
@@ -1245,25 +1221,16 @@ export default function UploadTestPage() {
                     </button>
                   )}
                   
-                  {/* Add the processing message display when jobs are running */}
-                  {jobs.length > 0 && jobStatuses.some(status => 
-                    status.status === 'RUNNING' || status.status === 'STARTING' || status.status === 'SUBMITTED'
-                  ) && (
-                    <div className="mt-6 bg-indigo-900/30 border border-indigo-800 rounded-lg">
-                      <ProcessingMessage jobCount={jobs.length} />
-                    </div>
-                  )}
-                  
-                  {/* Status messages with updated styling to match the screenshot */}
+                  {/* Status messages remain the same */}
                   {jobMessage && (
-                    <div className="mt-6 p-4 rounded-lg bg-green-900/10 border-l-4 border-green-500 text-green-300">
-                      <p className="m-0 font-medium">{jobMessage}</p>
+                    <div className="mt-6 p-4 rounded bg-green-900/20 border-l-4 border-green-600 text-green-400">
+                      <p className="m-0 font-bold">{jobMessage}</p>
                     </div>
                   )}
                   
                   {jobError && (
-                    <div className="mt-6 p-4 rounded-lg bg-red-900/10 border-l-4 border-red-500 text-red-300">
-                      <p className="m-0 font-medium">{jobError}</p>
+                    <div className="mt-6 p-4 rounded bg-red-900/20 border-l-4 border-red-600 text-red-400">
+                      <p className="m-0 font-bold">{jobError}</p>
                     </div>
                   )}
                   
@@ -1278,7 +1245,7 @@ export default function UploadTestPage() {
                             onChange={() => setAutoRefresh(!autoRefresh)}
                             className="mr-2"
                           />
-                          Auto-refresh ({autoRefresh ? '15s' : 'off'})
+                          Auto-refresh (15s)
                         </label>
                         <button
                           onClick={(e) => {
@@ -1309,45 +1276,22 @@ export default function UploadTestPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {jobs.length === 1 ? (
-                              // Single job display - show the full location path
-                              jobs.map((job, index) => {
-                                const statusRecord = jobStatuses.find(status => status.jobId === job.jobId);
-                                const status = statusRecord?.status || 'Unknown';
-                                const statusColorClass = getStatusBadgeColor(status);
-                                
-                                return (
-                                  <tr key={index} className="border-b border-gray-800">
-                                    <td className="py-3 px-4 text-sm text-gray-300">
-                                      {`${jobs.length} ${jobs.length === 1 ? 'file' : 'files'} in input/${session?.user?.email}/${sessionId}/`}
-                                    </td>
-                                    <td className="py-3 px-4">
-                                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${statusColorClass}`}>
-                                        {status}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                            ) : (
-                              // Multiple jobs display - keep normal table
-                              jobs.map((job, index) => {
-                                const statusRecord = jobStatuses.find(status => status.jobId === job.jobId);
-                                const status = statusRecord?.status || 'Unknown';
-                                const statusColorClass = getStatusBadgeColor(status);
-                                
-                                return (
-                                  <tr key={index} className="border-b border-gray-800">
-                                    <td className="py-3 px-4 text-sm text-gray-300">{job.fileName}</td>
-                                    <td className="py-3 px-4">
-                                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${statusColorClass}`}>
-                                        {status}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                            )}
+                            {jobs.map((job, index) => {
+                              const statusRecord = jobStatuses.find(status => status.jobId === job.jobId);
+                              const status = statusRecord?.status || 'Unknown';
+                              const statusColorClass = getStatusBadgeColor(status);
+                              
+                              return (
+                                <tr key={index} className="border-b border-gray-800">
+                                  <td className="py-3 px-4 text-sm text-gray-300">{job.fileName}</td>
+                                  <td className="py-3 px-4">
+                                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${statusColorClass}`}>
+                                      {status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -1499,4 +1443,4 @@ export default function UploadTestPage() {
       </main>
     </BackgroundWrapper>
   );
-}
+} 
