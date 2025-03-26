@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { FiDownload, FiRefreshCw, FiChevronLeft, FiChevronRight, FiFileText } from "react-icons/fi";
-import AudioWaveform from "@/components/custom/diar-plot";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
 
@@ -239,8 +238,11 @@ export default function TranscribePage() {
                         )}
                     </div>
                     
-                    <div className='p-4'>
-                        <AudioWaveform />
+                    <div className='p-4 bg-black/50 backdrop-blur-sm rounded-lg'>
+                        <div className="text-center py-8">
+                            <h3 className="text-xl font-semibold mb-2">Audio Visualization Component Removed</h3>
+                            <p className="text-gray-400">The diar-plot.tsx component has been removed from this project.</p>
+                        </div>
                     </div>
                 </div>
             </main>
