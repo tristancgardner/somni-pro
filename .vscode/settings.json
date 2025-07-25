@@ -34,5 +34,42 @@
             "folderPath": "somni-pro/app/api/agents/",
             "color": "foldercolorizer.color_00cc00"
         }
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        ".eslintrc.json": true,
+        ".gitignore": true,
+        "cleanup-db.js": true,
+        "cleanup-orphaned-file.js": true,
+        "components.json": true,
+        "next-env.d.ts": true,
+        "next.config.js": true,
+        "next.config.mjs": true,
+        "package-lock.json": true,
+        "package.json": true,
+        "postcss.config.mjs": true,
+        "tailwind.config.ts": true,
+        "tsconfig.json": true,
+        "node_modules": true
+    },
+    "hide-files.files": [
+        ".eslintrc.json",
+        ".gitignore",
+        "cleanup-db.js",
+        "cleanup-orphaned-file.js",
+        "components.json",
+        "next-env.d.ts",
+        "next.config.js",
+        "next.config.mjs",
+        "package-lock.json",
+        "package.json",
+        "postcss.config.mjs",
+        "tailwind.config.ts",
+        "tsconfig.json",
+        "node_modules"
     ]
 }
