@@ -48,8 +48,8 @@ import { Check } from "lucide-react"; // Add this import
 import { motion } from "framer-motion";
 
 import { testSimpleEndpoint, transcribe_endpoint } from "@/app/api/transcribe";
-import { SegmentsBySpeaker } from "@/components/transcribe_viewer/SegBySpeaker";
-import { SegmentTimeline } from "@/components/transcribe_viewer/SegTimeline";
+import { SegmentsBySpeaker } from "@/components/asr_viewer/SegBySpeaker";
+import { SegmentTimeline } from "@/components/asr_viewer/SegTimeline";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import Summarize from "../asr_analysis/Summarize";

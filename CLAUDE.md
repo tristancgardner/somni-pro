@@ -1,0 +1,1 @@
+When working with UI and next.js, don't run `npm run dev` on your own. Ask me to paste any errors from terminal where I'm already running it. 

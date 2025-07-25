@@ -2,13 +2,12 @@
 
 import AudioWaveform, {
     TranscriptionResult,
-} from "@/components/custom/diar-plot";
+} from "@/components/audio_plot/diar-plot";
 import PromptLlama from "@/components/inference/prompt-llama";
 import Summarize from "@/components/asr_analysis/Summarize";
 import { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
-import { Speaker } from "@/components/custom/diar-plot";
 import { motion } from "framer-motion";
 
 export default function TranscribePage() {

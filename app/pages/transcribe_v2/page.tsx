@@ -2,7 +2,7 @@
 
 import AudioWaveform, {
     TranscriptionResult,
-} from "@/components/custom/diar-plot";
+} from "@/components/audio_plot/diar-plot";
 import { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import BackgroundWrapper from "@/components/BackgroundWrapper";
